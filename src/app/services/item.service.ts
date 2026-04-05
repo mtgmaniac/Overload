@@ -1,0 +1,206 @@
+import { Injectable, Injector, inject } from '@angular/core';
+import raw from '../data/json/items.data.json';
+import type { ItemDefinition } from '../models/item.interface';
+import { ITEM_PROTOCOL_COST, INVENTORY_MAX } from '../models/constants';
+import { enemyRfeFromStacks } from '../models/enemy.interface';
+import { GameStateService } from './game-state.service';
+import { CombatService } from './combat.service';
+
+const ITEMS: ItemDefinition[] = (raw as { items: ItemDefinition[] }).items;
+const BY_ID = new Map(ITEMS.map(i => [i.id, i]));
+
+@Injectable({ providedIn: 'root' })
+export class ItemService {
+  private state = inject(GameStateService);
+  private injector = inject(Injector);
+  private draftDone: (() => void) | null = null;
+
+  private combat(): CombatService {
+    return this.injector.get(CombatService);
+  }
+
+  allDefinitions(): ItemDefinition[] {
+    return ITEMS;
+  }
+
+  getDef(id: string): ItemDefinition | undefined {
+    return BY_ID.get(id);
+  }
+
+  protocolCost(def: ItemDefinition): number {
+    return ITEM_PROTOCOL_COST[def.rarity];
+  }
+
+  /** Begin post-win draft if there is inventory space; otherwise run `done` immediately. */
+  startPostWinDraft(done: () => void): void {
+    const inv = this.state.inventory();
+    if (inv.every(x => x != null)) {
+      this.state.addLog('Supply cache: inventory full (3/3). Skipped.', 'sy');
+      done();
+      return;
+    }
+    this.draftDone = done;
+    const pool = ITEMS.map(i => i.id);
+    const picks: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      picks.push(pool[Math.floor(Math.random() * pool.length)]!);
+    }
+    this.state.itemDraftChoices.set(picks);
+  }
+
+  skipDraft(): void {
+    this.state.itemDraftChoices.set(null);
+    const d = this.draftDone;
+    this.draftDone = null;
+    d?.();
+  }
+
+  pickDraftItem(itemId: string): void {
+    if (!this.getDef(itemId)) return;
+    const added = this.tryAddToInventory(itemId);
+    if (!added) {
+      this.state.addLog('Could not stash item — inventory full.', 'sy');
+    } else {
+      const d = this.getDef(itemId);
+      this.state.addLog(`▸ Supply cache: took ${d?.name ?? itemId}.`, 'vi');
+    }
+    this.state.itemDraftChoices.set(null);
+    const cb = this.draftDone;
+    this.draftDone = null;
+    cb?.();
+  }
+
+  tryAddToInventory(itemId: string): boolean {
+    let ok = false;
+    this.state.inventory.update(inv => {
+      const next = [...inv];
+      while (next.length < INVENTORY_MAX) next.push(null);
+      const empty = next.findIndex(x => x == null);
+      if (empty < 0) return inv;
+      next[empty] = itemId;
+      ok = true;
+      return next;
+    });
+    return ok;
+  }
+
+  /** Toggle: same slot cancels. */
+  beginUseInventorySlot(slot: number): void {
+    if (this.state.phase() !== 'player') return;
+    const id = this.state.inventory()[slot];
+    if (!id) return;
+    const def = this.getDef(id);
+    if (!def) return;
+    const cost = this.protocolCost(def);
+    if (this.state.protocol() < cost) {
+      this.state.addLog(`Not enough Protocol (${cost} needed for ${def.name}).`, 'sy');
+      return;
+    }
+
+    const cur = this.state.pendingItemSelection();
+    if (cur?.invSlot === slot) {
+      this.state.pendingItemSelection.set(null);
+      return;
+    }
+
+    this.state.pendingProtocol.set(null);
+    this.state.selectedHeroIdx.set(null);
+    this.state.pendingItemSelection.set({ invSlot: slot, itemId: id });
+  }
+
+  cancelPendingItem(): void {
+    this.state.pendingItemSelection.set(null);
+  }
+
+  confirmOnAllyLiving(invSlot: number, heroIdx: number): void {
+    const pending = this.state.pendingItemSelection();
+    if (!pending || pending.invSlot !== invSlot) return;
+    const def = this.getDef(pending.itemId);
+    if (!def || def.target !== 'ally') return;
+    const h = this.state.heroes()[heroIdx];
+    if (!h || h.currentHp <= 0) return;
+    this.commitConsumeAndApply(invSlot, def, heroIdx, null);
+  }
+
+  confirmOnAllyDead(invSlot: number, heroIdx: number): void {
+    const pending = this.state.pendingItemSelection();
+    if (!pending || pending.invSlot !== invSlot) return;
+    const def = this.getDef(pending.itemId);
+    if (!def || def.target !== 'allyDead') return;
+    const h = this.state.heroes()[heroIdx];
+    if (!h || h.currentHp > 0) return;
+    this.commitConsumeAndApply(invSlot, def, heroIdx, null);
+  }
+
+  confirmOnEnemy(invSlot: number, enemyIdx: number): void {
+    const pending = this.state.pendingItemSelection();
+    if (!pending || pending.invSlot !== invSlot) return;
+    const def = this.getDef(pending.itemId);
+    if (!def || def.target !== 'enemy') return;
+    const e = this.state.enemies()[enemyIdx];
+    if (!e || e.dead) return;
+    this.commitConsumeAndApply(invSlot, def, null, enemyIdx);
+  }
+
+  private commitConsumeAndApply(
+    invSlot: number,
+    def: ItemDefinition,
+    allyIdx: number | null,
+    enemyIdx: number | null,
+  ): void {
+    const cost = this.protocolCost(def);
+    if (this.state.protocol() < cost) return;
+
+    this.state.protocol.update(p => p - cost);
+    this.state.inventory.update(inv => {
+      const next = [...inv];
+      if (next[invSlot] === def.id) next[invSlot] = null;
+      return next;
+    });
+    this.state.pendingItemSelection.set(null);
+
+    const eff = def.effect;
+    if (eff.type === 'heal' && allyIdx != null) {
+      const h = this.state.heroes()[allyIdx];
+      if (h && h.currentHp > 0) {
+        const nh = Math.min(h.maxHp, h.currentHp + eff.amount);
+        this.state.updateHero(allyIdx, { currentHp: nh });
+        this.state.addLog(`▸ Item: ${def.name} → ${h.name} (+${eff.amount} HP).`, 'pl');
+      }
+    } else if (eff.type === 'shield' && allyIdx != null) {
+      const h = this.state.heroes()[allyIdx];
+      if (h && h.currentHp > 0) {
+        this.state.updateHero(allyIdx, {
+          shield: (h.shield || 0) + eff.amount,
+          shT: eff.shT,
+        });
+        this.state.addLog(`▸ Item: ${def.name} → ${h.name} (+${eff.amount} shield, ${eff.shT}t).`, 'pl');
+      }
+    } else if (eff.type === 'rollBuff' && allyIdx != null) {
+      const h = this.state.heroes()[allyIdx];
+      if (h && h.currentHp > 0) {
+        this.state.updateHero(allyIdx, {
+          pendingRollBuff: (h.pendingRollBuff || 0) + eff.amount,
+          pendingRollBuffT: Math.max(h.pendingRollBuffT || 0, eff.turns),
+        });
+        this.state.addLog(`▸ Item: ${def.name} → ${h.name} (+${eff.amount} roll, ${eff.turns}t).`, 'pl');
+      }
+    } else if (eff.type === 'revive' && allyIdx != null) {
+      const h = this.state.heroes()[allyIdx];
+      if (h && h.currentHp <= 0) {
+        const nh = Math.max(1, Math.round(h.maxHp * (eff.pct / 100)));
+        this.state.updateHero(allyIdx, { currentHp: nh, dot: 0, dT: 0, shield: 0, shT: 0 });
+        this.state.addLog(`▸ Item: ${def.name} → revived ${h.name} at ${nh}/${h.maxHp} HP.`, 'pl');
+      }
+    } else if (eff.type === 'enemyRfe' && enemyIdx != null) {
+      const e = this.state.enemies()[enemyIdx];
+      if (e && !e.dead) {
+        const nextStacks = [...(e.rfeStacks || []), { amt: eff.amount, turnsLeft: eff.rfT }];
+        const { rfe, rfT } = enemyRfeFromStacks(nextStacks);
+        this.state.updateEnemy(enemyIdx, { rfeStacks: nextStacks, rfe, rfT });
+        this.combat().recomputeEnemy(enemyIdx);
+        this.state.addLog(`▸ Item: ${def.name} → ${e.name} (−${eff.amount} roll, ${eff.rfT}t).`, 'pl');
+      }
+    }
+  }
+}
