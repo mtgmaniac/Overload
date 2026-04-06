@@ -68,7 +68,7 @@ function buildHeroEffectSummary(a) {
   }
 
   if (a.revive) parts.push('revive 50%');
-  if (a.cloak) parts.push('cloak (80% dodge next hit)');
+  if (a.cloak) parts.push('Cloak');
   if (a.taunt) parts.push('taunt (enemies target you)');
 
   return parts.length ? parts.join(', ') : '—';

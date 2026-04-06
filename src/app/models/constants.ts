@@ -7,12 +7,11 @@ export const PROTOCOL_REROLL_COST = 2;
 export const PROTOCOL_NUDGE_COST = 1;
 /** Added to hero rollNudge; effective roll capped at 20. */
 export const PROTOCOL_NUDGE_DELTA = 5;
-export const PROTOCOL_START_BATTLE = 1;
-
 export const ITEM_PROTOCOL_COST: Record<ItemRarity, number> = {
   common: 1,
   uncommon: 2,
   rare: 3,
+  legendary: 5,
 };
 
 export const INVENTORY_MAX = 3;

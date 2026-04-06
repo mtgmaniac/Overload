@@ -25,7 +25,7 @@ import { ProtocolService } from './protocol.service';
 import { EvolutionService } from './evolution.service';
 import { TutorialService } from './tutorial.service';
 import { ItemService } from './item.service';
-import { PROTOCOL_START_BATTLE } from '../models/constants';
+import { PortraitPreloadService } from './portrait-preload.service';
 
 @Injectable({ providedIn: 'root' })
 export class CombatService {
@@ -40,6 +40,7 @@ export class CombatService {
     private tutorial: TutorialService,
     private enemyContent: EnemyContentService,
     private items: ItemService,
+    private portraitPreload: PortraitPreloadService,
   ) {}
 
   // ── Enemy ability resolution ──
@@ -376,7 +377,7 @@ export class CombatService {
 
     if (ab.cloak) {
       this.state.updateHero(hi, { cloaked: true });
-      this.log.log(`▸ ${h.name} is cloaked (80% dodge next hit).`, 'pl');
+      this.log.log(`▸ ${h.name} is cloaked.`, 'pl');
     }
     if (ab.taunt) {
       this.state.tauntHeroId.set(h.id);
@@ -793,6 +794,7 @@ export class CombatService {
       return createEnemyState(this.enemyDefForCurrentBattle(raw, battleIdx), i);
     });
 
+    this.portraitPreload.warmBattle(this.state.heroes(), enemies);
     this.state.enemies.set(enemies);
     this.state.phase.set('player');
     this.state.target.set(0);
@@ -807,6 +809,7 @@ export class CombatService {
     this.state.squadDiceSettling.set(false);
     this.state.enemyDiceSettling.set(false);
     this.state.enemyTrayRevealed.set(false);
+    this.state.endTurnHeroResolveCursor.set(null);
     this.state.showOverlay.set(false);
 
     // Fresh battle: no squad dice or locks until ROLL ALL / individual rolls (carries over from prior battle otherwise)
@@ -816,8 +819,8 @@ export class CombatService {
     // Enemy abilities roll when the player reveals the tray (ROLL ALL / last squad die)
     this.targeting.assignTargets();
 
-    // First player round of this battle starts with this much Protocol (+1 each round after END TURN).
-    this.state.protocol.set(PROTOCOL_START_BATTLE);
+    // Protocol starts at 0; first gain is +1 when returning to the player phase after the first END TURN.
+    this.state.protocol.set(0);
 
     this.log.log(`— ${battleModeConfig(this.state.battleModeId()).label.toUpperCase()} · BATTLE ${battleIdx + 1} START —`, 'sy');
   }
@@ -900,53 +903,62 @@ export class CombatService {
       this.targeting.runAutoTargetForHero(i);
     });
 
-    // Tick enemy DoTs
-    this.state.enemies().forEach((e, i) => {
-      if (e.dead) return;
-      if (e.dot > 0 && e.dT > 0) {
-        this.applyDamageToEnemy(i, e.dot, 'DoT', false);
-        const newDT = e.dT - 1;
-        this.state.updateEnemy(i, { dT: newDT, dot: newDT <= 0 ? 0 : e.dot });
-      }
-      const stacks = e.rfeStacks?.length ? e.rfeStacks : [];
-      if (stacks.length > 0) {
-        const next = tickEnemyRfeStacks(stacks);
-        const { rfe, rfT } = enemyRfeFromStacks(next);
-        this.state.updateEnemy(i, { rfeStacks: next, rfe, rfT });
-      }
-    });
+    this.state.endTurnHeroResolveCursor.set(0);
+    try {
+      // Tick enemy DoTs
+      this.state.enemies().forEach((e, i) => {
+        if (e.dead) return;
+        if (e.dot > 0 && e.dT > 0) {
+          this.applyDamageToEnemy(i, e.dot, 'DoT', false);
+          const newDT = e.dT - 1;
+          this.state.updateEnemy(i, { dT: newDT, dot: newDT <= 0 ? 0 : e.dot });
+        }
+        const stacks = e.rfeStacks?.length ? e.rfeStacks : [];
+        if (stacks.length > 0) {
+          const next = tickEnemyRfeStacks(stacks);
+          const { rfe, rfT } = enemyRfeFromStacks(next);
+          this.state.updateEnemy(i, { rfeStacks: next, rfe, rfT });
+        }
+      });
 
-    // If DoT cleared the fight, still tick squad/hero roll debuffs before win (otherwise stacks never age this END TURN).
-    if (this.state.enemies().every(e => e.dead)) {
+      // If DoT cleared the fight, still tick squad/hero roll debuffs before win (otherwise stacks never age this END TURN).
+      if (this.state.enemies().every(e => e.dead)) {
+        this.state.tickSquadRfmStacksForEndOfPlayerRound();
+        this.state.tickHeroRfmStacksForEndOfPlayerRound();
+        this.state.tickHeroCounterspellStacksForEndOfPlayerRound();
+        this.won();
+        return;
+      }
+
+      // Resolve each hero's ability (left → right), with optional action pacing / portrait flashes
+      for (let hi = 0; hi < this.state.heroes().length; hi++) {
+        await this.resolveHeroEndTurnWithActionPacing(hi);
+        this.state.endTurnHeroResolveCursor.set(hi + 1);
+      }
+
+      // Squad / per-hero −roll debuff: one tick per END TURN after this round’s rolls and abilities resolve.
       this.state.tickSquadRfmStacksForEndOfPlayerRound();
       this.state.tickHeroRfmStacksForEndOfPlayerRound();
       this.state.tickHeroCounterspellStacksForEndOfPlayerRound();
-      this.won();
-      return;
+
+      this.state.heroes().forEach((h, i) => {
+        if (h.currentHp <= 0) return;
+        const ct = h.cowerTurns || 0;
+        if (ct > 0) this.state.updateHero(i, { cowerTurns: ct - 1 });
+      });
+
+      // Check win
+      if (this.state.enemies().every(e => e.dead)) {
+        this.won();
+        return;
+      }
+
+      // Switch to enemy phase
+      this.state.phase.set('enemy');
+      setTimeout(() => this.enemyTurn(), 700);
+    } finally {
+      this.state.endTurnHeroResolveCursor.set(null);
     }
-
-    // Resolve each hero's ability (left → right), with optional action pacing / portrait flashes
-    for (let hi = 0; hi < this.state.heroes().length; hi++) {
-      await this.resolveHeroEndTurnWithActionPacing(hi);
-    }
-
-    // Squad / per-hero −roll debuff: one tick per END TURN after this round’s rolls and abilities resolve.
-    this.state.tickSquadRfmStacksForEndOfPlayerRound();
-    this.state.tickHeroRfmStacksForEndOfPlayerRound();
-    this.state.tickHeroCounterspellStacksForEndOfPlayerRound();
-
-    this.state.heroes().forEach((h, i) => {
-      if (h.currentHp <= 0) return;
-      const ct = h.cowerTurns || 0;
-      if (ct > 0) this.state.updateHero(i, { cowerTurns: ct - 1 });
-    });
-
-    // Check win
-    if (this.state.enemies().every(e => e.dead)) { this.won(); return; }
-
-    // Switch to enemy phase
-    this.state.phase.set('enemy');
-    setTimeout(() => this.enemyTurn(), 700);
   }
 
   // ── Enemy turn ──
@@ -1004,26 +1016,17 @@ export class CombatService {
     const tut = this.state.tutorial();
     if (tut?.active) {
       const nextRes = (tut.resolutions ?? 0) + 1;
-      if (nextRes === 2) {
-        this.state.tutorial.set({
-          ...tut,
-          resolutions: nextRes,
-          showTurn2Modal: false,
-          showComplete: true,
-          coachStep: 4,
-          r2CoachStep: 5,
-        });
-        this.state.phase.set('player');
-        this.log.log(`— TUTORIAL COMPLETE —`, 'vi');
-        return;
-      }
       this.state.tutorial.set({
         ...tut,
         resolutions: nextRes,
-        showTurn2Modal: nextRes === 1,
-        coachStep: 4,
+        showTurn2Modal: false,
+        showComplete: true,
+        coachStep: 5,
         r2CoachStep: 0,
       });
+      this.state.phase.set('player');
+      this.log.log(`— TUTORIAL COMPLETE —`, 'vi');
+      return;
     }
 
     // Next player round: no squad rolls and no enemy plan until reveal
@@ -1058,6 +1061,13 @@ export class CombatService {
     if (this.state.battle() >= lastBattleIdx) {
       this.showOverlay(mode.victoryTitle, mode.victorySub, 'NEW RUN ↺', true, () => this.newRun());
       return;
+    }
+
+    const nextBattleIdx = this.state.battle() + 1;
+    const nextDef = battlesForMode(this.state.battleModeId())[nextBattleIdx];
+    if (nextDef) {
+      const types = nextDef.enemies.map(s => this.enemyContent.expandFromSpawn(s).type);
+      this.portraitPreload.warmEnemyTypes(types);
     }
 
     // Item draft after every cleared battle (easier to test); skip when inventory full — see ItemService.

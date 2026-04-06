@@ -22,7 +22,8 @@ import { HERO_PORTRAIT_FRAME } from '../../../data/sprites.data';
     .portrait-frame {
       border-radius: var(--radius-pixel);
       border: 2px solid var(--border);
-      background: var(--bg3);
+      /* Match page base — not --bg3; transparent portrait pixels were reading as a blue “film”. */
+      background: var(--bg);
       box-shadow: inset 2px 2px 0 rgba(255,255,255,.06), inset -2px -2px 0 rgba(0,0,0,.4), 2px 2px 0 #000;
       display: flex;
       align-items: center;

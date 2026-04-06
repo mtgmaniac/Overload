@@ -15,7 +15,7 @@ import {
   UnitStatusRibbonLine,
 } from '../../shared/unit-status-ribbon/unit-status-ribbon.component';
 import { enemyPortraitSvg } from '../../../data/sprites.data';
-import { ENEMY_FRAME_COLORS } from '../../../data/unit-frame-colors';
+import { enemyUnitFrameColor } from '../../../data/unit-frame-colors';
 
 @Component({
   selector: 'app-enemy-card',
@@ -31,8 +31,7 @@ import { ENEMY_FRAME_COLORS } from '../../../data/unit-frame-colors';
            [style.border-color]="unitFrameColor()"
            (click)="onCardClick()">
         <!-- Ability panel (matches hero card) -->
-        <div class="ap">
-          <div class="ap-title">ABILITIES</div>
+        <div class="ap" [class.ap-await-roll]="enemyAbilityPanelAwaitingRoll()">
           @for (zone of zones; track zone) {
             @if (getAbilityForZone(zone); as ab) {
               <app-ability-row
@@ -40,6 +39,7 @@ import { ENEMY_FRAME_COLORS } from '../../../data/unit-frame-colors';
                 [zone]="zone"
                 [rangeStr]="enemyRangeStr(zone)"
                 [isCurrent]="isCurrentZone(zone)"
+                [highlightLocked]="enemyAbilityHighlightLocked()"
                 effectVariant="enemy" />
             }
           }
@@ -124,13 +124,13 @@ import { ENEMY_FRAME_COLORS } from '../../../data/unit-frame-colors';
     .ap {
       flex-shrink: 0;
       background: var(--bg);
-      padding: 5px 8px;
+      padding: 6px 7px;
       border-bottom: 2px solid var(--border);
+      transition: box-shadow 0.16s ease, background 0.16s ease;
     }
-    .ap-title {
-      font-size: clamp(7px, 2.1vw, 8px);
-      letter-spacing: 2px;
-      color: #4a6a8a;
+    .ap.ap-await-roll {
+      background: linear-gradient(180deg, rgba(100, 145, 195, 0.14) 0%, var(--bg) 72%);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), inset 0 -8px 14px rgba(80, 130, 190, 0.08);
     }
     .hbot {
       flex: 1;
@@ -150,13 +150,13 @@ import { ENEMY_FRAME_COLORS } from '../../../data/unit-frame-colors';
       align-self: stretch;
     }
     .hname {
-      font-size: clamp(10px, 3.2vw, 12px);
+      font-size: clamp(11px, 3.4vw, 13px);
       font-weight: 800;
       color: #fff;
     }
     .hero-target-line {
-      font-size: clamp(7px, 2.4vw, 9px);
-      line-height: 1.35;
+      font-size: clamp(8px, 2.6vw, 10px);
+      line-height: 1.4;
       color: #6f95b3;
       margin-top: 4px;
       display: flex;
@@ -199,7 +199,7 @@ export class EnemyCardComponent {
 
   zones = ZONES;
 
-  unitFrameColor = computed(() => ENEMY_FRAME_COLORS[this.enemy().type]);
+  unitFrameColor = computed(() => enemyUnitFrameColor(this.enemy().type));
 
   rampagePortraitTip = computed((): string | null => {
     const e = this.enemy();
@@ -223,6 +223,12 @@ export class EnemyCardComponent {
   });
 
   enemySvg = computed(() => enemyPortraitSvg(this.enemy().type));
+
+  /** Enemy tray not yet revealed: whole ability panel reads as lit (dead cards skip this glow). */
+  enemyAbilityPanelAwaitingRoll = computed(() => this.hideRoll() && !this.enemy().dead);
+
+  /** Revealed enemy roll: dim every row except the matching zone. */
+  enemyAbilityHighlightLocked = computed(() => !this.hideRoll() && !this.enemy().dead);
 
   targetLine = computed(() => {
     this.state.heroes();

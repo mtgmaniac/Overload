@@ -1,6 +1,7 @@
 import { Injectable, Injector, inject } from '@angular/core';
 import raw from '../data/json/items.data.json';
 import type { ItemDefinition } from '../models/item.interface';
+import type { ItemRarity } from '../models/types';
 import { ITEM_PROTOCOL_COST, INVENTORY_MAX } from '../models/constants';
 import { enemyRfeFromStacks } from '../models/enemy.interface';
 import { GameStateService } from './game-state.service';
@@ -8,6 +9,33 @@ import { CombatService } from './combat.service';
 
 const ITEMS: ItemDefinition[] = (raw as { items: ItemDefinition[] }).items;
 const BY_ID = new Map(ITEMS.map(i => [i.id, i]));
+
+/**
+ * Post-win draft: weighted tiers; legendary is very rare (~2% per slot).
+ * Add new legendary consumables to items.data.json to grow the pool.
+ */
+const DRAFT_RARITY_WEIGHTS: Record<ItemRarity, number> = {
+  common: 0.68,
+  uncommon: 0.21,
+  rare: 0.09,
+  legendary: 0.02,
+};
+
+function pickDraftRarity(): ItemRarity {
+  const r = Math.random();
+  let c = 0;
+  for (const tier of ['common', 'uncommon', 'rare', 'legendary'] as const) {
+    c += DRAFT_RARITY_WEIGHTS[tier];
+    if (r < c) return tier;
+  }
+  return 'common';
+}
+
+function randomItemIdOfRarity(rarity: ItemRarity): string {
+  const pool = ITEMS.filter(i => i.rarity === rarity);
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  return pick?.id ?? ITEMS[0]!.id;
+}
 
 @Injectable({ providedIn: 'root' })
 export class ItemService {
@@ -40,10 +68,9 @@ export class ItemService {
       return;
     }
     this.draftDone = done;
-    const pool = ITEMS.map(i => i.id);
     const picks: string[] = [];
     for (let i = 0; i < 3; i++) {
-      picks.push(pool[Math.floor(Math.random() * pool.length)]!);
+      picks.push(randomItemIdOfRarity(pickDraftRarity()));
     }
     this.state.itemDraftChoices.set(picks);
   }
@@ -105,6 +132,12 @@ export class ItemService {
 
     this.state.pendingProtocol.set(null);
     this.state.selectedHeroIdx.set(null);
+
+    if (def.target === 'none') {
+      this.commitConsumeAndApply(slot, def, null, null);
+      return;
+    }
+
     this.state.pendingItemSelection.set({ invSlot: slot, itemId: id });
   }
 
@@ -200,6 +233,30 @@ export class ItemService {
         this.state.updateEnemy(enemyIdx, { rfeStacks: nextStacks, rfe, rfT });
         this.combat().recomputeEnemy(enemyIdx);
         this.state.addLog(`▸ Item: ${def.name} → ${e.name} (−${eff.amount} roll, ${eff.rfT}t).`, 'pl');
+      }
+    } else if (eff.type === 'cloak' && allyIdx != null) {
+      const h = this.state.heroes()[allyIdx];
+      if (h && h.currentHp > 0) {
+        this.state.updateHero(allyIdx, { cloaked: true });
+        this.state.addLog(`▸ Item: ${def.name} → ${h.name} is cloaked.`, 'pl');
+      }
+    } else if (eff.type === 'cloakAll') {
+      const heroes = this.state.heroes();
+      let n = 0;
+      for (let i = 0; i < heroes.length; i++) {
+        const h = heroes[i];
+        if (h && h.currentHp > 0) {
+          this.state.updateHero(i, { cloaked: true });
+          n++;
+        }
+      }
+      if (n > 0) {
+        this.state.addLog(`▸ Item: ${def.name} → whole squad cloaked (${n}).`, 'pl');
+      }
+    } else if (eff.type === 'enemyDmg' && enemyIdx != null) {
+      const e = this.state.enemies()[enemyIdx];
+      if (e && !e.dead) {
+        this.combat().applyDamageToEnemy(enemyIdx, eff.amount, def.name, false);
       }
     }
   }

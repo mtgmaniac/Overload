@@ -7,7 +7,10 @@ export type ItemEffect =
   | { type: 'shield'; amount: number; shT: number }
   | { type: 'rollBuff'; amount: number; turns: number }
   | { type: 'revive'; pct: number }
-  | { type: 'enemyRfe'; amount: number; rfT: number };
+  | { type: 'enemyRfe'; amount: number; rfT: number }
+  | { type: 'enemyDmg'; amount: number }
+  | { type: 'cloak' }
+  | { type: 'cloakAll' };
 
 export interface ItemDefinition {
   id: string;
@@ -15,7 +18,7 @@ export interface ItemDefinition {
   desc: string;
   rarity: ItemRarity;
   /** Icon key for protocol strip / draft */
-  icon: 'heart' | 'shield' | 'die' | 'bolt' | 'skull' | 'star';
+  icon: 'heart' | 'shield' | 'die' | 'bolt' | 'skull' | 'star' | 'cloak';
   target: ItemTargetKind;
   effect: ItemEffect;
 }

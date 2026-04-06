@@ -23,7 +23,9 @@ export interface UnitStatusRibbonLine {
             [class.usr-rampage]="line.tag === 'RAMPAGE'"
             [attr.title]="line.detail">
             <span class="usr-tag">{{ line.tag }}</span>
-            <span class="usr-detail">{{ line.detail }}</span>
+            @if (line.detail) {
+              <span class="usr-detail">{{ line.detail }}</span>
+            }
           </div>
         }
       </div>
@@ -50,10 +52,10 @@ export interface UnitStatusRibbonLine {
     .usr-tag {
       flex-shrink: 0;
       font-family: var(--font-pixel);
-      font-size: 6px;
+      font-size: 7px;
       font-weight: 800;
       letter-spacing: 0.5px;
-      padding: 1px 3px;
+      padding: 1px 4px;
       border-radius: var(--radius-pixel);
       border: 1px solid rgba(120, 160, 200, 0.45);
       color: #b8d0e8;
@@ -81,10 +83,10 @@ export interface UnitStatusRibbonLine {
     }
     .usr-detail {
       font-family: var(--font-pixel);
-      font-size: 6px;
+      font-size: 7px;
       font-weight: 600;
       color: #6f95b3;
-      line-height: 1.25;
+      line-height: 1.35;
       min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;

@@ -1,5 +1,22 @@
 import { EnemyType, HeroId } from '../models/types';
 
+/**
+ * Raster format for bundled portrait paths and the d20 sheet (`npm run optimize-assets` writes lossless `.webp` siblings).
+ * Use `.webp` after running the optimizer for smaller downloads with identical pixels; keep `.png` until those files exist.
+ */
+export const RASTER_EXT: '.png' | '.webp' = '.png';
+
+const r = (pathWithoutExt: string) => `${pathWithoutExt}${RASTER_EXT}`;
+
+/** D20 sprite sheet — same folder as `public/dice/`. */
+export const DICE_SPRITE_URL = r('/dice/d20-sprite');
+
+function portraitOverrideUrl(url: string): string {
+  if (RASTER_EXT === '.png') return url;
+  if (/\.webp($|[?#])/i.test(url)) return url;
+  return url.replace(/\.png($|[?#])/i, '.webp$1');
+}
+
 /** CSS pixel size of `app-portrait-frame` for heroes and enemy cards (keep in sync with portrait-frame). */
 export const HERO_PORTRAIT_FRAME = { width: 100, height: 132 } as const;
 
@@ -9,68 +26,79 @@ const PORTRAIT_IMG_H = 317;
 
 /** Full-bleed portraits — matched art style (combat reference); flavor per unit. */
 export const HERO_PORTRAIT_PATHS: Record<HeroId, string> = {
-  pulse: '/heroes/pulse-portrait.png',
-  combat: '/heroes/combat-portrait.png',
-  shield: '/heroes/shield-portrait.png',
-  avalanche: '/heroes/avalanche-portrait.png',
-  medic: '/heroes/medic-portrait.png',
-  engineer: '/heroes/engineer-portrait.png',
-  ghost: '/heroes/ghost-portrait.png',
-  breaker: '/heroes/breaker-portrait.png',
+  pulse: r('/heroes/pulse-portrait'),
+  combat: r('/heroes/combat-portrait'),
+  shield: r('/heroes/shield-portrait'),
+  avalanche: r('/heroes/avalanche-portrait'),
+  medic: r('/heroes/medic-portrait'),
+  engineer: r('/heroes/engineer-portrait'),
+  ghost: r('/heroes/ghost-portrait'),
+  breaker: r('/heroes/breaker-portrait'),
 };
+
+/** Same href as embedded in `heroPortraitSvg` — use for preload. */
+export function heroPortraitHref(id: HeroId, portraitPathOverride?: string | null): string {
+  const o = portraitPathOverride?.trim();
+  return o && o.length > 0 ? portraitOverrideUrl(o) : HERO_PORTRAIT_PATHS[id];
+}
 
 export function heroPortraitSvg(id: HeroId, portraitPathOverride?: string | null): string {
   const { width: pw, height: ph } = HERO_PORTRAIT_FRAME;
-  const href = (portraitPathOverride && portraitPathOverride.trim()) || HERO_PORTRAIT_PATHS[id];
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${ph}" viewBox="0 0 ${PORTRAIT_IMG_W} ${PORTRAIT_IMG_H}" preserveAspectRatio="xMidYMid meet"><image href="${href}" xlink:href="${href}" x="0" y="0" width="${PORTRAIT_IMG_W}" height="${PORTRAIT_IMG_H}" preserveAspectRatio="xMidYMid slice"/></svg>`;
+  const href = heroPortraitHref(id, portraitPathOverride);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${ph}" viewBox="0 0 ${PORTRAIT_IMG_W} ${PORTRAIT_IMG_H}" preserveAspectRatio="xMidYMid slice"><image href="${href}" xlink:href="${href}" x="0" y="0" width="${PORTRAIT_IMG_W}" height="${PORTRAIT_IMG_H}" preserveAspectRatio="xMidYMid slice"/></svg>`;
 }
 
 /** Robotic unit busts under `public/enemies/` — same intrinsic size as hero portraits. */
 const ENEMY_STANDALONE_PORTRAIT: Record<EnemyType, string> = {
-  scrap: '/enemies/scrap-portrait.png',
-  rust: '/enemies/rust-portrait.png',
-  patrol: '/enemies/patrol-portrait.png',
-  guard: '/enemies/guard-portrait.png',
-  warden: '/enemies/warden-portrait.png',
-  volt: '/enemies/volt-portrait.png',
-  boss: '/enemies/boss-portrait.png',
-  skitter: '/enemies/skitter-portrait.png',
-  mite: '/enemies/mite-portrait.png',
-  stalker: '/enemies/stalker-portrait.png',
-  carapace: '/enemies/carapace-portrait.png',
-  brood: '/enemies/brood-portrait.png',
-  spewer: '/enemies/spewer-portrait.png',
-  hiveBoss: '/enemies/hive-boss-portrait.png',
-  veilShard: '/enemies/veil-shard-portrait.png',
-  veilPrism: '/enemies/veil-prism-portrait.png',
-  veilAegis: '/enemies/veil-aegis-portrait.png',
-  veilResonance: '/enemies/veil-resonance-portrait.png',
-  veilNull: '/enemies/veil-null-portrait.png',
-  veilStorm: '/enemies/veil-storm-portrait.png',
-  veilSynapse: '/enemies/veil-synapse-portrait.png',
-  veilBoss: '/enemies/veil-boss-portrait.png',
-  voidWisp: '/enemies/void-wisp-portrait.png',
-  voidAcolyte: '/enemies/void-acolyte-portrait.png',
-  voidScribe: '/enemies/void-scribe-portrait.png',
-  voidBinder: '/enemies/void-binder-portrait.png',
-  voidGlimmer: '/enemies/void-glimmer-portrait.png',
-  voidChanneler: '/enemies/void-channeler-portrait.png',
-  voidCircletBoss: '/enemies/void-circlet-boss-portrait.png',
-  beastMonkey: '/enemies/rift-macaque-portrait.png',
-  beastWolf: '/enemies/void-wolf-portrait.png',
-  beastLynx: '/enemies/eclipse-lynx-portrait.png',
-  beastBison: '/enemies/thunder-bison-portrait.png',
-  beastHyena: '/enemies/eclipse-hyena-portrait.png',
-  beastBadger: '/enemies/ridge-badger-portrait.png',
-  beastTyrant: '/enemies/void-reaver-portrait.png',
-  signalSkimmer: '/enemies/rust-portrait.png',
-  commsHex: '/enemies/volt-portrait.png',
+  scrap: r('/enemies/scrap-portrait'),
+  rust: r('/enemies/rust-portrait'),
+  patrol: r('/enemies/patrol-portrait'),
+  guard: r('/enemies/guard-portrait'),
+  warden: r('/enemies/warden-portrait'),
+  volt: r('/enemies/volt-portrait'),
+  boss: r('/enemies/boss-portrait'),
+  skitter: r('/enemies/skitter-portrait'),
+  mite: r('/enemies/mite-portrait'),
+  stalker: r('/enemies/stalker-portrait'),
+  carapace: r('/enemies/carapace-portrait'),
+  brood: r('/enemies/brood-portrait'),
+  spewer: r('/enemies/spewer-portrait'),
+  hiveBoss: r('/enemies/hive-boss-portrait'),
+  veilShard: r('/enemies/veil-shard-portrait'),
+  veilPrism: r('/enemies/veil-prism-portrait'),
+  veilAegis: r('/enemies/veil-aegis-portrait'),
+  veilResonance: r('/enemies/veil-resonance-portrait'),
+  veilNull: r('/enemies/veil-null-portrait'),
+  veilStorm: r('/enemies/veil-storm-portrait'),
+  veilSynapse: r('/enemies/veil-synapse-portrait'),
+  veilBoss: r('/enemies/veil-boss-portrait'),
+  voidWisp: r('/enemies/void-wisp-portrait'),
+  voidAcolyte: r('/enemies/void-acolyte-portrait'),
+  voidScribe: r('/enemies/void-scribe-portrait'),
+  voidBinder: r('/enemies/void-binder-portrait'),
+  voidGlimmer: r('/enemies/void-glimmer-portrait'),
+  voidChanneler: r('/enemies/void-channeler-portrait'),
+  voidCircletBoss: r('/enemies/void-circlet-boss-portrait'),
+  beastMonkey: r('/enemies/rift-macaque-portrait'),
+  beastWolf: r('/enemies/void-wolf-portrait'),
+  beastLynx: r('/enemies/eclipse-lynx-portrait'),
+  beastBison: r('/enemies/thunder-bison-portrait'),
+  beastHyena: r('/enemies/eclipse-hyena-portrait'),
+  beastBadger: r('/enemies/ridge-badger-portrait'),
+  beastTyrant: r('/enemies/void-reaver-portrait'),
+  signalSkimmer: r('/enemies/rust-portrait'),
+  commsHex: r('/enemies/volt-portrait'),
 };
+
+/** Same href as embedded in `enemyPortraitSvg` — use for preload. */
+export function enemyPortraitHref(type: EnemyType): string {
+  return ENEMY_STANDALONE_PORTRAIT[type];
+}
 
 export function enemyPortraitSvg(type: EnemyType): string {
   const { width: pw, height: ph } = HERO_PORTRAIT_FRAME;
-  const href = ENEMY_STANDALONE_PORTRAIT[type];
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${ph}" viewBox="0 0 ${PORTRAIT_IMG_W} ${PORTRAIT_IMG_H}" preserveAspectRatio="xMidYMid meet"><image href="${href}" xlink:href="${href}" x="0" y="0" width="${PORTRAIT_IMG_W}" height="${PORTRAIT_IMG_H}" preserveAspectRatio="xMidYMid slice"/></svg>`;
+  const href = enemyPortraitHref(type);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${ph}" viewBox="0 0 ${PORTRAIT_IMG_W} ${PORTRAIT_IMG_H}" preserveAspectRatio="xMidYMid slice"><image href="${href}" xlink:href="${href}" x="0" y="0" width="${PORTRAIT_IMG_W}" height="${PORTRAIT_IMG_H}" preserveAspectRatio="xMidYMid slice"/></svg>`;
 }
 
 export const BDG_SVG: Record<string, string> = {

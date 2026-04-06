@@ -43,11 +43,15 @@ export type EnemyType =
   | 'beastTyrant'
   | 'signalSkimmer'
   | 'commsHex';
+
+/** Visual grouping for enemy card frames — matches operation tracks (facility, hive, veil, void, beasts) plus comms drones. */
+export type EnemyRace = 'facility' | 'hive' | 'veil' | 'void' | 'beast' | 'signal';
+
 export type LogClass = '' | 'pl' | 'en' | 'sy' | 'bl' | 'vi' | 'de';
 export type ProtocolAction = 'reroll' | 'nudge' | null;
 export type TargetPickKind = 'enemy' | 'heal' | 'shield' | 'rollBuff' | 'revive' | null;
 
-export type ItemRarity = 'common' | 'uncommon' | 'rare';
+export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'legendary';
 export type LogMode = 'min' | 'all';
 export type HeroId =
   | 'pulse'

@@ -1,55 +1,60 @@
-import type { EnemyType, HeroId } from '../models/types';
+import type { EnemyRace, EnemyType } from '../models/types';
 
-/** Thin outer frame on enemy cards — one color per archetype (matches unit art tone). */
-export const ENEMY_FRAME_COLORS = {
-  scrap: '#4a6a8a',
-  rust: '#5d6478',
-  patrol: '#c47a1a',
-  guard: '#3a8a72',
-  warden: '#a67a3a',
-  volt: '#9a5fd4',
-  boss: '#d84a2a',
-  skitter: '#5a8c4e',
-  mite: '#8a5c6a',
-  stalker: '#9a7a22',
-  carapace: '#2e6b58',
-  brood: '#7a5c2a',
-  spewer: '#6ab84a',
-  hiveBoss: '#c2365c',
-  veilShard: '#3dd4d4',
-  veilPrism: '#e8c85a',
-  veilAegis: '#3d8ab8',
-  veilResonance: '#b89a4a',
-  veilNull: '#7b6fd4',
-  veilStorm: '#c45fd8',
-  veilSynapse: '#4ad4b0',
-  veilBoss: '#d4af37',
-  voidWisp: '#6b8cff',
-  voidAcolyte: '#9b7dff',
-  voidScribe: '#5ec8e8',
-  voidBinder: '#c45fd8',
-  voidGlimmer: '#e8a0ff',
-  voidChanneler: '#ff6b9d',
-  voidCircletBoss: '#ffd700',
-  beastMonkey: '#6a5a48',
-  beastWolf: '#4a4a58',
-  beastLynx: '#3a4a6a',
-  beastBison: '#5a4a48',
-  beastHyena: '#6a5a38',
-  beastBadger: '#4a4a4a',
-  beastTyrant: '#8a2028',
-  signalSkimmer: '#5a6a72',
-  commsHex: '#4a5a8a',
-} as const satisfies Record<EnemyType, string>;
+/** Shared neutral frame for all player heroes (not per-class). */
+export const HERO_UNIT_FRAME_COLOR = '#5c7fa3';
 
-/** Thin outer frame on hero cards — per-hero identity (overridable via `HeroDefinition.frameColor`). */
-export const HERO_FRAME_COLORS = {
-  pulse: '#42a8e8',
-  combat: '#c8583a',
-  shield: '#3a9a9a',
-  avalanche: '#6a9ed8',
-  medic: '#3cb86e',
-  engineer: '#d4a82a',
-  ghost: '#8b7ae0',
-  breaker: '#c07030',
-} as const satisfies Record<HeroId, string>;
+/** One border accent per enemy race — every unit of that race uses the same color. */
+export const ENEMY_RACE_FRAME_COLORS: Record<EnemyRace, string> = {
+  facility: '#708cad',
+  hive: '#5cad72',
+  veil: '#3ec9c4',
+  void: '#a080ff',
+  beast: '#d4a05a',
+  signal: '#6b9fe8',
+};
+
+export const ENEMY_TYPE_TO_RACE: Record<EnemyType, EnemyRace> = {
+  scrap: 'facility',
+  rust: 'facility',
+  patrol: 'facility',
+  guard: 'facility',
+  warden: 'facility',
+  volt: 'facility',
+  boss: 'facility',
+  skitter: 'hive',
+  mite: 'hive',
+  stalker: 'hive',
+  carapace: 'hive',
+  brood: 'hive',
+  spewer: 'hive',
+  hiveBoss: 'hive',
+  veilShard: 'veil',
+  veilPrism: 'veil',
+  veilAegis: 'veil',
+  veilResonance: 'veil',
+  veilNull: 'veil',
+  veilStorm: 'veil',
+  veilSynapse: 'veil',
+  veilBoss: 'veil',
+  voidWisp: 'void',
+  voidAcolyte: 'void',
+  voidScribe: 'void',
+  voidBinder: 'void',
+  voidGlimmer: 'void',
+  voidChanneler: 'void',
+  voidCircletBoss: 'void',
+  beastMonkey: 'beast',
+  beastWolf: 'beast',
+  beastLynx: 'beast',
+  beastBison: 'beast',
+  beastHyena: 'beast',
+  beastBadger: 'beast',
+  beastTyrant: 'beast',
+  signalSkimmer: 'signal',
+  commsHex: 'signal',
+};
+
+export function enemyUnitFrameColor(type: EnemyType): string {
+  const race = ENEMY_TYPE_TO_RACE[type];
+  return ENEMY_RACE_FRAME_COLORS[race];
+}

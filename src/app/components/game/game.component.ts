@@ -36,10 +36,12 @@ import { TUTORIAL_PARTY_IDS } from '../../data/tutorial-steps.data';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (state.showOperationPicker()) {
-      <app-operation-picker (startTutorial)="startTutorialFromHelp()" />
+      <app-operation-picker
+        (startTutorial)="startTutorialFromHelp()"
+        (helpClicked)="helpOpen.set(true)" />
     } @else {
       <div id="app">
-        <app-header (helpClicked)="helpOpen.set(true)" (changeOperationClicked)="onChangeOperation()" />
+        <app-header (helpClicked)="helpOpen.set(true)" (backHomeClicked)="onChangeOperation()" />
         <div class="lanes">
           <app-enemy-zone />
           <app-dice-tray />
@@ -97,6 +99,6 @@ export class GameComponent {
   }
 
   onTutorialExitRegular(): void {
-    this.combat.newRun();
+    this.combat.returnToOperationPicker();
   }
 }

@@ -6,13 +6,17 @@ import { BattleModeId, GamePhase, HeroId, LogClass, LogMode, ProtocolAction, Zon
 import type { PendingItemSelection } from '../models/item.interface';
 import { battleCountForMode, battleModeConfig, DEFAULT_BATTLE_MODE } from '../data/battle-modes.data';
 import { HeroContentService } from './hero-content.service';
+import { PortraitPreloadService } from './portrait-preload.service';
 
 /** One enemy-applied squad roll debuff application; expires independently. */
 export type SquadRfmStack = { amt: number; turnsLeft: number };
 
 @Injectable({ providedIn: 'root' })
 export class GameStateService {
-  constructor(private readonly heroContent: HeroContentService) {}
+  constructor(
+    private readonly heroContent: HeroContentService,
+    private readonly portraitPreload: PortraitPreloadService,
+  ) {}
 
   // ── Primary state signals ──
   /** Which operation / battle track is active (facility, hive, …). */
@@ -48,6 +52,11 @@ export class GameStateService {
   readonly squadSettleHeroIdx = signal<number | null>(null);
   readonly enemyDiceSettling = signal(false);
   readonly enemyTrayRevealed = signal(false);
+  /**
+   * During END TURN resolution: heroes with index < this value have already applied abilities.
+   * Used so enemy “Incoming” debuff/dmg previews drop in sync with “Status” as each hero resolves.
+   */
+  readonly endTurnHeroResolveCursor = signal<number | null>(null);
 
   // ── Overlay signals ──
   readonly showOverlay = signal(false);
@@ -238,16 +247,19 @@ export class GameStateService {
   }
 
   initHeroes(partyIds?: HeroId[]): void {
+    let heroes: HeroState[];
     if (partyIds) {
       const defs = this.heroContent.heroes();
-      const heroes = partyIds
+      heroes = partyIds
         .map(id => defs.find(h => h.id === id))
         .filter((h): h is (typeof defs)[number] => !!h)
         .map(h => createHeroState(h));
       this.heroes.set(heroes);
     } else {
-      this.heroes.set(this.pick3());
+      heroes = this.pick3();
+      this.heroes.set(heroes);
     }
+    this.portraitPreload.warmHeroPortraits(heroes);
   }
 
   resetHeroForNewRound(index: number): void {
@@ -299,6 +311,7 @@ export class GameStateService {
     this.squadSettleHeroIdx.set(null);
     this.enemyDiceSettling.set(false);
     this.enemyTrayRevealed.set(false);
+    this.endTurnHeroResolveCursor.set(null);
     this.showOverlay.set(false);
   }
 }

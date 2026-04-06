@@ -57,24 +57,6 @@ export class TargetingService {
     return !!(ab && ab.rfmTgt && (ab.rfm || 0) > 0);
   }
 
-  /**
-   * Ally-targeted support + single-target offensive effect: player picks only the ally;
-   * hit/DoT/−roll on enemies is resolved against a random living enemy (no second click).
-   */
-  allyOffenseUsesRandomEnemy(ab: HeroAbility | null): boolean {
-    if (!ab || !this.needsEnemyPick(ab)) return false;
-    return (
-      this.needsAllyShieldPick(ab) || this.needsAllyHealPick(ab) || this.needsAllyRollBuffPick(ab)
-    );
-  }
-
-  private randomLivingEnemyIndex(): number | null {
-    const enemies = this.state.enemies();
-    const alive = enemies.map((e, i) => (!e.dead ? i : -1)).filter(i => i >= 0);
-    if (!alive.length) return null;
-    return alive[Math.floor(Math.random() * alive.length)]!;
-  }
-
   needsRevivePick(ab: HeroAbility | null): boolean {
     return !!(ab && ab.revive);
   }
@@ -107,23 +89,17 @@ export class TargetingService {
     if (!h || h.roll === null) return null;
     const ab = this.dice.getAbilityOrNull(h);
     if (!ab) return null;
-    const randEn = this.allyOffenseUsesRandomEnemy(ab);
-    if (randEn) {
-      if (this.needsAllyHealPick(ab) && h.healTgtIdx == null) return 'heal';
-      if (this.needsAllyShieldPick(ab) && h.shTgtIdx == null) return 'shield';
-      if (this.needsAllyRollBuffPick(ab) && h.rfmTgtIdx == null) return 'rollBuff';
-      return null;
-    }
+    // Buffs / revive first (ally targets only); then enemy targeting for damage/DoT/debuffs.
+    if (this.needsAllyHealPick(ab) && h.healTgtIdx == null) return 'heal';
+    if (this.needsAllyShieldPick(ab) && h.shTgtIdx == null) return 'shield';
+    if (this.needsAllyRollBuffPick(ab) && h.rfmTgtIdx == null) return 'rollBuff';
+    if (this.reviveRequiresTargetPick(ab) && h.reviveTgtIdx == null) return 'revive';
     if (this.needsEnemyPick(ab)) {
       const ei = h.lockedTarget;
       const enemies = this.state.enemies();
       const ok = ei !== undefined && ei !== null && enemies[ei] && !enemies[ei].dead;
       if (!ok) return 'enemy';
     }
-    if (this.needsAllyHealPick(ab)) { if (h.healTgtIdx == null) return 'heal'; }
-    if (this.needsAllyShieldPick(ab)) { if (h.shTgtIdx == null) return 'shield'; }
-    if (this.needsAllyRollBuffPick(ab)) { if (h.rfmTgtIdx == null) return 'rollBuff'; }
-    if (this.reviveRequiresTargetPick(ab)) { if (h.reviveTgtIdx == null) return 'revive'; }
     return null;
   }
 
@@ -331,6 +307,19 @@ export class TargetingService {
 
     if (h.roll === null) return;
 
+    const shiPending = this.state.selectedHeroIdx();
+    if (
+      shiPending != null &&
+      shiPending !== hi &&
+      this.nextPickKindForHero(shiPending) !== null &&
+      this.nextPickKindForHero(hi) === null
+    ) {
+      // Another hero still owes an enemy/ally pick — ignore taps on units whose rolled ability
+      // is all-enemies / self / auto-only (no manual target step), so focus stays on finishing
+      // the pending targeting task.
+      return;
+    }
+
     // One tap on the caster clears heal/shield/rfm/revive/enemy lock even when selection was
     // cleared after the previous pick (otherwise the next click only re-selected).
     if (this.casterRetapShouldResetTargeting(h)) {
@@ -364,10 +353,6 @@ export class TargetingService {
 
     const shi = this.state.selectedHeroIdx();
     if (shi == null) return;
-    const h0 = this.state.heroes()[shi];
-    const ab0 = h0 ? this.dice.getAbilityOrNull(h0) : null;
-    if (ab0 && this.allyOffenseUsesRandomEnemy(ab0)) return;
-
     if (this.nextPickKindForHero(shi) !== 'enemy') return;
 
     this.state.updateHero(shi, { lockedTarget: ei });
@@ -397,30 +382,15 @@ export class TargetingService {
     const nk = this.nextPickKindForHero(shi);
     const heroes = this.state.heroes();
 
-    const hCast = heroes[shi];
-    const abAfter = hCast ? this.dice.getAbilityOrNull(hCast) : null;
-
     if (nk === 'heal') {
       if (heroes[ti].currentHp <= 0) return;
-      const ri = abAfter && this.allyOffenseUsesRandomEnemy(abAfter) ? this.randomLivingEnemyIndex() : undefined;
-      this.state.updateHero(shi, {
-        healTgtIdx: ti,
-        ...(ri != null ? { lockedTarget: ri } : {}),
-      });
+      this.state.updateHero(shi, { healTgtIdx: ti });
     } else if (nk === 'shield') {
       if (heroes[ti].currentHp <= 0) return;
-      const ri = abAfter && this.allyOffenseUsesRandomEnemy(abAfter) ? this.randomLivingEnemyIndex() : undefined;
-      this.state.updateHero(shi, {
-        shTgtIdx: ti,
-        ...(ri != null ? { lockedTarget: ri } : {}),
-      });
+      this.state.updateHero(shi, { shTgtIdx: ti });
     } else if (nk === 'rollBuff') {
       if (heroes[ti].currentHp <= 0) return;
-      const ri = abAfter && this.allyOffenseUsesRandomEnemy(abAfter) ? this.randomLivingEnemyIndex() : undefined;
-      this.state.updateHero(shi, {
-        rfmTgtIdx: ti,
-        ...(ri != null ? { lockedTarget: ri } : {}),
-      });
+      this.state.updateHero(shi, { rfmTgtIdx: ti });
     } else if (nk === 'revive') {
       if (heroes[ti].currentHp > 0) return;
       this.state.updateHero(shi, { reviveTgtIdx: ti });
@@ -514,15 +484,6 @@ export class TargetingService {
       return { t: 'ally', text: t.name };
     };
 
-    const doneWithRandomEnemy = (body: HeroTargetLineSegment[]): HeroTargetLineView => {
-      if (!this.allyOffenseUsesRandomEnemy(ab)) return done(body);
-      return done([
-        ...body,
-        { t: 'plain', text: ' · ' },
-        { t: 'muted', text: 'Random enemy' },
-      ]);
-    };
-
     if (nk === 'enemy') {
       const ei = h.lockedTarget;
       const e = ei != null ? enemies[ei] : null;
@@ -534,17 +495,17 @@ export class TargetingService {
     if (nk === 'shield') {
       const s = allySeg(h.shTgtIdx);
       if (!s) return done([{ t: 'muted', text: '—' }]);
-      return doneWithRandomEnemy([s]);
+      return done([s]);
     }
     if (nk === 'heal') {
       const s = allySeg(h.healTgtIdx);
       if (!s) return done([{ t: 'muted', text: '—' }]);
-      return doneWithRandomEnemy([s]);
+      return done([s]);
     }
     if (nk === 'rollBuff') {
       const s = allySeg(h.rfmTgtIdx);
       if (!s) return done([{ t: 'muted', text: '—' }]);
-      return doneWithRandomEnemy([s]);
+      return done([s]);
     }
     if (nk === 'revive') {
       if (h.reviveTgtIdx == null) return done([{ t: 'muted', text: '—' }]);
@@ -565,9 +526,7 @@ export class TargetingService {
       const s = allySeg(h.rfmTgtIdx);
       if (s) bits.push(s);
     }
-    if (this.allyOffenseUsesRandomEnemy(ab)) {
-      bits.push({ t: 'muted', text: 'Random enemy' });
-    } else if (this.needsEnemyPick(ab) && h.lockedTarget != null) {
+    if (this.needsEnemyPick(ab) && h.lockedTarget != null) {
       const e = enemies[h.lockedTarget];
       if (e && !e.dead) bits.push({ t: 'enemy', text: e.name });
     }

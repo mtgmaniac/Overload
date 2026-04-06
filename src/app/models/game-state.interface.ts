@@ -5,7 +5,15 @@ export interface LogEntry {
   cls: LogClass;
 }
 
-export type TutorialUiHighlight = 'enemy' | 'heroes' | 'dice' | 'protocol' | 'mainRoll' | null;
+export type TutorialUiHighlight =
+  | 'enemy'
+  | 'heroes'
+  | 'dice'
+  | 'protocolMeter'
+  | 'protocolIcons'
+  | 'mainRoll'
+  | 'help'
+  | null;
 
 export interface TutorialState {
   active: boolean;
@@ -13,17 +21,15 @@ export interface TutorialState {
   introComplete: boolean;
   /** Enemy phases finished (1 = after first enemy, open turn-2 brief; 2 = tutorial done). */
   resolutions: number;
+  /** Unused; kept for stable tutorial state shape. */
   showTurn2Modal: boolean;
   showComplete: boolean;
   /**
    * Post-intro coach on round 1: 0 = idle until squad roll, 1 = Pulse→drone, 2 = Shield→ally,
-   * 3 = Medic roll-buff ally, 4 = done.
+   * 3 = Medic roll-buff ally, 4 = prompt END TURN, 5 = hidden after END TURN resolves.
    */
   coachStep: number;
-  /**
-   * Round 2 coach after ROLL ALL: 0 = idle, 1 = spend Protocol on Medic (NUDGE or REROLL),
-   * 2 = Medic Infusion heal target, 3 = Pulse enemy, 4 = Shield enemy debuff, 5 = done.
-   */
+  /** Unused; tutorial ends after one player round + one enemy phase. */
   r2CoachStep: number;
 }
 

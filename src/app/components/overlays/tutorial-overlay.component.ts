@@ -63,94 +63,52 @@ function unionClientRect(selectors: string[]): {
         <div class="tut-panel" [style.left.px]="panelRect()?.left" [style.top.px]="panelRect()?.top">
           @if (state.tutorial()!.showComplete) {
             <div class="tut-k">DONE</div>
-            <div class="tut-title">You're ready</div>
+            <div class="tut-title">First turn complete</div>
             <p class="tut-body">
-              That was a full two-turn drill: damage, shield, enemy hitback, Protocol, and a heal.
-              Start a regular match when you're set — random squad, full campaign rules.
+              You finished a full player turn — dice, targets, <strong>END TURN</strong> — and watched the drone act. You’re
+              set to leave this drill: go home, pick an operation, and start a real game whenever you like. Run the tutorial
+              again from <strong>HELP</strong> if you want another walkthrough.
             </p>
             <button type="button" class="tut-btn tut-btn-primary" (click)="exitRegular.emit()">
-              START REGULAR MATCH
-            </button>
-          } @else if (state.tutorial()!.showTurn2Modal) {
-            <div class="tut-k">ROUND 2</div>
-            <div class="tut-title">Back to the drone</div>
-            <p class="tut-body">
-              Continue, then <strong>ROLL ALL DICE</strong> again. Step-by-step prompts will appear <em>after</em> the roll:
-              spending <strong>Protocol</strong> on <strong>Systems Medic</strong>, then their heal, then the other heroes’ targets.
-            </p>
-            <button type="button" class="tut-btn tut-btn-primary" (click)="tutorial.dismissTurn2Modal()">
-              CONTINUE
+              BACK TO HOME
             </button>
           } @else if (tutorial.coachPanelVisible()) {
             @let t = state.tutorial()!;
-            @if (t.resolutions === 0) {
-              @let cs = t.coachStep;
-              <div class="tut-k">AFTER ROLL · {{ cs }} / 3</div>
-              @switch (cs) {
-                @case (1) {
-                  <div class="tut-title">Damage target</div>
-                  <p class="tut-body">
-                    <strong>{{ tutorial.coachPulseHero()?.name ?? 'Pulse Tech' }}</strong> rolled
-                    <strong>{{ tutorial.coachPulseAbilityName() }}</strong> — a damage ability. Tap
-                    <strong>{{ tutorial.coachPulseHero()?.name ?? 'Pulse Tech' }}</strong>, then the
-                    <strong>Scrap Drone</strong> to assign damage.
-                  </p>
-                }
-                @case (2) {
-                  <div class="tut-title">Shield target</div>
-                  <p class="tut-body">
-                    <strong>{{ tutorial.coachShieldHero()?.name ?? 'Aegis Disruptor' }}</strong> rolled
-                    <strong>{{ tutorial.coachShieldAbilityName() }}</strong> — a shield ability. Tap
-                    <strong>{{ tutorial.coachShieldHero()?.name ?? 'Aegis Disruptor' }}</strong>, then an
-                    <strong>ally</strong> (Pulse Tech or Systems Medic) to apply it.
-                  </p>
-                }
-                @case (3) {
-                  <div class="tut-title">Systems Medic</div>
-                  <p class="tut-body">
-                    <strong>{{ tutorial.coachMedicHero()?.name ?? 'Systems Medic' }}</strong> rolled
-                    <strong>{{ tutorial.coachMedicAbilityName() }}</strong> — a support ability. Tap
-                    <strong>Systems Medic</strong>, then an <strong>ally</strong> to grant the
-                    <strong>+{{ tutorial.coachMedicRfmValue() }} roll</strong> on their next roll.
-                  </p>
-                }
+            @let cs = t.coachStep;
+            <div class="tut-k">AFTER ROLL · {{ cs }} / 4</div>
+            @switch (cs) {
+              @case (1) {
+                <div class="tut-title">Damage target</div>
+                <p class="tut-body">
+                  <strong>{{ tutorial.coachPulseHero()?.name ?? 'Pulse Tech' }}</strong> rolled
+                  <strong>{{ tutorial.coachPulseAbilityName() }}</strong> — a damage ability. Tap
+                  <strong>{{ tutorial.coachPulseHero()?.name ?? 'Pulse Tech' }}</strong>, then the
+                  <strong>Scrap Drone</strong> to assign damage.
+                </p>
               }
-            } @else {
-              @let r2 = t.r2CoachStep;
-              <div class="tut-k">ROUND 2 · {{ r2 }} / 4</div>
-              @switch (r2) {
-                @case (1) {
-                  <div class="tut-title">Spend Protocol on Medic</div>
-                  <p class="tut-body">
-                    You now have <strong>Protocol</strong> to spend. Tap the <strong>nudge</strong> (↑, 1) or
-                    <strong>reroll</strong> (dice, 2) icons in the strip (hover for full labels), then tap
-                    <strong>Systems Medic</strong> so the cost applies to their die.
-                  </p>
-                }
-                @case (2) {
-                  <div class="tut-title">Medic heal</div>
-                  <p class="tut-body">
-                    <strong>{{ tutorial.coachMedicHero()?.name ?? 'Systems Medic' }}</strong> rolled
-                    <strong>{{ tutorial.coachMedicAbilityName() }}</strong>. Tap <strong>Systems Medic</strong>, then an
-                    <strong>ally who is hurt</strong> (not at full HP) to heal them.
-                  </p>
-                }
-                @case (3) {
-                  <div class="tut-title">Pulse Tech</div>
-                  <p class="tut-body">
-                    <strong>{{ tutorial.coachPulseHero()?.name ?? 'Pulse Tech' }}</strong> rolled
-                    <strong>{{ tutorial.coachPulseAbilityName() }}</strong>. Tap their card, then the
-                    <strong>Scrap Drone</strong> to finish the ability.
-                  </p>
-                }
-                @case (4) {
-                  <div class="tut-title">Aegis Disruptor</div>
-                  <p class="tut-body">
-                    <strong>{{ tutorial.coachShieldHero()?.name ?? 'Aegis Disruptor' }}</strong> rolled
-                    <strong>{{ tutorial.coachShieldAbilityName() }}</strong>. Tap their card, then the
-                    <strong>Scrap Drone</strong> to apply the debuff.
-                  </p>
-                }
+              @case (2) {
+                <div class="tut-title">Shield target</div>
+                <p class="tut-body">
+                  <strong>{{ tutorial.coachShieldHero()?.name ?? 'Spite Guard' }}</strong> rolled
+                  <strong>{{ tutorial.coachShieldAbilityName() }}</strong> — a shield ability. Tap
+                  <strong>{{ tutorial.coachShieldHero()?.name ?? 'Spite Guard' }}</strong>, then an
+                  <strong>ally</strong> (Pulse Tech or Systems Medic) to apply it.
+                </p>
+              }
+              @case (3) {
+                <div class="tut-title">Systems Medic</div>
+                <p class="tut-body">
+                  <strong>{{ tutorial.coachMedicHero()?.name ?? 'Systems Medic' }}</strong> rolled
+                  <strong>{{ tutorial.coachMedicAbilityName() }}</strong> — a support ability. Tap
+                  <strong>Systems Medic</strong>, then an <strong>ally</strong> to grant the
+                  <strong>+{{ tutorial.coachMedicRfmValue() }} roll</strong> on their next roll.
+                </p>
+              }
+              @case (4) {
+                <div class="tut-title">End the round</div>
+                <p class="tut-body">
+                  Targets are set. Tap <strong>END TURN</strong> to resolve abilities and let the drone act.
+                </p>
               }
             }
           } @else {
@@ -233,12 +191,8 @@ export class TutorialOverlayComponent {
     const t = this.state.tutorial();
     if (!t?.active) return false;
     if (!t.introComplete) return true;
-    if (t.showTurn2Modal) return true;
     if (t.showComplete) return true;
-    if (t.resolutions === 0 && t.coachStep >= 1 && t.coachStep <= 3) return true;
-    if (t.resolutions === 1 && !t.showTurn2Modal && !t.showComplete && t.r2CoachStep >= 1 && t.r2CoachStep <= 4) {
-      return true;
-    }
+    if (t.resolutions === 0 && t.coachStep >= 1 && t.coachStep <= 4) return true;
     return false;
   });
 
@@ -249,12 +203,14 @@ export class TutorialOverlayComponent {
         this.panelRect.set(null);
         return;
       }
+      const tut = this.state.tutorial();
       const drone =
         (document.querySelector('#tut-drone-card') as HTMLElement | null) ??
         (document.querySelector('#tut-enemy-zone') as HTMLElement | null);
+      const anchorEl = drone;
       const sels = this.tutorial.spotlightSelectors();
       const ur = unionClientRect(sels);
-      if (!drone || !ur) {
+      if (!anchorEl || !ur) {
         this.spotRect.set(null);
         this.panelRect.set(null);
         return;
@@ -266,7 +222,7 @@ export class TutorialOverlayComponent {
         width: Math.max(24, ur.width + pad * 2),
         height: Math.max(24, ur.height + pad * 2),
       });
-      const dr = drone.getBoundingClientRect();
+      const dr = anchorEl.getBoundingClientRect();
       const vw = window.innerWidth;
       const vh = window.innerHeight;
       const pw = Math.min(PANEL_W, vw - 20);

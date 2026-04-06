@@ -30,8 +30,6 @@ export interface HeroDefinition {
   sk: HeroId;
   /** Optional `/heroes/...` URL; dev editor + JSON can override the default portrait art. */
   portraitPath?: string;
-  /** Card border accent hex; defaults to `HERO_FRAME_COLORS` in `data/unit-frame-colors.ts`. */
-  frameColor?: string;
   abilities: HeroAbility[];
   evolutions: EvolutionTier[];
 }

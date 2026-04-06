@@ -41,23 +41,23 @@ import { LogService } from '../../services/log.service';
     .log-left { display: flex; align-items: center; gap: 4px; min-width: 0; }
     .log-toggle {
       background: var(--bg3); border: 1px solid var(--border); color: var(--muted); border-radius: var(--radius-pixel);
-      min-width: 22px; min-height: 22px; cursor: pointer; font-family: var(--font-pixel); font-size: 11px; line-height: 1;
+      min-width: 22px; min-height: 22px; cursor: pointer; font-family: var(--font-pixel); font-size: 12px; line-height: 1;
       display: flex; align-items: center; justify-content: center; touch-action: manipulation;
     }
     .log-toggle:hover { border-color: var(--strike); color: var(--strike); }
     .log-title {
-      font-family: var(--font-pixel); font-size: 7px; letter-spacing: 1px; line-height: 1.15;
+      font-family: var(--font-pixel); font-size: 8px; letter-spacing: 1px; line-height: 1.2;
       color: var(--muted); white-space: nowrap;
     }
     .log-mode { display: flex; gap: 3px; align-items: center; }
     .log-mode button {
       background: var(--bg3); border: 1px solid var(--border); color: var(--muted); border-radius: var(--radius-pixel);
-      padding: 1px 5px; min-height: 20px; cursor: pointer; font-family: var(--font-pixel); font-size: 7px;
+      padding: 1px 5px; min-height: 20px; cursor: pointer; font-family: var(--font-pixel); font-size: 8px;
       letter-spacing: 0.3px; line-height: 1.2; touch-action: manipulation;
     }
     .log-mode button.active { border-color: var(--strike); color: var(--strike); background: rgba(46,125,212,.08); }
-    .battle-log { padding: 6px 10px; font-family: var(--font-pixel); font-size: 9px; max-height: 80px; overflow-y: auto; }
-    .le { color: var(--muted); margin-bottom: 2px; line-height: 1.5; }
+    .battle-log { padding: 6px 10px; font-family: var(--font-pixel); font-size: 10px; max-height: 88px; overflow-y: auto; }
+    .le { color: var(--muted); margin-bottom: 3px; line-height: 1.55; }
     .le.pl { color: var(--strike); }
     .le.en { color: var(--overload); }
     .le.sy { color: var(--cell); }

@@ -16,11 +16,11 @@ import type { ItemDefinition } from '../../models/item.interface';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="protocol-strip" id="tut-protocol-strip">
-      <div class="protocol-bar-wrap">
+      <div class="protocol-bar-wrap" id="tut-protocol-meter">
         <div class="protocol-bar-fill" [style.width]="barWidth()"></div>
         <div class="protocol-bar-txt">PROTOCOL {{ state.protocol() }}/{{ max }}</div>
       </div>
-      <div class="protocol-actions">
+      <div class="protocol-actions" id="tut-protocol-primary-icons">
         <button id="protocol-reroll-btn" type="button" class="proto-ic-btn" [class.active]="state.pendingProtocol() === 'reroll'"
                 [disabled]="!canReroll()" (click)="protocol.startReroll()"
                 title="Reroll — costs {{ rerollCost }} Protocol. Tap, then a hero who has rolled.">
@@ -68,6 +68,15 @@ import type { ItemDefinition } from '../../models/item.interface';
                   }
                   @case ('skull') {
                     <svg viewBox="0 0 24 24" fill="none"><path d="M12 4c4 0 7 2.6 7 6.4 0 2-1 3.8-2.6 4.9V18c0 .5-.4 1-1 1h-1.2v-2h-1.8v2H11v-2H9.2v2H8c-.6 0-1-.5-1-1v-2.7C5.4 14.2 5 12.4 5 10.4 5 6.6 8 4 12 4z" fill="currentColor" opacity=".35"/><circle cx="9" cy="11" r="1.2" fill="currentColor"/><circle cx="15" cy="11" r="1.2" fill="currentColor"/></svg>
+                  }
+                  @case ('cloak') {
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M5 10c2.5-2 5.5-3 7-3s4.5 1 7 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" opacity=".45"/>
+                      <path d="M4 14c3.2-3.2 7.8-4.2 12.5-2.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".7"/>
+                      <ellipse cx="12" cy="16" rx="5" ry="2.2" fill="currentColor" opacity=".2"/>
+                      <circle cx="9.5" cy="11" r="1.6" fill="currentColor" opacity=".5"/>
+                      <circle cx="14.5" cy="11" r="1.6" fill="currentColor" opacity=".5"/>
+                    </svg>
                   }
                   @default {
                     <svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7L12 17.8 5.7 21 8 14.4 2 9.4h7.6L12 2z" fill="currentColor" opacity=".85"/></svg>
@@ -119,7 +128,7 @@ import type { ItemDefinition } from '../../models/item.interface';
     }
     .protocol-bar-txt {
       position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-      font-family: var(--font-pixel); font-size: 11px; font-weight: 700;
+      font-family: var(--font-pixel); font-size: 12px; font-weight: 700;
       color: #e8f4ff; text-shadow: 0 1px 2px rgba(0,0,0,.85); pointer-events: none;
     }
     .protocol-actions {
@@ -153,7 +162,7 @@ import type { ItemDefinition } from '../../models/item.interface';
     .proto-svg { width: 20px; height: 20px; }
     .proto-cost {
       position: absolute; bottom: 1px; right: 2px;
-      font-family: var(--font-pixel); font-size: 6px; font-weight: 800; opacity: .85; line-height: 1;
+      font-family: var(--font-pixel); font-size: 7px; font-weight: 800; opacity: .85; line-height: 1;
     }
     .inv-slot {
       position: relative;
@@ -177,17 +186,24 @@ import type { ItemDefinition } from '../../models/item.interface';
     .inv-slot.r-common { border: 2px solid #5a6a78; }
     .inv-slot.r-uncommon { border: 2px solid #2a9e72; }
     .inv-slot.r-rare { border: 2px solid #8b6fd4; }
+    .inv-slot.r-legendary {
+      border: 2px solid #e8942a;
+      box-shadow: 0 0 10px rgba(232, 148, 42, 0.35), 2px 2px 0 #000;
+    }
     .inv-slot.r-empty { border: 2px dashed var(--border); opacity: .55; }
     .inv-slot.active-pick {
       box-shadow: inset 0 0 0 2px var(--strike), 2px 2px 0 #000;
+    }
+    .inv-slot.r-legendary.active-pick {
+      box-shadow: inset 0 0 0 2px var(--strike), 0 0 22px rgba(232, 148, 42, 0.65), 0 0 36px rgba(255, 170, 60, 0.35), 2px 2px 0 #000;
     }
     .inv-ic { width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; }
     .inv-ic svg { width: 100%; height: 100%; }
     .inv-dot {
       position: absolute; bottom: 1px; right: 2px;
-      font-family: var(--font-pixel); font-size: 6px; font-weight: 800; opacity: .9;
+      font-family: var(--font-pixel); font-size: 7px; font-weight: 800; opacity: .9;
     }
-    .inv-empty { font-family: var(--font-pixel); font-size: 9px; opacity: .4; }
+    .inv-empty { font-family: var(--font-pixel); font-size: 10px; opacity: .4; }
   `],
 })
 export class ProtocolStripComponent {

@@ -12,6 +12,8 @@ export interface HeroBadgeSnapshot {
   /** This-turn ally +rfm on roll, minus rust −rfm planned on this hero (per-target). */
   incomingRollNet: number;
   statusShield: number;
+  /** Shield duration when shield is active (for badge display). */
+  statusShieldT: number;
   statusDot: number;
   statusDotT: number;
   netRollMod: number;
@@ -25,6 +27,8 @@ export interface EnemyBadgeSnapshot {
   incomingLifestealHeal: number;
   incomingRfe: number;
   incomingDot: number;
+  /** DoT duration preview for incoming hero-applied DoT (same chip as incomingDot). */
+  incomingDotT: number;
   statusShield: number;
   statusShieldT: number;
   statusDot: number;
@@ -43,9 +47,16 @@ export class BadgeProjectionService {
     private dice: DiceService,
   ) {}
 
-  /** End-turn previews (incoming from enemies / from squad) only after every living hero has a roll. */
+  /** Incoming line only in player phase, once squad dice are set (not during enemy turn / transition). */
   private showTurnPreviews(): boolean {
+    if (this.state.phase() !== 'player') return false;
     return this.state.heroes().every(x => x.currentHp <= 0 || x.roll !== null);
+  }
+
+  /** Heroes still queued to resolve this END TURN contribute to enemy Incoming; resolved ones do not. */
+  private heroContributesToEnemyIncomingPreview(hi: number): boolean {
+    const c = this.state.endTurnHeroResolveCursor();
+    return c === null || hi >= c;
   }
 
   heroBadges(heroIndex: number): HeroBadgeSnapshot {
@@ -57,6 +68,7 @@ export class BadgeProjectionService {
         incomingShield: 0,
         incomingRollNet: 0,
         statusShield: 0,
+        statusShieldT: 0,
         statusDot: 0,
         statusDotT: 0,
         netRollMod: 0,
@@ -80,6 +92,7 @@ export class BadgeProjectionService {
       incomingShield: pre ? this.incomingShieldFor(h.id) : 0,
       incomingRollNet,
       statusShield: h.shield > 0 && h.shT > 0 ? h.shield : 0,
+      statusShieldT: h.shield > 0 && h.shT > 0 ? h.shT : 0,
       statusDot: h.dot > 0 && h.dT > 0 ? h.dot : 0,
       statusDotT: h.dT || 0,
       netRollMod,
@@ -162,6 +175,7 @@ export class BadgeProjectionService {
         incomingLifestealHeal: 0,
         incomingRfe: 0,
         incomingDot: 0,
+        incomingDotT: 0,
         statusShield: 0,
         statusShieldT: 0,
         statusDot: 0,
@@ -179,6 +193,7 @@ export class BadgeProjectionService {
       incomingLifestealHeal: pre ? this.incomingLifestealHealForEnemy(e) : 0,
       incomingRfe: pre ? this.incomingRfeForEnemy(enemyIndex) : 0,
       incomingDot: dotIn.dot,
+      incomingDotT: dotIn.dT,
       statusShield: e.shield > 0 && e.shT > 0 ? e.shield : 0,
       statusShieldT: e.shT || 0,
       statusDot: e.dot > 0 && e.dT > 0 ? e.dot : 0,
@@ -213,7 +228,10 @@ export class BadgeProjectionService {
       hpDmg += dmg - absorbed;
     };
 
-    for (const h of this.state.heroes()) {
+    const heroes = this.state.heroes();
+    for (let hi = 0; hi < heroes.length; hi++) {
+      if (!this.heroContributesToEnemyIncomingPreview(hi)) continue;
+      const h = heroes[hi];
       if (h.currentHp <= 0 || h.roll === null) continue;
       const er = this.dice.effRoll(h);
       if (er === null) continue;
@@ -354,7 +372,10 @@ export class BadgeProjectionService {
 
   incomingRfeForEnemy(ei: number): number {
     let t = 0;
-    for (const h of this.state.heroes()) {
+    const heroes = this.state.heroes();
+    for (let hi = 0; hi < heroes.length; hi++) {
+      if (!this.heroContributesToEnemyIncomingPreview(hi)) continue;
+      const h = heroes[hi];
       if (h.currentHp <= 0 || h.roll === null) continue;
       const er = this.dice.effRoll(h);
       if (er === null) continue;
@@ -373,7 +394,10 @@ export class BadgeProjectionService {
   incomingDotDetailForEnemy(ei: number): { dot: number; dT: number } {
     let dot = 0;
     let dt = 0;
-    for (const h of this.state.heroes()) {
+    const heroes = this.state.heroes();
+    for (let hi = 0; hi < heroes.length; hi++) {
+      if (!this.heroContributesToEnemyIncomingPreview(hi)) continue;
+      const h = heroes[hi];
       if (h.currentHp <= 0 || h.roll === null) continue;
       const er = this.dice.effRoll(h);
       if (er === null) continue;

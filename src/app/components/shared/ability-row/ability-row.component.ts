@@ -1,14 +1,31 @@
 import { Component, ChangeDetectionStrategy, input, computed } from '@angular/core';
 import { HeroAbility, EnemyAbility } from '../../../models/ability.interface';
-import { Zone, ZONE_CLASSES } from '../../../models/types';
+import { Zone } from '../../../models/types';
 import { clampHeroAbilityForTier1 } from '../../../utils/hero-ability-tier.util';
 
 type MiniIcon = 'bolt' | 'plus' | 'shield' | 'skull' | 'die';
+
+/** Visual family for mini chips — matches combat badge / zone attack colors. */
+type AbilityMiniTone =
+  | 'dmg'
+  | 'heal'
+  | 'shield'
+  | 'dot'
+  | 'rollAlly'
+  | 'rollFoe'
+  | 'enemyRollBuff'
+  | 'control'
+  | 'neutral';
 
 interface AbilityMiniToken {
   icon: MiniIcon | null;
   num?: string;
   label?: string;
+  /** Long text chip (e.g. REVIVE) — tighter font */
+  wide?: boolean;
+  /** Show clock + this value in the same chip when > 1 (DoT, shield, ±roll durations, etc.). */
+  turns?: number;
+  tone: AbilityMiniTone;
 }
 
 @Component({
@@ -16,113 +33,136 @@ interface AbilityMiniToken {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="ap-row" [class.cur]="isCurrent()" [attr.title]="ability().name + ' — ' + effectSummary()">
-      <span class="az" [class]="zoneClass()">{{ rangeLabel() }}</span>
-      <span class="an">{{ ability().name }}</span>
-      @if (isCurrent()) {
-        <span class="ae ae-eff">{{ effectSummary() }}</span>
-      } @else {
-        <span class="ae ae-mini-row">
-          @for (tok of miniTokens(); track $index) {
-            <span class="mi">
+    <div
+      class="ap-row"
+      [class.cur]="isCurrent()"
+      [class.ap-row-muted]="dimInactive()"
+      [attr.title]="abilityTooltip()"
+      [attr.aria-label]="abilityAriaLabel()">
+      <span class="az az-neutral">{{ rangeLabel() }}</span>
+      <span class="ae ae-mini-row">
+        @for (tok of miniTokens(); track $index) {
+          <span [class]="miniRowClass(tok)">
+            @if (tok.icon) {
               @switch (tok.icon) {
-                @case ('bolt') {
-                  <svg class="ic" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M13 2L3 14h8l-1 8 11-14h-8l0-6z" fill="currentColor" opacity=".9"/>
-                  </svg>
-                }
-                @case ('plus') {
-                  <svg class="ic" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M11 5h2v14h-2zM5 11h14v2H5z" fill="currentColor" opacity=".9"/>
-                  </svg>
-                }
-                @case ('shield') {
-                  <svg class="ic" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M12 2l8 4v7c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V6l8-4z" fill="currentColor" opacity=".25"/>
-                    <path d="M12 3.6l6.5 3.2v6.1c0 4.2-2.8 7.1-6.5 7.6-3.7-.5-6.5-3.4-6.5-7.6V6.8L12 3.6z" stroke="currentColor" stroke-width="1.2" opacity=".9" fill="none"/>
-                  </svg>
-                }
-                @case ('skull') {
-                  <svg class="ic" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M12 3c4.4 0 8 3 8 7.2 0 2.5-1.3 4.6-3.3 5.9V20c0 .6-.4 1-1 1h-1v-2h-2v2h-1v-2h-2v2H8.3c-.6 0-1-.4-1-1v-3.9C5.3 14.8 4 12.7 4 10.2 4 6 7.6 3 12 3z" fill="currentColor" opacity=".25"/>
-                    <path d="M9.2 10.6c0 .9-.6 1.6-1.4 1.6s-1.4-.7-1.4-1.6.6-1.6 1.4-1.6 1.4.7 1.4 1.6zm8.4 0c0 .9-.6 1.6-1.4 1.6s-1.4-.7-1.4-1.6.6-1.6 1.4-1.6 1.4.7 1.4 1.6z" fill="currentColor" opacity=".9"/>
-                    <path d="M10.2 15.2h3.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".9"/>
-                  </svg>
-                }
-                @case ('die') {
-                  <svg class="ic ic-die" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <rect x="4.2" y="4.2" width="15.6" height="15.6" rx="3" stroke="currentColor" stroke-width="1.4" opacity=".9"/>
-                    <circle cx="9" cy="8.5" r="1.35" fill="currentColor" opacity=".95"/>
-                    <circle cx="9" cy="12" r="1.35" fill="currentColor" opacity=".95"/>
-                    <circle cx="9" cy="15.5" r="1.35" fill="currentColor" opacity=".95"/>
-                    <circle cx="15" cy="8.5" r="1.35" fill="currentColor" opacity=".95"/>
-                    <circle cx="15" cy="12" r="1.35" fill="currentColor" opacity=".95"/>
-                    <circle cx="15" cy="15.5" r="1.35" fill="currentColor" opacity=".95"/>
-                  </svg>
-                }
+              @case ('bolt') {
+                <svg class="ic" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M13 2L3 14h8l-1 8 11-14h-8l0-6z" fill="currentColor" opacity=".9"/>
+                </svg>
               }
-              @if (tok.num !== undefined) {
-                <span class="n">{{ tok.num }}</span>
-              } @else if (tok.label) {
-                <span class="n">{{ tok.label }}</span>
+              @case ('plus') {
+                <svg class="ic" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M11 5h2v14h-2zM5 11h14v2H5z" fill="currentColor" opacity=".9"/>
+                </svg>
               }
-            </span>
-          }
-        </span>
-      }
+              @case ('shield') {
+                <svg class="ic" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M12 2l8 4v7c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V6l8-4z" fill="currentColor" opacity=".25"/>
+                  <path d="M12 3.6l6.5 3.2v6.1c0 4.2-2.8 7.1-6.5 7.6-3.7-.5-6.5-3.4-6.5-7.6V6.8L12 3.6z" stroke="currentColor" stroke-width="1.2" opacity=".9" fill="none"/>
+                </svg>
+              }
+              @case ('skull') {
+                <svg class="ic" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M12 3c4.4 0 8 3 8 7.2 0 2.5-1.3 4.6-3.3 5.9V20c0 .6-.4 1-1 1h-1v-2h-2v2h-1v-2h-2v2H8.3c-.6 0-1-.4-1-1v-3.9C5.3 14.8 4 12.7 4 10.2 4 6 7.6 3 12 3z" fill="currentColor" opacity=".25"/>
+                  <path d="M9.2 10.6c0 .9-.6 1.6-1.4 1.6s-1.4-.7-1.4-1.6.6-1.6 1.4-1.6 1.4.7 1.4 1.6zm8.4 0c0 .9-.6 1.6-1.4 1.6s-1.4-.7-1.4-1.6.6-1.6 1.4-1.6 1.4.7 1.4 1.6z" fill="currentColor" opacity=".9"/>
+                  <path d="M10.2 15.2h3.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".9"/>
+                </svg>
+              }
+              @case ('die') {
+                <svg class="ic ic-die" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <rect x="4.2" y="4.2" width="15.6" height="15.6" rx="3" stroke="currentColor" stroke-width="1.4" opacity=".9"/>
+                  <circle cx="9" cy="8.5" r="1.35" fill="currentColor" opacity=".95"/>
+                  <circle cx="9" cy="12" r="1.35" fill="currentColor" opacity=".95"/>
+                  <circle cx="9" cy="15.5" r="1.35" fill="currentColor" opacity=".95"/>
+                  <circle cx="15" cy="8.5" r="1.35" fill="currentColor" opacity=".95"/>
+                  <circle cx="15" cy="12" r="1.35" fill="currentColor" opacity=".95"/>
+                  <circle cx="15" cy="15.5" r="1.35" fill="currentColor" opacity=".95"/>
+                </svg>
+              }
+              }
+            }
+            @if (tok.num !== undefined) {
+              <span class="n">{{ tok.num }}</span>
+            } @else if (tok.label) {
+              <span class="n">{{ tok.label }}</span>
+            }
+            @if (tok.turns != null && tok.turns > 1) {
+              <svg class="ic ic-clock-inline" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.35" fill="none" opacity=".85"/>
+                <path d="M12 6.75V12l3.25 2" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" fill="none" opacity=".9"/>
+              </svg>
+              <span class="n n-turns">{{ tok.turns }}</span>
+            }
+          </span>
+        }
+      </span>
     </div>
   `,
   styles: [`
-    /* Fixed row height: current vs inactive must not change card layout */
+    /* Fixed row height so hero/enemy ability panels stay aligned */
     .ap-row {
       display: flex;
-      align-items: center;
-      gap: 3px;
-      margin-bottom: 2px;
-      opacity: .28;
-      transition: opacity 0.12s steps(2, end);
-      height: 20px;
-      min-height: 20px;
-      max-height: 20px;
+      align-items: stretch;
+      gap: 2px;
+      margin-bottom: 1px;
+      opacity: 1;
+      transition: opacity 0.14s ease, filter 0.14s ease;
+      height: 19px;
+      min-height: 19px;
+      max-height: 19px;
       box-sizing: border-box;
       overflow: hidden;
       flex-shrink: 0;
+      cursor: help;
     }
-    .ap-row.cur { opacity: 1; background: rgba(255,255,255,.06); border-radius: var(--radius-pixel); box-shadow: inset 2px 2px 0 rgba(255,255,255,.05), inset -1px -1px 0 rgba(0,0,0,.35); }
-    .az { font-family: var(--font-pixel); padding: 0 2px; border-radius: var(--radius-pixel); font-size: 7px; font-weight: 700; min-width: 28px; text-align: center; flex-shrink: 0; line-height: 1; }
-    .az-r { background: #0a2a1e; color: #1d9e75; border: 1px solid #0f6e56; }
-    .az-s { background: #091828; color: #2e7dd4; border: 1px solid #1a4a8a; }
-    .az-su { background: #1e1a04; color: #e8b84a; border: 1px solid #8a7010; }
-    .az-c { background: #1e1408; color: #c47a1a; border: 1px solid #7a4a10; }
-    .az-o { background: #1e0a06; color: #d84a2a; border: 1px solid #8a2a10; }
-    .an { font-family: var(--font-pixel); color: #c8ddf0; font-size: 8px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.1; }
-    .ae {
+    .ap-row.ap-row-muted {
+      opacity: 0.34;
+      filter: saturate(0.65) brightness(0.88);
+    }
+    .ap-row.cur {
+      opacity: 1;
+      filter: none;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-pixel);
+      box-shadow: inset 2px 2px 0 rgba(255, 255, 255, 0.07), inset -1px -1px 0 rgba(0, 0, 0, 0.35);
+    }
+    /* Fixed width: longest brackets are 5 chars (e.g. 10-15, 11-16); tight but with side breathing room */
+    .az {
       font-family: var(--font-pixel);
-      color: #4a6a8a;
-      font-size: 8px;
-      text-align: right;
-      min-width: 0;
+      width: 36px;
+      min-width: 36px;
+      max-width: 36px;
+      padding: 0 1px;
+      border-radius: var(--radius-pixel);
+      font-size: 9px;
+      font-weight: 700;
+      text-align: center;
       flex-shrink: 0;
-      max-width: 52%;
-      height: 100%;
-      display: flex;
+      line-height: 1;
+      display: inline-flex;
       align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+    }
+    .az-neutral {
+      background: rgba(255, 255, 255, 0.04);
+      color: #8fa6bc;
+      border: 1px solid rgba(80, 100, 128, 0.45);
+    }
+    .ae {
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      align-items: stretch;
       justify-content: flex-end;
       overflow: hidden;
       box-sizing: border-box;
     }
-    .ae-eff {
-      width: 100%;
-      min-width: 0;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      line-height: 1.1;
-    }
     .ae-mini-row {
       display: flex;
       gap: 2px;
-      align-items: center;
+      align-items: stretch;
       justify-content: flex-end;
       flex-wrap: nowrap;
       max-width: 100%;
@@ -134,19 +174,71 @@ interface AbilityMiniToken {
       display: inline-flex;
       align-items: center;
       gap: 1px;
-      padding: 0 2px;
-      max-height: 16px;
+      padding: 0 1px;
+      min-height: 0;
       border-radius: var(--radius-pixel);
-      border: 1px solid var(--border);
-      background: var(--bg);
-      color: var(--muted);
+      border-width: 1px;
+      border-style: solid;
       line-height: 1;
       flex-shrink: 0;
       box-sizing: border-box;
     }
+    .mi .n,
+    .mi .n-turns {
+      color: inherit;
+    }
+    .mi-neutral {
+      color: var(--muted);
+      border-color: var(--border);
+      background: var(--bg);
+    }
+    .mi-dmg {
+      color: #d84a2a;
+      border-color: rgba(216, 74, 42, 0.42);
+      background: rgba(216, 74, 42, 0.1);
+    }
+    .mi-heal {
+      color: #2ec46a;
+      border-color: rgba(46, 196, 106, 0.4);
+      background: rgba(46, 196, 106, 0.09);
+    }
+    .mi-shield {
+      color: #2e7dd4;
+      border-color: rgba(46, 125, 212, 0.4);
+      background: rgba(46, 125, 212, 0.09);
+    }
+    .mi-dot {
+      color: #b67bff;
+      border-color: rgba(182, 123, 255, 0.4);
+      background: rgba(182, 123, 255, 0.09);
+    }
+    .mi-rollAlly {
+      color: #2ec46a;
+      border-color: rgba(46, 196, 106, 0.38);
+      background: rgba(29, 158, 117, 0.1);
+    }
+    .mi-rollFoe {
+      color: #e8b84a;
+      border-color: rgba(232, 184, 74, 0.42);
+      background: rgba(232, 184, 74, 0.08);
+    }
+    .mi-enemyRollBuff {
+      color: #c47a1a;
+      border-color: rgba(196, 122, 26, 0.45);
+      background: rgba(196, 122, 26, 0.1);
+    }
+    .mi-control {
+      color: #9bc0dd;
+      border-color: rgba(155, 192, 221, 0.35);
+      background: rgba(80, 120, 160, 0.12);
+    }
+    .mi-wide { padding: 0 1px; }
+    .mi-wide .n { font-size: 9px; letter-spacing: 0; }
     .ic { width: 10px; height: 10px; flex-shrink: 0; color: currentColor; }
-    .ic-die { width: 11px; height: 11px; }
-    .n { color: #c8ddf0; font-weight: 900; font-size: 7px; font-family: var(--font-pixel); }
+    .ic-die { width: 10px; height: 10px; }
+    .ic-clock-inline { width: 9px; height: 9px; margin-left: 0; opacity: 0.92; }
+    .n { font-weight: 900; font-size: 9px; font-family: var(--font-pixel); }
+    .n-turns { font-size: 9px; opacity: 0.92; }
   `],
 })
 export class AbilityRowComponent {
@@ -154,13 +246,26 @@ export class AbilityRowComponent {
   zone = input.required<Zone>();
   rangeStr = input.required<string>();
   isCurrent = input(false);
+  /**
+   * After the unit’s die is set (hero rolled / enemy tray revealed), non-matching ability rows dim.
+   * When false, all rows stay fully lit.
+   */
+  highlightLocked = input(false);
   /** Hero chart vs enemy chart — drives mini icon ordering and fields. */
   effectVariant = input<'hero' | 'enemy'>('hero');
   /** Tier 1: shield / ±roll buff durations shown and matched at resolve as 1 turn (DoT unchanged). */
   tier = input<1 | 2>(2);
 
-  zoneClass = computed(() => `az ${ZONE_CLASSES[this.zone()]}`);
+  /** Dim this row only when a roll is locked in and this bracket is not the active one. */
+  dimInactive = computed(() => this.highlightLocked() && !this.isCurrent());
+
   rangeLabel = computed(() => this.rangeStr());
+
+  miniRowClass(tok: AbilityMiniToken): string {
+    let c = `mi mi-${tok.tone}`;
+    if (tok.wide) c += ' mi-wide';
+    return c;
+  }
 
   private heroAbilityView = computed((): HeroAbility => {
     const a = this.ability() as HeroAbility;
@@ -179,6 +284,25 @@ export class AbilityRowComponent {
       return this.buildEnemyEffectSummary(this.ability() as EnemyAbility);
     }
     return this.buildHeroEffectSummary(this.heroAbilityView());
+  });
+
+  /** Native tooltip: name, data `eff`, then mechanical summary when it adds detail (hover). */
+  abilityTooltip = computed((): string => {
+    const a = this.ability();
+    const mech = this.effectSummary();
+    const eff = a.eff?.trim() ?? '';
+    if (!eff.length) return `${a.name}\n\n${mech}`;
+    if (eff === mech) return `${a.name}\n\n${eff}`;
+    return `${a.name}\n\n${eff}\n\n${mech}`;
+  });
+
+  abilityAriaLabel = computed((): string => {
+    const a = this.ability();
+    const eff = a.eff?.trim() ?? '';
+    const mech = this.effectSummary();
+    if (!eff.length) return `${a.name}. ${mech}`;
+    if (eff === mech) return `${a.name}. ${eff}`;
+    return `${a.name}. ${eff}. ${mech}`;
   });
 
   private buildHeroEffectSummary(a: HeroAbility): string {
@@ -242,7 +366,7 @@ export class AbilityRowComponent {
     }
 
     if (a.revive) parts.push('revive 50%');
-    if (a.cloak) parts.push('cloak (80% dodge next hit)');
+    if (a.cloak) parts.push('Cloak');
     if (a.taunt) parts.push('taunt (enemies target you)');
 
     return parts.length ? parts.join(', ') : '—';
@@ -301,6 +425,11 @@ export class AbilityRowComponent {
     return parts.length ? parts.join(', ') : '—';
   }
 
+  private multiTurn(turns: number | undefined): number | undefined {
+    const t = turns ?? 0;
+    return t > 1 ? t : undefined;
+  }
+
   private buildHeroMinis(a: HeroAbility): AbilityMiniToken[] {
     const out: AbilityMiniToken[] = [];
     const dLo = a.dMin || 0;
@@ -308,29 +437,64 @@ export class AbilityRowComponent {
     const hasSpread = dLo > 0 && dHi > 0 && dLo !== dHi;
     const combatDmg = (a.dmg || 0) > 0 ? a.dmg! : 0;
     const flatBracket = dLo > 0 && dHi > 0 && dLo === dHi ? dLo : 0;
+    const allDmg = a.blastAll || a.multiHit;
     if (combatDmg > 0) {
       const n = String(combatDmg);
-      out.push({ icon: 'bolt', num: a.blastAll || a.multiHit ? `${n}·ALL` : n });
+      out.push({
+        icon: 'bolt',
+        num: allDmg ? `${n}·ALL` : n,
+        tone: 'dmg',
+      });
     } else if (hasSpread) {
-      out.push({ icon: 'bolt', label: `${dLo}-${dHi}` });
+      const lab = allDmg ? `${dLo}-${dHi}·ALL` : `${dLo}-${dHi}`;
+      out.push({ icon: 'bolt', label: lab, tone: 'dmg' });
     } else if (flatBracket > 0) {
-      out.push({ icon: 'bolt', num: String(flatBracket) });
+      const n = allDmg ? `${flatBracket}·ALL` : String(flatBracket);
+      out.push({ icon: 'bolt', num: n, tone: 'dmg' });
     }
-    if ((a.heal || 0) > 0) out.push({ icon: 'plus', num: String(a.heal) });
-    if ((a.shield || 0) > 0) out.push({ icon: 'shield', num: String(a.shield) });
-    if ((a.dot || 0) > 0) out.push({ icon: 'skull', num: String(a.dot) });
-    if ((a.rfe || 0) > 0)
-      out.push({ icon: 'die', num: a.rfeAll ? `-${a.rfe}·ALL` : `-${a.rfe}` });
+    if ((a.heal || 0) > 0) {
+      const n = a.healAll ? `${a.heal}·ALL` : String(a.heal);
+      out.push({ icon: 'plus', num: n, tone: 'heal' });
+    }
+    if ((a.shield || 0) > 0) {
+      const n = a.shieldAll ? `${a.shield}·ALL` : String(a.shield);
+      out.push({
+        icon: 'shield',
+        num: n,
+        turns: this.multiTurn(a.shT),
+        tone: 'shield',
+      });
+    }
+    if ((a.dot || 0) > 0) {
+      out.push({
+        icon: 'skull',
+        num: String(a.dot),
+        turns: this.multiTurn(a.dT),
+        tone: 'dot',
+      });
+    }
+    if ((a.rfe || 0) > 0) {
+      out.push({
+        icon: 'die',
+        num: a.rfeAll ? `-${a.rfe}·ALL` : `-${a.rfe}`,
+        turns: this.multiTurn(a.rfT),
+        tone: 'rollFoe',
+      });
+    }
     if ((a.rfm || 0) > 0) {
-      const tag = a.rfmTgt ? `+${a.rfm}·A` : a.shTgt && (a.shield || 0) > 0 ? `+${a.rfm}·any` : `+${a.rfm}`;
-      out.push({ icon: 'die', num: tag });
+      out.push({
+        icon: 'die',
+        num: `+${a.rfm}`,
+        turns: this.multiTurn(a.rfmT),
+        tone: 'rollAlly',
+      });
     }
-    if (a.ignSh) out.push({ icon: null, label: 'PIERCE' });
-    if (a.splitDmg) out.push({ icon: null, label: 'SPLIT' });
-    if (a.revive) out.push({ icon: null, label: 'REV' });
-    if (a.cloak) out.push({ icon: null, label: 'CLOAK' });
-    if (a.taunt) out.push({ icon: null, label: 'TAUNT' });
-    if (!out.length) out.push({ icon: null, label: '—' });
+    if (a.ignSh) out.push({ icon: null, label: 'PIERCE', tone: 'dmg' });
+    if (a.splitDmg) out.push({ icon: null, label: 'SPLIT', tone: 'dmg' });
+    if (a.revive) out.push({ icon: null, label: 'REVIVE', wide: true, tone: 'heal' });
+    if (a.cloak) out.push({ icon: null, label: 'Cloak', tone: 'control' });
+    if (a.taunt) out.push({ icon: null, label: 'TAUNT', tone: 'control' });
+    if (!out.length) out.push({ icon: null, label: '—', tone: 'neutral' });
     return out;
   }
 
@@ -341,24 +505,84 @@ export class AbilityRowComponent {
         ab.dmgP2 != null && ab.dmgP2 > 0 && ab.dmgP2 !== ab.dmg
           ? `${ab.dmg}/${ab.dmgP2}`
           : String(ab.dmg);
-      out.push({ icon: 'bolt', num: n });
+      out.push({ icon: 'bolt', num: n, tone: 'dmg' });
     }
-    if ((ab.dot || 0) > 0) out.push({ icon: 'skull', num: String(ab.dot) });
-    if ((ab.rfm || 0) > 0) out.push({ icon: 'die', num: `-${ab.rfm}` });
-    if (ab.wipeShields) out.push({ icon: null, label: 'WIPE' });
-    if ((ab.heal || 0) > 0) out.push({ icon: 'plus', num: String(ab.heal) });
-    if ((ab.shield || 0) > 0) out.push({ icon: 'shield', num: String(ab.shield) });
-    if ((ab.shieldAlly || 0) > 0) out.push({ icon: 'shield', num: `A${ab.shieldAlly}` });
-    if ((ab.lifestealPct || 0) > 0) out.push({ icon: 'plus', num: `${ab.lifestealPct}%` });
-    if ((ab.erb || 0) > 0) out.push({ icon: 'die', num: `E+${ab.erb}` });
-    if ((ab.summonChance ?? 0) > 0) out.push({ icon: null, label: 'SUM' });
+    if ((ab.dot || 0) > 0) {
+      out.push({
+        icon: 'skull',
+        num: String(ab.dot),
+        turns: this.multiTurn(ab.dT),
+        tone: 'dot',
+      });
+    }
+    if ((ab.rfm || 0) > 0) {
+      out.push({
+        icon: 'die',
+        num: `-${ab.rfm}`,
+        turns: this.multiTurn(ab.rfmT),
+        tone: 'rollFoe',
+      });
+    }
+    if (ab.wipeShields) out.push({ icon: null, label: 'WIPE', tone: 'dmg' });
+    if ((ab.heal || 0) > 0) out.push({ icon: 'plus', num: String(ab.heal), tone: 'heal' });
+    if ((ab.shield || 0) > 0) {
+      out.push({
+        icon: 'shield',
+        num: String(ab.shield),
+        turns: this.multiTurn(ab.shT),
+        tone: 'shield',
+      });
+    }
+    if ((ab.shieldAlly || 0) > 0) {
+      out.push({
+        icon: 'shield',
+        num: String(ab.shieldAlly),
+        turns: this.multiTurn(ab.shT),
+        tone: 'shield',
+      });
+    }
+    if ((ab.lifestealPct || 0) > 0)
+      out.push({ icon: 'plus', num: `${ab.lifestealPct}%`, tone: 'heal' });
+    if ((ab.rfe || 0) > 0) {
+      out.push({
+        icon: 'die',
+        num: `-${ab.rfe}`,
+        turns: this.multiTurn(ab.rfT),
+        tone: 'rollFoe',
+      });
+    }
+    if ((ab.erb || 0) > 0) {
+      const n = ab.erbAll ? `E+${ab.erb}·ALL` : `E+${ab.erb}`;
+      out.push({
+        icon: 'die',
+        num: n,
+        turns: this.multiTurn(ab.erbT),
+        tone: 'enemyRollBuff',
+      });
+    }
+    if ((ab.summonChance ?? 0) > 0) out.push({ icon: null, label: 'SUM', tone: 'control' });
     if (ab.counterspellZone && (ab.counterspellT || 0) > 0) {
-      out.push({ icon: null, label: `CS ${ab.counterspellZone}${ab.counterspellAll ? '·A' : ''}` });
+      const z = ab.counterspellZone.toUpperCase();
+      out.push({
+        icon: null,
+        label: ab.counterspellAll ? `CS·${z}·ALL` : `CS·${z}`,
+        turns: this.multiTurn(ab.counterspellT),
+        tone: 'control',
+      });
     }
-    if ((ab.grantRampage || 0) > 0) out.push({ icon: 'bolt', num: `R+${ab.grantRampage}` });
-    if ((ab.grantRampageAll || 0) > 0) out.push({ icon: null, label: `RALL+${ab.grantRampageAll}` });
-    if ((ab.cowerT || 0) > 0) out.push({ icon: null, label: ab.cowerAll ? `FEAR·${ab.cowerT}` : `FEAR ${ab.cowerT}` });
-    if (!out.length) out.push({ icon: null, label: '—' });
+    if ((ab.grantRampage || 0) > 0)
+      out.push({ icon: 'bolt', num: `R+${ab.grantRampage}`, tone: 'dmg' });
+    if ((ab.grantRampageAll || 0) > 0)
+      out.push({ icon: null, label: `RALL+${ab.grantRampageAll}`, tone: 'dmg' });
+    if ((ab.cowerT || 0) > 0) {
+      out.push({
+        icon: null,
+        label: ab.cowerAll ? 'FEAR·ALL' : 'FEAR',
+        turns: this.multiTurn(ab.cowerT),
+        tone: 'rollFoe',
+      });
+    }
+    if (!out.length) out.push({ icon: null, label: '—', tone: 'neutral' });
     return out;
   }
 }

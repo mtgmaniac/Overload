@@ -12,6 +12,7 @@ import {
   d20ResultCell,
   d20SpritePositionPercent,
 } from './d20-sprite';
+import { DICE_SPRITE_URL } from '../../../data/sprites.data';
 
 @Component({
   selector: 'app-die',
@@ -29,14 +30,15 @@ import {
       (keydown)="onDieKeydown($event)">
       <div
         class="die-sprite"
+        [style.background-image]="diceBg"
         [style.background-position]="spriteBgPos()"></div>
     </div>
   `,
   styles: [`
     :host { display: contents; }
     .die-wrap {
-      width: 62px;
-      height: 62px;
+      width: 78px;
+      height: 78px;
       position: relative;
       flex-shrink: 0;
       touch-action: manipulation;
@@ -49,13 +51,15 @@ import {
       height: 100%;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
-      background-image: url(/dice/d20-sprite.png);
       background-repeat: no-repeat;
       background-size: 600% 600%;
     }
   `],
 })
 export class DieComponent {
+  /** From `DICE_SPRITE_URL` (PNG or lossless WebP via `RASTER_EXT`). */
+  readonly diceBg = `url("${DICE_SPRITE_URL}")`;
+
   roll = input<number | null>(null);
   clickable = input(false);
   displayText = input<string | null>(null);

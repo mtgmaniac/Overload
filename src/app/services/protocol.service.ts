@@ -8,14 +8,12 @@ import {
 } from '../models/constants';
 import { GameStateService } from './game-state.service';
 import { DiceService } from './dice.service';
-import { TutorialService } from './tutorial.service';
 
 @Injectable({ providedIn: 'root' })
 export class ProtocolService {
   constructor(
     private state: GameStateService,
     private dice: DiceService,
-    private tutorial: TutorialService,
   ) {}
 
   /** Called after END TURN resolves (enemy phase → next player round), not on battle start. */
@@ -71,8 +69,6 @@ export class ProtocolService {
    */
   drawRerollForAnimation(heroIdx: number): { rawRoll: number; displayRoll: number } | null {
     if (!this.canRerollHero(heroIdx)) return null;
-    const forced = this.tutorial.forcedRerollForHero(heroIdx);
-    if (forced) return forced;
     let raw = this.dice.d20();
     const rfmPen = this.state.combinedHeroRawRfmPenalty(heroIdx);
     if (rfmPen > 0) raw = Math.max(1, raw - rfmPen);
@@ -100,7 +96,6 @@ export class ProtocolService {
       _evoRollRecorded: false,
       _actionLogged: false,
     });
-    this.tutorial.recordR2ProtocolOnMedic(heroIdx);
     return true;
   }
 
@@ -145,7 +140,6 @@ export class ProtocolService {
 
     this.state.pendingProtocol.set(null);
     this.state.selectedHeroIdx.set(null);
-    this.tutorial.recordR2ProtocolOnMedic(heroIdx);
     return true;
   }
 }

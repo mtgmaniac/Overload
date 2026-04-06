@@ -3,6 +3,7 @@ import { GameStateService } from '../../services/game-state.service';
 import { HeroContentService } from '../../services/hero-content.service';
 import { CombatService } from '../../services/combat.service';
 import { BATTLE_MODES, BATTLE_MODE_ORDER } from '../../data/battle-modes.data';
+import { BUILD_VERSION, BUILD_STAMP } from '../../models/constants';
 import type { BattleModeId, HeroId } from '../../models/types';
 import type { HeroDefinition, HeroPickerCategory } from '../../models/hero.interface';
 
@@ -11,12 +12,29 @@ import type { HeroDefinition, HeroPickerCategory } from '../../models/hero.inter
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="op-overlay">
-      <div class="op-box">
-        <div class="op-title">Choose operation</div>
-        <div class="op-top-actions">
-          <button type="button" class="op-tut-btn" (click)="startTutorial.emit()">TUTORIAL</button>
+    <div class="op-page">
+      <div class="op-shell">
+        <header class="op-top-header">
+          <div class="op-hdr-left" aria-hidden="true"></div>
+          <div class="op-hdr-mid"></div>
+          <div class="op-hdr-right">
+            <button type="button" class="op-hdr-btn" (click)="helpClicked.emit()">HELP</button>
+            <div class="op-build-tag">{{ version }} · {{ stamp }}</div>
+          </div>
+        </header>
+
+        <div class="op-main-stack">
+        <div class="op-logo-hero" aria-label="Overload Protocol">
+          <img
+            src="/ui/overload-protocol-logo.png"
+            alt=""
+            decoding="async"
+            fetchpriority="high"
+            class="op-logo-img" />
         </div>
+
+        <div class="op-panel">
+          <h2 class="op-panel-title">Choose operation</h2>
 
         <div class="op-section">
           <div class="op-sec-lbl">Operation</div>
@@ -100,70 +118,155 @@ import type { HeroDefinition, HeroPickerCategory } from '../../models/hero.inter
           }
         </div>
 
-        <button
-          type="button"
-          class="op-begin"
-          [disabled]="!canBegin()"
-          (click)="begin()">
-          BEGIN RUN
-        </button>
+        <div class="op-footer-actions">
+          <button type="button" class="op-tut-btn" (click)="startTutorial.emit()">TUTORIAL</button>
+          <button
+            type="button"
+            class="op-begin"
+            [disabled]="!canBegin()"
+            (click)="begin()">
+            BEGIN RUN
+          </button>
+        </div>
+        </div>
+        </div>
       </div>
     </div>
   `,
   styles: [`
-    .op-overlay {
+    .op-page {
       position: fixed;
       inset: 0;
       z-index: 600;
-      padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
-        max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
-      background: rgba(4, 6, 10, 0.97);
+      background: transparent;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .op-shell {
+      width: 100%;
+      max-width: 760px;
+      min-width: 0;
+      margin: 0 auto;
+      padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 12px max(12px, env(safe-area-inset-left));
+      box-sizing: border-box;
+    }
+    /* Match app-header row: border + HELP + build tag positions */
+    .op-top-header {
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+      margin-bottom: 10px;
     }
-    .op-box {
-      background: var(--bg2);
-      border: 2px solid var(--border);
-      box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.55);
-      border-radius: var(--radius-pixel);
-      padding: clamp(16px, 4vw, 28px) clamp(18px, 5vw, 36px);
-      max-width: min(560px, calc(100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)));
-      width: 100%;
-      max-height: min(92vh, 720px);
-      overflow-y: auto;
+    .op-hdr-left {
+      min-width: 0;
+      flex: 0 1 auto;
     }
-    .op-title {
-      font-size: clamp(16px, 4.5vw, 22px);
-      font-weight: 700;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      text-align: center;
-      margin-bottom: 6px;
-      color: #fff;
-    }
-    .op-top-actions {
+    .op-hdr-mid {
       display: flex;
-      justify-content: center;
-      margin-bottom: 16px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      min-width: 0;
     }
-    .op-tut-btn {
+    .op-hdr-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .op-hdr-btn {
       font-family: var(--font-pixel);
       font-size: 10px;
       font-weight: 700;
-      letter-spacing: 1px;
-      padding: 8px 18px;
+      letter-spacing: 0.5px;
+      color: var(--text);
+      background: var(--bg3);
+      border: 2px solid var(--border);
+      padding: 3px 9px;
+      line-height: 1.2;
       border-radius: var(--radius-pixel);
-      border: 2px solid rgba(46, 125, 212, 0.5);
-      background: rgba(46, 125, 212, 0.12);
-      color: #cfe6ff;
       cursor: pointer;
-      box-shadow: 2px 2px 0 #000;
+      white-space: nowrap;
       touch-action: manipulation;
+      box-shadow: 2px 2px 0 #000;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 0;
     }
-    .op-tut-btn:hover {
-      border-color: #7ab8ff;
-      color: #fff;
+    .op-hdr-btn:hover {
+      border-color: var(--strike);
+      color: var(--strike);
+    }
+    .op-hdr-btn:active {
+      filter: brightness(1.08);
+    }
+    .op-build-tag {
+      font-family: var(--font-pixel);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--build);
+      background: var(--build-bg);
+      border: 2px solid var(--build-dim);
+      padding: 3px 7px;
+      border-radius: var(--radius-pixel);
+      white-space: nowrap;
+      line-height: 1.2;
+    }
+    .op-main-stack {
+      max-width: min(440px, 100%);
+      margin-left: auto;
+      margin-right: auto;
+      min-width: 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .op-logo-hero {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 14px;
+      width: 100%;
+      overflow: hidden;
+      border-radius: var(--radius-pixel);
+      line-height: 0;
+      filter: drop-shadow(3px 3px 0 rgba(0, 0, 0, 0.5));
+    }
+    .op-logo-img {
+      width: 100%;
+      height: auto;
+      max-height: min(78vw, 380px);
+      object-fit: contain;
+      object-position: top center;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    .op-panel {
+      width: 100%;
+      box-sizing: border-box;
+      background: var(--bg2);
+      border: 2px solid var(--border);
+      box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.45), inset 2px 2px 0 rgba(255, 255, 255, 0.03);
+      border-radius: var(--radius-pixel);
+      padding: clamp(14px, 3.5vw, 22px) clamp(14px, 3.5vw, 22px) clamp(16px, 4vw, 24px);
+    }
+    .op-panel-title {
+      font-size: clamp(14px, 3.8vw, 18px);
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-align: center;
+      margin: 0 0 14px;
+      color: #e8f4ff;
+      border-bottom: 1px solid rgba(42, 61, 92, 0.85);
+      padding-bottom: 10px;
     }
     .op-section {
       margin-bottom: 16px;
@@ -342,6 +445,39 @@ import type { HeroDefinition, HeroPickerCategory } from '../../models/hero.inter
       color: #6f95b3;
       text-align: center;
     }
+    .op-footer-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 6px;
+    }
+    @media (min-width: 420px) {
+      .op-footer-actions {
+        flex-direction: row;
+        align-items: stretch;
+        justify-content: stretch;
+      }
+      .op-tut-btn { flex: 0 0 auto; min-width: 140px; }
+      .op-begin { flex: 1; }
+    }
+    .op-tut-btn {
+      font-family: var(--font-pixel);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 10px 16px;
+      border-radius: var(--radius-pixel);
+      border: 2px solid rgba(46, 125, 212, 0.5);
+      background: rgba(46, 125, 212, 0.12);
+      color: #cfe6ff;
+      cursor: pointer;
+      box-shadow: 2px 2px 0 #000;
+      touch-action: manipulation;
+    }
+    .op-tut-btn:hover {
+      border-color: #7ab8ff;
+      color: #fff;
+    }
     .op-begin {
       width: 100%;
       background: var(--strike);
@@ -355,7 +491,6 @@ import type { HeroDefinition, HeroPickerCategory } from '../../models/hero.inter
       border-radius: var(--radius-pixel);
       cursor: pointer;
       box-shadow: 3px 3px 0 #000;
-      margin-top: 4px;
     }
     .op-begin:hover:not(:disabled) {
       filter: brightness(1.08);
@@ -373,6 +508,10 @@ import type { HeroDefinition, HeroPickerCategory } from '../../models/hero.inter
 })
 export class OperationPickerComponent {
   readonly startTutorial = output<void>();
+  readonly helpClicked = output<void>();
+
+  readonly version = BUILD_VERSION;
+  readonly stamp = BUILD_STAMP;
 
   readonly state = inject(GameStateService);
   private readonly combat = inject(CombatService);

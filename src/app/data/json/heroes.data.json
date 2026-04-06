@@ -2162,7 +2162,7 @@
                 5
               ],
               "name": "Stealth",
-              "eff": "cloak (80% dodge next hit)",
+              "eff": "Cloak",
               "dmg": 0,
               "dMin": 0,
               "dMax": 0,
@@ -2309,7 +2309,7 @@
             8
           ],
           "name": "Cloak Protocol",
-          "eff": "cloak (80% dodge next hit)",
+          "eff": "Cloak",
           "dmg": 0,
           "dMin": 0,
           "dMax": 0,
@@ -2383,7 +2383,7 @@
                 5
               ],
               "name": "Ghost Step",
-              "eff": "4 dmg, cloak (80% dodge next hit)",
+              "eff": "4 dmg, Cloak",
               "dmg": 4,
               "dMin": 4,
               "dMax": 4,
@@ -2430,7 +2430,7 @@
                 15
               ],
               "name": "Vanishing Act",
-              "eff": "10 dmg, cloak (80% dodge next hit)",
+              "eff": "10 dmg, Cloak",
               "dmg": 10,
               "dMin": 10,
               "dMax": 10,
@@ -2454,7 +2454,7 @@
                 19
               ],
               "name": "Phantom Blade",
-              "eff": "14 dmg, pierce, cloak (80% dodge next hit)",
+              "eff": "14 dmg, pierce, Cloak",
               "dmg": 14,
               "dMin": 14,
               "dMax": 14,

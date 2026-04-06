@@ -63,6 +63,13 @@ import {
               <path d="M12 3.6l6.5 3.2v6.1c0 4.2-2.8 7.1-6.5 7.6-3.7-.5-6.5-3.4-6.5-7.6V6.8L12 3.6z" stroke="currentColor" stroke-width="1.2" opacity=".9" fill="none"/>
             </svg>
             <span>{{ h.statusShield > 0 ? h.statusShield : '—' }}</span>
+            @if (h.statusShield > 0 && h.statusShieldT > 1) {
+              <svg class="bdg-svg bdg-clock" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.35" fill="none" opacity=".85"/>
+                <path d="M12 6.75V12l3.25 2" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" fill="none" opacity=".9"/>
+              </svg>
+              <span class="bdg-turns">{{ h.statusShieldT }}</span>
+            }
           </div>
           <div class="bdg-slot" [class.empty]="h.statusDot <= 0" [class.bdg-poison]="h.statusDot > 0">
             <svg class="bdg-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -71,11 +78,18 @@ import {
               <path d="M10.2 15.2h3.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".9"/>
             </svg>
             <span>{{ h.statusDot > 0 ? h.statusDot : '—' }}</span>
+            @if (h.statusDot > 0 && h.statusDotT > 1) {
+              <svg class="bdg-svg bdg-clock" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.35" fill="none" opacity=".85"/>
+                <path d="M12 6.75V12l3.25 2" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" fill="none" opacity=".9"/>
+              </svg>
+              <span class="bdg-turns">{{ h.statusDotT }}</span>
+            }
           </div>
-          <div class="bdg-slot bdg-slot--roll"
-               [class.empty]="h.netRollMod === 0 && h.pendingNextRoll === 0"
-               [class.bdg-rollp]="h.netRollMod > 0 || h.pendingNextRoll > 0"
-               [class.bdg-rolln]="h.netRollMod < 0">
+          <div class="bdg-slot"
+               [class.empty]="heroRollCombined(h) === 0"
+               [class.bdg-rollp]="heroRollCombined(h) > 0"
+               [class.bdg-rolln]="heroRollCombined(h) < 0">
             <svg class="bdg-svg bdg-die-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <rect x="4.2" y="4.2" width="15.6" height="15.6" rx="3" stroke="currentColor" stroke-width="1.4" opacity=".9"/>
               <circle cx="9" cy="8.5" r="1.35" fill="currentColor" opacity=".95"/>
@@ -85,12 +99,7 @@ import {
               <circle cx="15" cy="12" r="1.35" fill="currentColor" opacity=".95"/>
               <circle cx="15" cy="15.5" r="1.35" fill="currentColor" opacity=".95"/>
             </svg>
-            <span class="bdg-roll-stack">
-              <span class="bdg-roll-main">{{ rollModLabel(h.netRollMod) }}</span>
-              @if (h.pendingNextRoll > 0) {
-                <span class="bdg-roll-next">+{{ h.pendingNextRoll }} next</span>
-              }
-            </span>
+            <span>{{ rollModLabel(heroRollCombined(h)) }}</span>
           </div>
         </div>
       </div>
@@ -124,6 +133,13 @@ import {
               <path d="M10.2 15.2h3.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".9"/>
             </svg>
             <span>{{ e.incomingDot > 0 ? e.incomingDot : '—' }}</span>
+            @if (e.incomingDot > 0 && e.incomingDotT > 1) {
+              <svg class="bdg-svg bdg-clock" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.35" fill="none" opacity=".85"/>
+                <path d="M12 6.75V12l3.25 2" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" fill="none" opacity=".9"/>
+              </svg>
+              <span class="bdg-turns">{{ e.incomingDotT }}</span>
+            }
           </div>
           <div class="bdg-slot" [class.empty]="e.incomingLifestealHeal <= 0" [class.bdg-heal]="e.incomingLifestealHeal > 0" title="Expected heal from this unit’s next lifesteal hit">
             <svg class="bdg-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -141,8 +157,16 @@ import {
               <path d="M12 3.6l6.5 3.2v6.1c0 4.2-2.8 7.1-6.5 7.6-3.7-.5-6.5-3.4-6.5-7.6V6.8L12 3.6z" stroke="currentColor" stroke-width="1.2" opacity=".9" fill="none"/>
             </svg>
             <span>{{ e.statusShield > 0 ? e.statusShield : '—' }}</span>
+            @if (e.statusShield > 0 && e.statusShieldT > 1) {
+              <svg class="bdg-svg bdg-clock" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.35" fill="none" opacity=".85"/>
+                <path d="M12 6.75V12l3.25 2" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" fill="none" opacity=".9"/>
+              </svg>
+              <span class="bdg-turns">{{ e.statusShieldT }}</span>
+            }
           </div>
-          <div class="bdg-slot" [class.empty]="e.statusDot <= 0" [class.bdg-poison]="e.statusDot > 0">
+          <div class="bdg-slot" [class.empty]="e.statusDot <= 0" [class.bdg-poison]="e.statusDot > 0"
+               title="DoT damage dealt once when you press END TURN (not total over remaining turns)">
             <svg class="bdg-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M12 3c4.4 0 8 3 8 7.2 0 2.5-1.3 4.6-3.3 5.9V20c0 .6-.4 1-1 1h-1v-2h-2v2h-1v-2h-2v2H8.3c-.6 0-1-.4-1-1v-3.9C5.3 14.8 4 12.7 4 10.2 4 6 7.6 3 12 3z" fill="currentColor" opacity=".25"/>
               <path d="M9.2 10.6c0 .9-.6 1.6-1.4 1.6s-1.4-.7-1.4-1.6.6-1.6 1.4-1.6 1.4.7 1.4 1.6zm8.4 0c0 .9-.6 1.6-1.4 1.6s-1.4-.7-1.4-1.6.6-1.6 1.4-1.6 1.4.7 1.4 1.6z" fill="currentColor" opacity=".9"/>
@@ -161,6 +185,13 @@ import {
               <circle cx="15" cy="15.5" r="1.35" fill="currentColor" opacity=".95"/>
             </svg>
             <span>{{ e.statusRfe > 0 ? '-' + e.statusRfe : '—' }}</span>
+            @if (e.statusRfe > 0 && e.statusRfT > 1) {
+              <svg class="bdg-svg bdg-clock" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.35" fill="none" opacity=".85"/>
+                <path d="M12 6.75V12l3.25 2" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" fill="none" opacity=".9"/>
+              </svg>
+              <span class="bdg-turns">{{ e.statusRfT }}</span>
+            }
           </div>
           <div class="bdg-slot" [class.empty]="e.statusErb <= 0" [class.bdg-rollp]="e.statusErb > 0">
             <svg class="bdg-svg bdg-die-svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -173,18 +204,25 @@ import {
               <circle cx="15" cy="15.5" r="1.35" fill="currentColor" opacity=".95"/>
             </svg>
             <span>{{ e.statusErb > 0 ? '+' + e.statusErb : '—' }}</span>
+            @if (e.statusErb > 0 && e.statusErbT > 1) {
+              <svg class="bdg-svg bdg-clock" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.35" fill="none" opacity=".85"/>
+                <path d="M12 6.75V12l3.25 2" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" fill="none" opacity=".9"/>
+              </svg>
+              <span class="bdg-turns">{{ e.statusErbT }}</span>
+            }
           </div>
         </div>
       </div>
     }
   `,
   styles: [`
-    .bdg-wrap { display: flex; flex-direction: column; gap: 3px; margin-top: 2px; }
+    .bdg-wrap { display: flex; flex-direction: column; gap: 2px; margin-top: 0; }
     .bdg-lbl {
-      font-family: var(--font-pixel); font-size: 8px; font-weight: 900;
+      font-family: var(--font-pixel); font-size: 9px; font-weight: 900;
       letter-spacing: 1px; color: #9bc0dd;
     }
-    .bdg-sep { height: 2px; background: var(--border); margin: 1px 0; }
+    .bdg-sep { height: 2px; background: var(--border); margin: 0; }
     .bdg-row-3 {
       display: flex; --bdg-gap: 2px; gap: var(--bdg-gap); flex-wrap: nowrap; justify-content: flex-start;
     }
@@ -196,57 +234,43 @@ import {
       display: flex; --bdg-gap: 2px; gap: var(--bdg-gap); flex-wrap: nowrap; justify-content: flex-start; width: 100%;
     }
     .bdg-enemy-incoming > .bdg-slot {
-      height: 15px;
-      padding: 0 1px;
-      font-size: 7px;
+      height: 21px;
+      padding: 0 2px;
+      font-size: 10px;
     }
     .bdg-row-4 > .bdg-slot {
       flex: 1 1 0;
       min-width: 0;
-      height: 15px;
+      height: 21px;
       gap: 2px;
-      padding: 0 1px;
-      font-size: 8px;
+      padding: 0 2px;
+      font-size: 10px;
       border-radius: var(--radius-pixel);
     }
-    .bdg-row-4 .bdg-svg { width: 9px; height: 9px; }
-    .bdg-row-4 .bdg-die-svg { width: 10px; height: 10px; }
+    .bdg-row-4 .bdg-svg { width: 12px; height: 12px; }
+    .bdg-row-4 .bdg-die-svg { width: 13px; height: 13px; }
+    .bdg-clock { width: 11px; height: 11px; flex-shrink: 0; opacity: 0.9; }
+    .bdg-turns { font-size: 10px; font-weight: 800; color: #9bc0dd; flex-shrink: 0; }
     .bdg-slot {
-      height: 16px; display: flex; align-items: center; justify-content: center; gap: 3px;
+      height: 21px;
+      min-height: 21px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
       border-radius: var(--radius-pixel); border: 1px solid var(--border); background: var(--bg);
-      font-family: var(--font-pixel); font-size: 9px; font-weight: 800; color: var(--text);
+      font-family: var(--font-pixel); font-size: 11px; font-weight: 800; color: var(--text);
       white-space: nowrap; overflow: hidden;
     }
     .bdg-slot.empty { opacity: .05; border-color: rgba(255,255,255,.06); background: transparent; }
-    .bdg-svg { width: 10px; height: 10px; display: inline-block; flex: 0 0 auto; color: currentColor; }
-    .bdg-die-svg { width: 11px; height: 11px; }
+    .bdg-svg { width: 12px; height: 12px; display: inline-block; flex: 0 0 auto; color: currentColor; }
+    .bdg-die-svg { width: 13px; height: 13px; }
     .bdg-dmg { color: #d84a2a; border-color: rgba(216,74,42,.35); background: rgba(216,74,42,.08); opacity: 1; }
     .bdg-heal { color: #2ec46a; border-color: rgba(46,196,106,.35); background: rgba(46,196,106,.08); opacity: 1; }
     .bdg-sh { color: #2e7dd4; border-color: rgba(46,125,212,.35); background: rgba(46,125,212,.08); opacity: 1; }
     .bdg-poison { color: #b67bff; border-color: rgba(182,123,255,.35); background: rgba(182,123,255,.08); opacity: 1; }
     .bdg-rollp { color: #2ec46a; border-color: rgba(46,196,106,.35); background: rgba(46,196,106,.08); opacity: 1; }
     .bdg-rolln { color: #e8b84a; border-color: rgba(232,184,74,.35); background: rgba(232,184,74,.08); opacity: 1; }
-    .bdg-slot--roll {
-      flex-direction: row;
-      align-items: center;
-      justify-content: center;
-      gap: 3px;
-      line-height: 1;
-      padding: 0 2px;
-      height: 16px;
-      min-height: 16px;
-    }
-    .bdg-roll-stack {
-      display: inline-flex;
-      flex-direction: row;
-      flex-wrap: nowrap;
-      align-items: center;
-      gap: 3px;
-      min-width: 0;
-      white-space: nowrap;
-    }
-    .bdg-roll-main { font-size: 9px; flex: 0 0 auto; }
-    .bdg-roll-next { font-size: 7px; font-weight: 700; color: #8fd4a8; letter-spacing: 0; flex: 0 0 auto; }
   `],
 })
 export class BadgeZoneComponent {
@@ -262,6 +286,7 @@ export class BadgeZoneComponent {
     this.state.squadRfmStacks();
     this.state.squadRfmPenalty();
     this.state.allHeroesRolled();
+    this.state.phase();
     return this.projection.heroBadges(this.index());
   });
 
@@ -271,11 +296,18 @@ export class BadgeZoneComponent {
     this.state.squadRfmStacks();
     this.state.squadRfmPenalty();
     this.state.allHeroesRolled();
+    this.state.phase();
+    this.state.endTurnHeroResolveCursor();
     return this.projection.enemyBadges(this.index());
   });
 
   rollModLabel(net: number): string {
     if (net === 0) return '—';
     return net > 0 ? `+${net}` : `${net}`;
+  }
+
+  /** Current roll modifiers + queued ally/item buff for next roll, shown as one value. */
+  heroRollCombined(h: HeroBadgeSnapshot): number {
+    return h.netRollMod + h.pendingNextRoll;
   }
 }

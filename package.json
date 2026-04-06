@@ -10,6 +10,10 @@
     "validate-data": "node scripts/validate-game-data.mjs",
     "battle-sim": "npx tsx scripts/battle-progress-sim-run.ts",
     "normalize-portraits": "node scripts/normalize-enemy-portraits.cjs",
+    "normalize-hero-portraits": "node scripts/normalize-hero-portraits-dir.mjs",
+    "import-stylematch-heroes": "node scripts/import-stylematch-hero-portraits.mjs",
+    "slice-hero-sheet": "node scripts/slice-hero-sheet.mjs",
+    "optimize-assets": "node scripts/optimize-public-assets.mjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },

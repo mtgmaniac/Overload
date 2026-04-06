@@ -30,12 +30,12 @@ const ANIM_STEPS = 8;
 const ANIM_REVEAL_STEP = 6;
 /** Default / max reference width; roll jitter uses measured tray width. */
 const TRAY_INNER_W = 736;
-/** Row height for dice band (die 62px ≈ +25% from 50px + small vertical pad). */
-const ROW_H = 70;
-const DIE_W = 62;
-const DIE_H = 62;
+/** Row height for dice band; slack matches frame + mid-bar padding for even vertical rhythm. */
+const ROW_H = 80;
+const DIE_W = 78;
+const DIE_H = 78;
 /** Horizontal drift during tumble (px); snaps back to slot on reveal. */
-const ROLL_DRIFT_TOTAL = 34;
+const ROLL_DRIFT_TOTAL = 43;
 
 interface PrecomputedRoll {
   heroIdx: number;
@@ -72,6 +72,7 @@ interface JitterPos {
                  [style.width]="fullTrayRollPhase() ? trayWidth() + 'px' : '100%'">
               @for (enemy of state.enemies(); track enemy.id; let i = $index) {
                 <div class="tray-unit-col"
+                     [attr.id]="i === 0 && !enemy.dead ? 'tut-enemy-die-drone' : null"
                      [class.tray-unit-col--float]="fullTrayRollPhase() && !enemy.dead"
                      [style.left]="enemyJitter()[i]?.left ?? null"
                      [style.top]="enemyJitter()[i]?.top ?? null">
@@ -119,6 +120,7 @@ interface JitterPos {
                  [style.width]="fullTrayRollPhase() ? trayWidth() + 'px' : '100%'">
               @for (hero of state.heroes(); track trayHeroTrack(hero); let i = $index) {
                 <div class="tray-unit-col"
+                     [attr.id]="hero.id === 'pulse' && hero.currentHp > 0 ? 'tut-die-pulse' : null"
                      [class.tray-unit-col--float]="fullTrayRollPhase() && hero.currentHp > 0 && (hero.roll === null || rerollingHeroIdx() === i)"
                      [style.left]="heroJitter()[i]?.left ?? null"
                      [style.top]="heroJitter()[i]?.top ?? null">
@@ -149,15 +151,15 @@ interface JitterPos {
       border: 2px solid var(--border);
       border-radius: var(--radius-pixel);
       box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.45), inset 2px 2px 0 rgba(255, 255, 255, 0.04);
-      padding: 4px 0 4px; position: relative;
+      padding: 3px 0 3px; position: relative;
     }
     .shared-dice-tray::before {
-      content: ''; position: absolute; left: 4px; right: 4px; top: 4px; bottom: 4px;
+      content: ''; position: absolute; left: 3px; right: 3px; top: 3px; bottom: 3px;
       border: 1px dashed rgba(90, 110, 140, 0.35); pointer-events: none;
     }
     .tray-split { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
     .tray-band { display: flex; flex-direction: column; align-items: stretch; gap: 0; padding: 0; position: relative; }
-    .tray-mid-bar { display: flex; justify-content: center; align-items: center; padding: 2px 4px; margin: 0; }
+    .tray-mid-bar { display: flex; justify-content: center; align-items: center; padding: 3px 4px; margin: 0; }
     .tray-unit-col {
       min-width: 0;
       display: flex;
@@ -165,13 +167,13 @@ interface JitterPos {
       align-items: center;
       box-sizing: border-box;
     }
-    .tray-dice-row { display: flex; flex-wrap: nowrap; align-items: center; margin: 0; padding: 0; min-height: 70px; box-sizing: border-box; gap: clamp(4px, 1.5vw, 8px); }
+    .tray-dice-row { display: flex; flex-wrap: nowrap; align-items: center; margin: 0; padding: 0; min-height: 80px; box-sizing: border-box; gap: clamp(4px, 1.5vw, 8px); }
     .tray-dice-row--squad {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: clamp(4px, 1.5vw, 8px);
-      height: 70px;
-      min-height: 70px;
+      height: 80px;
+      min-height: 80px;
       align-items: center;
       align-content: center;
     }
@@ -179,13 +181,13 @@ interface JitterPos {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: clamp(4px, 1.5vw, 8px);
-      min-height: 70px;
+      min-height: 80px;
       align-items: center;
     }
     .tray-dice-row--enemies.tray-dice-row--center {
       display: flex;
       justify-content: center;
-      min-height: 70px;
+      min-height: 80px;
       align-items: center;
       gap: clamp(4px, 1.5vw, 8px);
     }
@@ -206,14 +208,14 @@ interface JitterPos {
       visibility: hidden;
       pointer-events: none;
     }
-    .tray-die-spacer { width: 62px; height: 62px; flex-shrink: 0; }
+    .tray-die-spacer { width: 78px; height: 78px; flex-shrink: 0; }
 
     /* Float mode: switch from grid to positioned block so dice can fly around */
     .tray-dice-row--roll-float {
       display: block !important;
       position: relative;
-      height: 70px;
-      min-height: 70px;
+      height: 80px;
+      min-height: 80px;
       overflow: hidden;
     }
     .tray-dice-row--roll-float .tray-unit-col--float {
@@ -229,8 +231,8 @@ interface JitterPos {
     .tray-dice-row--roll-float .tray-enemy-slot { position: static; margin: 0 !important; }
 
     .btn-main {
-      font-family: var(--font-pixel); font-weight: 700; font-size: clamp(9px, 2.6vw, 11px); letter-spacing: 1px;
-      text-transform: uppercase; padding: 6px 10px; min-height: 38px; min-width: min(240px, 92vw); max-width: 280px;
+      font-family: var(--font-pixel); font-weight: 700; font-size: clamp(10px, 2.8vw, 12px); letter-spacing: 1px;
+      text-transform: uppercase; padding: 5px 10px; min-height: 34px; min-width: min(240px, 92vw); max-width: 280px;
       border-radius: var(--radius-pixel); cursor: pointer; border: 2px solid; white-space: nowrap; touch-action: manipulation;
     }
     .btn-main:disabled { opacity: .35; cursor: not-allowed; }

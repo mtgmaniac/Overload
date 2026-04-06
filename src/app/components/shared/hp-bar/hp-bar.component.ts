@@ -27,7 +27,7 @@ import { Component, ChangeDetectionStrategy, input, computed } from '@angular/co
       margin-bottom: 2px;
       min-width: 0;
     }
-    .hp-lbl { font-family: var(--font-pixel); font-size: 9px; font-weight: 700; flex-shrink: 0; }
+    .hp-lbl { font-family: var(--font-pixel); font-size: 10px; font-weight: 700; flex-shrink: 0; }
     .hp-aside {
       flex: 1;
       min-width: 0;

@@ -13,7 +13,7 @@ import {
   UnitStatusRibbonLine,
 } from '../../shared/unit-status-ribbon/unit-status-ribbon.component';
 import { heroPortraitSvg } from '../../../data/sprites.data';
-import { HERO_FRAME_COLORS } from '../../../data/unit-frame-colors';
+import { HERO_UNIT_FRAME_COLOR } from '../../../data/unit-frame-colors';
 
 @Component({
   selector: 'app-hero-card',
@@ -31,10 +31,15 @@ import { HERO_FRAME_COLORS } from '../../../data/unit-frame-colors';
          [style.border-color]="cardBorderColor()"
          (click)="onClick()">
       <!-- Ability panel -->
-      <div class="ap">
-        <div class="ap-title">ABILITIES</div>
+      <div class="ap" [class.ap-await-roll]="!abilityHighlightLocked()">
         @for (ab of hero().abilities; track ab.name) {
-          <app-ability-row [ability]="ab" [zone]="ab.zone" [rangeStr]="getRangeStr(ab)" [isCurrent]="isCurrentAbility(ab)" [tier]="hero().tier" />
+          <app-ability-row
+            [ability]="ab"
+            [zone]="ab.zone"
+            [rangeStr]="getRangeStr(ab)"
+            [isCurrent]="isCurrentAbility(ab)"
+            [highlightLocked]="abilityHighlightLocked()"
+            [tier]="hero().tier" />
         }
       </div>
       <!-- Bottom section: info + portrait -->
@@ -133,13 +138,13 @@ import { HERO_FRAME_COLORS } from '../../../data/unit-frame-colors';
     .ap {
       flex-shrink: 0;
       background: var(--bg);
-      padding: 5px 8px;
+      padding: 6px 7px;
       border-bottom: 2px solid var(--border);
+      transition: box-shadow 0.16s ease, background 0.16s ease;
     }
-    .ap-title {
-      font-size: clamp(7px, 2.1vw, 8px);
-      letter-spacing: 2px;
-      color: #4a6a8a;
+    .ap.ap-await-roll {
+      background: linear-gradient(180deg, rgba(100, 145, 195, 0.14) 0%, var(--bg) 72%);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), inset 0 -8px 14px rgba(80, 130, 190, 0.08);
     }
     .hbot {
       flex: 1;
@@ -166,13 +171,13 @@ import { HERO_FRAME_COLORS } from '../../../data/unit-frame-colors';
       min-width: 0;
     }
     .hname {
-      font-size: clamp(10px, 3.2vw, 12px);
+      font-size: clamp(11px, 3.4vw, 13px);
       font-weight: 800;
       color: #fff;
     }
     .hero-target-line {
-      font-size: clamp(7px, 2.4vw, 9px);
-      line-height: 1.35;
+      font-size: clamp(8px, 2.6vw, 10px);
+      line-height: 1.4;
       color: #6f95b3;
       margin-top: 4px;
       display: flex;
@@ -200,7 +205,7 @@ import { HERO_FRAME_COLORS } from '../../../data/unit-frame-colors';
       flex-shrink: 0;
       height: 11px;
       margin-top: 2px;
-      margin-bottom: 3px;
+      margin-bottom: 1px;
       display: flex;
       align-items: center;
       box-sizing: border-box;
@@ -255,7 +260,7 @@ export class HeroCardComponent {
       out.push({
         key: 'cloak',
         tag: 'CLOAK',
-        detail: '80% dodge the next time an enemy hits you.',
+        detail: '',
       });
     }
     if (this.state.tauntHeroId() === h.id) {
@@ -281,8 +286,7 @@ export class HeroCardComponent {
 
   cardBorderColor = computed(() => {
     if (this.isSelected()) return 'rgba(100, 175, 255, 0.95)';
-    const h = this.hero();
-    return h.frameColor ?? HERO_FRAME_COLORS[h.id];
+    return HERO_UNIT_FRAME_COLOR;
   });
 
   /** Stable DOM ids for tutorial spotlights (tutorial squad uses each id at most once). */
@@ -310,6 +314,9 @@ export class HeroCardComponent {
     const pct = Math.min(100, (this.hero().hrs / 18) * 100);
     return pct + '%';
   });
+
+  /** After the d20 is set, non-matching ability rows dim; before roll, the whole panel stays lit. */
+  abilityHighlightLocked = computed(() => this.dice.effRoll(this.hero()) !== null);
 
   isCurrentAbility(ab: HeroAbility): boolean {
     const h = this.hero();

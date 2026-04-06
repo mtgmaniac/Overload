@@ -123,7 +123,6 @@
         "hp": { "type": "integer", "minimum": 1 },
         "sk": { "$ref": "#/$defs/heroId" },
         "portraitPath": { "type": "string" },
-        "frameColor": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
         "abilities": {
           "type": "array",
           "items": { "$ref": "#/$defs/heroAbility" },
