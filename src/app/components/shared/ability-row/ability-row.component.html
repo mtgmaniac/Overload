@@ -1,0 +1,64 @@
+<div
+  class="ap-row"
+  [class.cur]="isCurrent()"
+  [class.ap-row-muted]="dimInactive()"
+  [attr.title]="abilityTooltip()"
+  [attr.aria-label]="abilityAriaLabel()">
+  <span class="az az-neutral">{{ rangeLabel() }}</span>
+  <span class="ae ae-mini-row">
+    @for (tok of miniTokens(); track $index) {
+      <span [class]="miniRowClass(tok)">
+        @if (tok.icon) {
+          @switch (tok.icon) {
+          @case ('bolt') {
+            <svg class="ic" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M13 2L3 14h8l-1 8 11-14h-8l0-6z" fill="currentColor" opacity=".9"/>
+            </svg>
+          }
+          @case ('plus') {
+            <svg class="ic" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M11 5h2v14h-2zM5 11h14v2H5z" fill="currentColor" opacity=".9"/>
+            </svg>
+          }
+          @case ('shield') {
+            <svg class="ic" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 2l8 4v7c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V6l8-4z" fill="currentColor" opacity=".25"/>
+              <path d="M12 3.6l6.5 3.2v6.1c0 4.2-2.8 7.1-6.5 7.6-3.7-.5-6.5-3.4-6.5-7.6V6.8L12 3.6z" stroke="currentColor" stroke-width="1.2" opacity=".9" fill="none"/>
+            </svg>
+          }
+          @case ('skull') {
+            <svg class="ic" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 3c4.4 0 8 3 8 7.2 0 2.5-1.3 4.6-3.3 5.9V20c0 .6-.4 1-1 1h-1v-2h-2v2h-1v-2h-2v2H8.3c-.6 0-1-.4-1-1v-3.9C5.3 14.8 4 12.7 4 10.2 4 6 7.6 3 12 3z" fill="currentColor" opacity=".25"/>
+              <path d="M9.2 10.6c0 .9-.6 1.6-1.4 1.6s-1.4-.7-1.4-1.6.6-1.6 1.4-1.6 1.4.7 1.4 1.6zm8.4 0c0 .9-.6 1.6-1.4 1.6s-1.4-.7-1.4-1.6.6-1.6 1.4-1.6 1.4.7 1.4 1.6z" fill="currentColor" opacity=".9"/>
+              <path d="M10.2 15.2h3.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".9"/>
+            </svg>
+          }
+          @case ('die') {
+            <svg class="ic ic-die" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="4.2" y="4.2" width="15.6" height="15.6" rx="3" stroke="currentColor" stroke-width="1.4" opacity=".9"/>
+              <circle cx="9" cy="8.5" r="1.35" fill="currentColor" opacity=".95"/>
+              <circle cx="9" cy="12" r="1.35" fill="currentColor" opacity=".95"/>
+              <circle cx="9" cy="15.5" r="1.35" fill="currentColor" opacity=".95"/>
+              <circle cx="15" cy="8.5" r="1.35" fill="currentColor" opacity=".95"/>
+              <circle cx="15" cy="12" r="1.35" fill="currentColor" opacity=".95"/>
+              <circle cx="15" cy="15.5" r="1.35" fill="currentColor" opacity=".95"/>
+            </svg>
+          }
+          }
+        }
+        @if (tok.num !== undefined) {
+          <span class="n">{{ tok.num }}</span>
+        } @else if (tok.label) {
+          <span class="n">{{ tok.label }}</span>
+        }
+        @if (tok.turns != null && tok.turns > 1) {
+          <svg class="ic ic-clock-inline" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.35" fill="none" opacity=".85"/>
+            <path d="M12 6.75V12l3.25 2" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" fill="none" opacity=".9"/>
+          </svg>
+          <span class="n n-turns">{{ tok.turns }}</span>
+        }
+      </span>
+    }
+  </span>
+</div>

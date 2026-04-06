@@ -1,0 +1,29 @@
+.enemy-zone-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin: 0;
+  width: 100%;
+  max-width: 736px;
+}
+.enemy-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  flex-direction: row;
+  align-items: stretch;
+  width: 100%;
+  margin-bottom: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  padding-bottom: 4px;
+  scrollbar-gutter: stable;
+}
+.enemy-row > app-enemy-card {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+.enemy-row--spread { justify-content: flex-start; }
+.enemy-row--center { justify-content: center; }

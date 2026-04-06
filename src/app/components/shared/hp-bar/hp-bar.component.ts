@@ -4,43 +4,8 @@ import { Component, ChangeDetectionStrategy, input, computed } from '@angular/co
   selector: 'app-hp-bar',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    @if (showLabel()) {
-      <div class="hp-head">
-        <div class="hp-lbl" [style.color]="labelColor()">HP {{ current() }}/{{ max() }}</div>
-        <div class="hp-aside">
-          <ng-content select="[data-hp-aside]" />
-        </div>
-      </div>
-    }
-    <div class="hp-bar">
-      <div class="hp-fill" [class]="fillClass()" [style.width]="widthPct()"></div>
-    </div>
-  `,
-  styles: [`
-    .hp-head {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 4px;
-      margin-top: 5px;
-      margin-bottom: 2px;
-      min-width: 0;
-    }
-    .hp-lbl { font-family: var(--font-pixel); font-size: 10px; font-weight: 700; flex-shrink: 0; }
-    .hp-aside {
-      flex: 1;
-      min-width: 0;
-      display: flex;
-      justify-content: flex-end;
-      align-items: flex-end;
-    }
-    .hp-bar { width: 100%; height: 5px; background: #0a0c10; border: 1px solid #000; border-radius: var(--radius-pixel); overflow: hidden; margin-bottom: 2px; }
-    .hp-fill { height: 100%; border-radius: var(--radius-pixel); transition: width 0.25s steps(8, end); }
-    .hp-fill-g { background: #1d9e75; }
-    .hp-fill-y { background: #e8b84a; }
-    .hp-fill-r { background: #d84a2a; }
-  `],
+  templateUrl: './hp-bar.component.html',
+  styleUrl: './hp-bar.component.scss',
 })
 export class HpBarComponent {
   current = input.required<number>();

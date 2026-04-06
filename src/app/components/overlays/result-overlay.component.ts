@@ -5,19 +5,8 @@ import { GameStateService } from '../../services/game-state.service';
   selector: 'app-result-overlay',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div class="overlay" [class.show]="state.showOverlay()">
-      <div class="ov-box">
-        <div class="ov-title" [class.vc]="state.overlayIsVictory()" [class.dc]="!state.overlayIsVictory()">
-          {{ state.overlayTitle() }}
-        </div>
-        <div class="ov-sub">{{ state.overlaySub() }}</div>
-        @if (state.overlayBtnAction()) {
-          <button class="ov-btn" (click)="onBtnClick()">{{ state.overlayBtnText() }}</button>
-        }
-      </div>
-    </div>
-  `,
+  templateUrl: './result-overlay.component.html',
+  styleUrl: './result-overlay.component.scss',
 })
 export class ResultOverlayComponent {
   state = inject(GameStateService);

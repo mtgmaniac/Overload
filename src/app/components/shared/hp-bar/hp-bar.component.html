@@ -1,0 +1,11 @@
+@if (showLabel()) {
+  <div class="hp-head">
+    <div class="hp-lbl" [style.color]="labelColor()">HP {{ current() }}/{{ max() }}</div>
+    <div class="hp-aside">
+      <ng-content select="[data-hp-aside]" />
+    </div>
+  </div>
+}
+<div class="hp-bar">
+  <div class="hp-fill" [class]="fillClass()" [style.width]="widthPct()"></div>
+</div>

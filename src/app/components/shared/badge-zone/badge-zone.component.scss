@@ -1,0 +1,54 @@
+.bdg-wrap { display: flex; flex-direction: column; gap: 2px; margin-top: 0; }
+.bdg-lbl {
+  font-family: var(--font-pixel); font-size: 9px; font-weight: 900;
+  letter-spacing: 1px; color: #9bc0dd;
+}
+.bdg-sep { height: 2px; background: var(--border); margin: 0; }
+.bdg-row-3 {
+  display: flex; --bdg-gap: 2px; gap: var(--bdg-gap); flex-wrap: nowrap; justify-content: flex-start;
+}
+.bdg-row-3 > .bdg-slot {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.bdg-row-4 {
+  display: flex; --bdg-gap: 2px; gap: var(--bdg-gap); flex-wrap: nowrap; justify-content: flex-start; width: 100%;
+}
+.bdg-enemy-incoming > .bdg-slot {
+  height: 21px;
+  padding: 0 2px;
+  font-size: 10px;
+}
+.bdg-row-4 > .bdg-slot {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 21px;
+  gap: 2px;
+  padding: 0 2px;
+  font-size: 10px;
+  border-radius: var(--radius-pixel);
+}
+.bdg-row-4 .bdg-svg { width: 12px; height: 12px; }
+.bdg-row-4 .bdg-die-svg { width: 13px; height: 13px; }
+.bdg-clock { width: 11px; height: 11px; flex-shrink: 0; opacity: 0.9; }
+.bdg-turns { font-size: 10px; font-weight: 800; color: #9bc0dd; flex-shrink: 0; }
+.bdg-slot {
+  height: 21px;
+  min-height: 21px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-radius: var(--radius-pixel); border: 1px solid var(--border); background: var(--bg);
+  font-family: var(--font-pixel); font-size: 11px; font-weight: 800; color: var(--text);
+  white-space: nowrap; overflow: hidden;
+}
+.bdg-slot.empty { opacity: .05; border-color: rgba(255,255,255,.06); background: transparent; }
+.bdg-svg { width: 12px; height: 12px; display: inline-block; flex: 0 0 auto; color: currentColor; }
+.bdg-die-svg { width: 13px; height: 13px; }
+.bdg-dmg { color: #d84a2a; border-color: rgba(216,74,42,.35); background: rgba(216,74,42,.08); opacity: 1; }
+.bdg-heal { color: #2ec46a; border-color: rgba(46,196,106,.35); background: rgba(46,196,106,.08); opacity: 1; }
+.bdg-sh { color: #2e7dd4; border-color: rgba(46,125,212,.35); background: rgba(46,125,212,.08); opacity: 1; }
+.bdg-poison { color: #b67bff; border-color: rgba(182,123,255,.35); background: rgba(182,123,255,.08); opacity: 1; }
+.bdg-rollp { color: #2ec46a; border-color: rgba(46,196,106,.35); background: rgba(46,196,106,.08); opacity: 1; }
+.bdg-rolln { color: #e8b84a; border-color: rgba(232,184,74,.35); background: rgba(232,184,74,.08); opacity: 1; }

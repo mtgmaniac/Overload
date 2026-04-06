@@ -34,43 +34,8 @@ import { TUTORIAL_PARTY_IDS } from '../../data/tutorial-steps.data';
     OperationPickerComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    @if (state.showOperationPicker()) {
-      <app-operation-picker
-        (startTutorial)="startTutorialFromHelp()"
-        (helpClicked)="helpOpen.set(true)" />
-    } @else {
-      <div id="app">
-        <app-header (helpClicked)="helpOpen.set(true)" (backHomeClicked)="onChangeOperation()" />
-        <div class="lanes">
-          <app-enemy-zone />
-          <app-dice-tray />
-          <app-hero-zone />
-          <app-protocol-strip />
-          <app-battle-log />
-        </div>
-      </div>
-    }
-    <app-result-overlay />
-    <app-help-overlay
-      [isOpen]="helpOpen()"
-      (closed)="helpOpen.set(false)"
-      (startTutorial)="startTutorialFromHelp()" />
-    <app-tutorial-overlay (exitRegular)="onTutorialExitRegular()" />
-    <app-evolution-overlay />
-    <app-item-draft-overlay />
-  `,
-  styles: [`
-    #app {
-      position: relative;
-      z-index: 1;
-      width: 100%;
-      max-width: 760px;
-      min-width: 0;
-      margin: 0 auto;
-      padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 12px max(12px, env(safe-area-inset-left));
-    }
-  `],
+  templateUrl: './game.component.html',
+  styleUrl: './game.component.scss',
 })
 export class GameComponent {
   readonly state = inject(GameStateService);

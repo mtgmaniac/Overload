@@ -1,0 +1,13 @@
+<div class="hero-zone-wrap">
+  <div class="heroes-zone" id="tut-heroes-zone">
+    @for (hero of state.heroes(); track heroZoneTrack(hero); let i = $index) {
+      <app-hero-card
+        [hero]="hero"
+        [index]="i"
+        [isSelected]="state.selectedHeroIdx() === i"
+        [pickMode]="getPickMode(i)"
+        (heroClicked)="targeting.onHeroCardClick(i)"
+        (allyPickClicked)="targeting.onAllyHeroPickClick(i)" />
+    }
+  </div>
+</div>

@@ -18,43 +18,8 @@ import { DICE_SPRITE_URL } from '../../../data/sprites.data';
   selector: 'app-die',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div
-      class="die-wrap"
-      #dieWrap
-      [class.die-clickable]="clickable()"
-      [attr.role]="clickable() ? 'button' : 'img'"
-      [attr.aria-label]="dieAriaLabel()"
-      [attr.tabindex]="clickable() ? 0 : -1"
-      (click)="onDieClick()"
-      (keydown)="onDieKeydown($event)">
-      <div
-        class="die-sprite"
-        [style.background-image]="diceBg"
-        [style.background-position]="spriteBgPos()"></div>
-    </div>
-  `,
-  styles: [`
-    :host { display: contents; }
-    .die-wrap {
-      width: 78px;
-      height: 78px;
-      position: relative;
-      flex-shrink: 0;
-      touch-action: manipulation;
-    }
-    .die-clickable { cursor: pointer; }
-    .die-clickable:hover .die-sprite { filter: brightness(1.08); }
-    .die-clickable:active .die-sprite { transform: translate(1px, 1px); }
-    .die-sprite {
-      width: 100%;
-      height: 100%;
-      image-rendering: pixelated;
-      image-rendering: crisp-edges;
-      background-repeat: no-repeat;
-      background-size: 600% 600%;
-    }
-  `],
+  templateUrl: './die.component.html',
+  styleUrl: './die.component.scss',
 })
 export class DieComponent {
   /** From `DICE_SPRITE_URL` (PNG or lossless WebP via `RASTER_EXT`). */

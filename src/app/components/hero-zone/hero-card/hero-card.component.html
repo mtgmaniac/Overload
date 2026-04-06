@@ -1,0 +1,66 @@
+<div class="hcard" [class.hcard-interactive]="hero().currentHp > 0 || pickMode() === 'revive' || pickMode() === 'itemAllyDead'"
+     [class.hcard-cower]="(hero().cowerTurns || 0) > 0"
+     [class.is-dead]="hero().currentHp <= 0"
+     [class.hcard-selected]="isSelected()"
+     [class.selectable-ally-pick]="pickMode() === 'heal' || pickMode() === 'shield' || pickMode() === 'rollBuff' || pickMode() === 'itemAlly'"
+     [class.selectable-revive-pick]="pickMode() === 'revive' || pickMode() === 'itemAllyDead'"
+     [attr.id]="tutorialDomId()"
+     [style.border-color]="cardBorderColor()"
+     (click)="onClick()">
+  <!-- Ability panel -->
+  <div class="ap" [class.ap-await-roll]="!abilityHighlightLocked()">
+    @for (ab of hero().abilities; track ab.name) {
+      <app-ability-row
+        [ability]="ab"
+        [zone]="ab.zone"
+        [rangeStr]="getRangeStr(ab)"
+        [isCurrent]="isCurrentAbility(ab)"
+        [highlightLocked]="abilityHighlightLocked()"
+        [tier]="hero().tier" />
+    }
+  </div>
+  <!-- Bottom section: info + portrait -->
+  <div class="hbot">
+    <div class="info-col">
+        <div>
+        <div class="hname-row">
+          <span class="hname">{{ hero().name }}</span>
+        </div>
+        <!-- Target line -->
+        <div class="hero-target-line">
+          <span class="hero-target-text">
+            @for (seg of targetLine().segments; track $index) {
+              @switch (seg.t) {
+                @case ('plain') { <span>{{ seg.text }}</span> }
+                @case ('muted') { <span class="tgt-muted">{{ seg.text }}</span> }
+                @case ('all') { <span class="tgt-all">{{ seg.text }}</span> }
+                @case ('self') { <span class="tgt-self">{{ seg.text }}</span> }
+                @case ('enemy') { <span class="tgt-enemy">{{ seg.text }}</span> }
+                @case ('ally') { <span class="tgt-ally">{{ seg.text }}</span> }
+              }
+            }
+          </span>
+        </div>
+      </div>
+      <div>
+        <app-hp-bar [current]="hero().currentHp" [max]="hero().maxHp">
+          <div data-hp-aside>
+            <app-unit-status-ribbon [lines]="heroStatusLines()" />
+          </div>
+        </app-hp-bar>
+        <div class="xp-track" aria-hidden="true">
+          @if (hero().tier === 1) {
+            <div class="xp-bar"><div class="xp-f" [style.width]="xpWidth()"></div></div>
+          }
+        </div>
+        <app-badge-zone kind="hero" [index]="index()" />
+      </div>
+    </div>
+    <div class="sprite">
+      <app-portrait-frame
+        [svg]="heroSvg()"
+        [isCloaked]="hero().cloaked"
+        [anchorId]="'action-hero-' + index()" />
+    </div>
+  </div>
+</div>

@@ -1,0 +1,13 @@
+<div class="enemy-zone-wrap" id="tut-enemy-zone">
+  <div class="enemy-row" [class.enemy-row--spread]="state.enemies().length >= 3"
+       [class.enemy-row--center]="state.enemies().length < 3">
+    @for (enemy of state.enemies(); track enemy.id; let i = $index) {
+      <app-enemy-card
+        [enemy]="enemy"
+        [index]="i"
+        [isPickable]="isEnemyPickable(i)"
+        [hideRoll]="hideEnemyRolls()"
+        (enemyClicked)="targeting.onEnemyPickClick(i)" />
+    }
+  </div>
+</div>

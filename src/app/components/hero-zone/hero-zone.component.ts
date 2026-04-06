@@ -10,51 +10,8 @@ import { HeroState } from '../../models/hero.interface';
   standalone: true,
   imports: [HeroCardComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div class="hero-zone-wrap">
-      <div class="heroes-zone" id="tut-heroes-zone">
-        @for (hero of state.heroes(); track heroZoneTrack(hero); let i = $index) {
-          <app-hero-card
-            [hero]="hero"
-            [index]="i"
-            [isSelected]="state.selectedHeroIdx() === i"
-            [pickMode]="getPickMode(i)"
-            (heroClicked)="targeting.onHeroCardClick(i)"
-            (allyPickClicked)="targeting.onAllyHeroPickClick(i)" />
-        }
-      </div>
-    </div>
-  `,
-  styles: [`
-    .hero-zone-wrap {
-      display: flex;
-      flex-direction: column;
-      align-items: stretch;
-      margin: 0;
-      width: 100%;
-      max-width: 736px;
-      gap: 10px;
-    }
-    .heroes-zone {
-      display: flex;
-      flex-direction: row;
-      gap: 8px;
-      margin-bottom: 0;
-      flex-wrap: nowrap;
-      align-items: stretch;
-      width: 100%;
-      overflow-x: auto;
-      overflow-y: visible;
-      -webkit-overflow-scrolling: touch;
-      scroll-snap-type: x proximity;
-      padding-bottom: 4px;
-      scrollbar-gutter: stable;
-    }
-    .heroes-zone > app-hero-card {
-      flex: 0 0 auto;
-      scroll-snap-align: start;
-    }
-  `],
+  templateUrl: './hero-zone.component.html',
+  styleUrl: './hero-zone.component.scss',
 })
 export class HeroZoneComponent {
   state = inject(GameStateService);

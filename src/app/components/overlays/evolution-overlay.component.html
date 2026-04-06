@@ -1,0 +1,26 @@
+<div class="evo-overlay" [class.show]="isVisible()">
+  <div style="font-size:22px;font-weight:900;letter-spacing:5px;color:#fff;margin-bottom:14px;">
+    ⬡ EVOLUTION AVAILABLE
+  </div>
+  <div class="evo-heroes-row">
+    @for (pe of state.pendingEvolutions(); track pe.heroIdx; let ci = $index) {
+      <div class="evo-hero-card">
+        <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:8px;">
+          {{ getHeroName(pe.heroIdx) }}
+        </div>
+        @for (path of getPaths(pe.heroIdx); track path.name; let ei = $index) {
+          <div class="evo-path" [class.selected]="pe.chosen === ei" (click)="selectEvo(ci, ei)">
+            <div class="evo-path-name">{{ path.name }}</div>
+            <div class="evo-path-focus">{{ path.focus }}</div>
+            <div style="font-size:9px;color:var(--muted);margin-top:4px;">
+              HP: {{ path.hp }}
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+  <button class="evo-confirm-btn" [disabled]="!allChosen()" (click)="confirm()">
+    CONFIRM EVOLUTIONS
+  </button>
+</div>

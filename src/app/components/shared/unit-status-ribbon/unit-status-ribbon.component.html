@@ -1,0 +1,19 @@
+@if (lines().length) {
+  <div class="usr" role="status">
+    @for (line of lines(); track line.key) {
+      <div
+        class="usr-row"
+        [class.usr-cower]="line.tag === 'COWER'"
+        [class.usr-cloak]="line.tag === 'CLOAK'"
+        [class.usr-taunt]="line.tag === 'TAUNT'"
+        [class.usr-seal]="line.tag === 'SEAL'"
+        [class.usr-rampage]="line.tag === 'RAMPAGE'"
+        [attr.title]="line.detail">
+        <span class="usr-tag">{{ line.tag }}</span>
+        @if (line.detail) {
+          <span class="usr-detail">{{ line.detail }}</span>
+        }
+      </div>
+    }
+  </div>
+}

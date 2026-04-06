@@ -1,0 +1,97 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  width: 240px;
+  align-self: stretch;
+  height: 100%;
+  min-height: 0;
+}
+.ec-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+  flex-shrink: 0;
+  touch-action: manipulation;
+}
+.ec-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+  border-radius: var(--radius-pixel);
+  background: var(--bg2);
+  border-width: 1px;
+  border-style: solid;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.4);
+  touch-action: manipulation;
+}
+.ec-card.is-dead { opacity: .28; }
+.selectable-enemy-pick {
+  cursor: pointer;
+  box-shadow: inset 0 0 0 2px rgba(232, 90, 58, 0.65), inset 0 0 20px rgba(232, 90, 58, 0.08);
+}
+.ap {
+  flex-shrink: 0;
+  background: var(--bg);
+  padding: 6px 7px;
+  border-bottom: 2px solid var(--border);
+  transition: box-shadow 0.16s ease, background 0.16s ease;
+}
+.ap.ap-await-roll {
+  background: linear-gradient(180deg, rgba(100, 145, 195, 0.14) 0%, var(--bg) 72%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), inset 0 -8px 14px rgba(80, 130, 190, 0.08);
+}
+.hbot {
+  flex: 1;
+  min-height: 0;
+  padding: 6px 7px;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+.info-col {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-self: stretch;
+}
+.hname {
+  font-size: clamp(11px, 3.4vw, 13px);
+  font-weight: 800;
+  color: #fff;
+}
+.hero-target-line {
+  font-size: clamp(8px, 2.6vw, 10px);
+  line-height: 1.4;
+  color: #6f95b3;
+  margin-top: 4px;
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+}
+.hero-target-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tgt-muted { color: #4a6a8a; }
+.tgt-self { color: #7dcea0; font-weight: 700; }
+.tgt-ally { color: #2ec46a; font-weight: 700; }
+.tgt-enemy { color: #e07060; font-weight: 700; }
+.tgt-all { color: #c8ddf0; font-weight: 700; }
+.sprite {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-end;
+  position: relative;
+  border-radius: var(--radius-pixel);
+}
