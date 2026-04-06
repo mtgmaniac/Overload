@@ -15,10 +15,9 @@ jobs:
       contents: read
       pages: write
       id-token: write
-    env:
+    environment:
       name: github-pages
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - uses: actions/checkout@v4
