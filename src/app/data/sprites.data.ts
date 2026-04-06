@@ -9,7 +9,7 @@ export const RASTER_EXT: '.png' | '.webp' = '.png';
 const r = (pathWithoutExt: string) => `${pathWithoutExt}${RASTER_EXT}`;
 
 /** D20 sprite sheet — same folder as `public/dice/`. */
-export const DICE_SPRITE_URL = r('/dice/d20-sprite');
+export const DICE_SPRITE_URL = r('dice/d20-sprite');
 
 function portraitOverrideUrl(url: string): string {
   if (RASTER_EXT === '.png') return url;
