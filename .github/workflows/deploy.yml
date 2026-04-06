@@ -35,7 +35,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: dist/overload-protocol
+          path: dist/overload-protocol/browser
       
       - name: Deploy to GitHub Pages
         id: deployment
