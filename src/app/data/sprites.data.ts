@@ -26,14 +26,14 @@ const PORTRAIT_IMG_H = 317;
 
 /** Full-bleed portraits — matched art style (combat reference); flavor per unit. */
 export const HERO_PORTRAIT_PATHS: Record<HeroId, string> = {
-  pulse: r('/heroes/pulse-portrait'),
-  combat: r('/heroes/combat-portrait'),
-  shield: r('/heroes/shield-portrait'),
-  avalanche: r('/heroes/avalanche-portrait'),
-  medic: r('/heroes/medic-portrait'),
-  engineer: r('/heroes/engineer-portrait'),
-  ghost: r('/heroes/ghost-portrait'),
-  breaker: r('/heroes/breaker-portrait'),
+  pulse: r('heroes/pulse-portrait'),
+  combat: r('heroes/combat-portrait'),
+  shield: r('heroes/shield-portrait'),
+  avalanche: r('heroes/avalanche-portrait'),
+  medic: r('heroes/medic-portrait'),
+  engineer: r('heroes/engineer-portrait'),
+  ghost: r('heroes/ghost-portrait'),
+  breaker: r('heroes/breaker-portrait'),
 };
 
 /** Same href as embedded in `heroPortraitSvg` — use for preload. */
