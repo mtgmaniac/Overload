@@ -32,12 +32,6 @@ jobs:
       - name: Build Angular app
         run: npm run build -- --configuration production --base-href=/Overload/
 
-      - name: Debug - List dist contents
-        run: ls -la dist/
-      
-      - name: Debug - Check if index.html exists
-        run: test -f dist/overload-protocol/index.html && echo "index.html found" || echo "index.html NOT found"
-      
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
