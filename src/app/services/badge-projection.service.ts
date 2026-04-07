@@ -186,6 +186,23 @@ export class BadgeProjectionService {
         statusErbT: 0,
       };
     }
+    if (e.dead || e.currentHp <= 0) {
+      return {
+        incomingDmg: 0,
+        incomingLifestealHeal: 0,
+        incomingRfe: 0,
+        incomingDot: 0,
+        incomingDotT: 0,
+        statusShield: 0,
+        statusShieldT: 0,
+        statusDot: 0,
+        statusDotT: 0,
+        statusRfe: 0,
+        statusRfT: 0,
+        statusErb: 0,
+        statusErbT: 0,
+      };
+    }
     const pre = this.showTurnPreviews();
     const dotIn = pre ? this.incomingDotDetailForEnemy(enemyIndex) : { dot: 0, dT: 0 };
     return {
@@ -212,7 +229,7 @@ export class BadgeProjectionService {
   projDmgOn(ei: number): number {
     const enemies = this.state.enemies();
     const e = enemies[ei];
-    if (!e || e.dead) return 0;
+    if (!e || e.dead || e.currentHp <= 0) return 0;
 
     let shieldRem = e.shield > 0 && e.shT > 0 ? e.shield : 0;
     let hpDmg = 0;
@@ -371,6 +388,8 @@ export class BadgeProjectionService {
   }
 
   incomingRfeForEnemy(ei: number): number {
+    const tgt = this.state.enemies()[ei];
+    if (!tgt || tgt.dead || tgt.currentHp <= 0) return 0;
     let t = 0;
     const heroes = this.state.heroes();
     for (let hi = 0; hi < heroes.length; hi++) {
@@ -392,6 +411,8 @@ export class BadgeProjectionService {
   }
 
   incomingDotDetailForEnemy(ei: number): { dot: number; dT: number } {
+    const tgt = this.state.enemies()[ei];
+    if (!tgt || tgt.dead || tgt.currentHp <= 0) return { dot: 0, dT: 0 };
     let dot = 0;
     let dt = 0;
     const heroes = this.state.heroes();

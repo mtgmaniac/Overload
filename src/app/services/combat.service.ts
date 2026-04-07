@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { EnemyAbility } from '../models/ability.interface';
 import {
   type EnemyDefinition,
@@ -27,6 +27,14 @@ import { TutorialService } from './tutorial.service';
 import { ItemService } from './item.service';
 import { PortraitPreloadService } from './portrait-preload.service';
 
+/** Precomputed squad + enemy tray rolls (shared by dice animation and instant sim). */
+export interface ComputedRollAllPayload {
+  heroRolls: { heroIdx: number; finalRoll: number }[];
+  enemyRolls: { enemyIdx: number; preRoll: number; displayEff: number }[];
+}
+
+export type RollAllAnimatedDelegate = { applyAnimated: () => Promise<void> };
+
 @Injectable({ providedIn: 'root' })
 export class CombatService {
   constructor(
@@ -42,6 +50,15 @@ export class CombatService {
     private items: ItemService,
     private portraitPreload: PortraitPreloadService,
   ) {}
+
+  /** Sim Battle / animated roll-all: dice tray registers `applyAnimated` when present. */
+  private rollAllDelegate: RollAllAnimatedDelegate | null = null;
+
+  readonly simBattleRunning = signal(false);
+
+  setRollAllDelegate(delegate: RollAllAnimatedDelegate | null): void {
+    this.rollAllDelegate = delegate;
+  }
 
   // ── Enemy ability resolution ──
 
@@ -61,6 +78,11 @@ export class CombatService {
     // Phase 2 boss damage override
     if (e.p2 && ab.dmgP2) ab.dmg = ab.dmgP2;
     return ab;
+  }
+
+  /** Hero abilities must not apply incoming damage/debuffs to corpses (HP 0 or flagged dead). */
+  private enemyAcceptsHeroEffects(e: EnemyState): boolean {
+    return !e.dead && e.currentHp > 0;
   }
 
   /** Commit a raw d20 for one enemy (after debuff); updates zone + plan. */
@@ -295,7 +317,7 @@ export class CombatService {
     if ((ab.blastAll || ab.multiHit) && (ab.dmg || 0) > 0) {
       for (let idx = 0; idx < this.state.enemies().length; idx++) {
         const e = this.state.enemies()[idx];
-        if (e.dead) continue;
+        if (!this.enemyAcceptsHeroEffects(e)) continue;
         await this.pulseEnemyPortrait(idx, 'pf-flash-red');
         this.applyDamageToEnemy(idx, ab.dmg, h.name, !!(ab.ignSh));
       }
@@ -304,7 +326,10 @@ export class CombatService {
       let entries = Object.entries(alloc)
         .filter(([, v]) => v > 0)
         .map(([k, v]) => ({ ei: parseInt(k, 10), dmg: v }))
-        .filter(x => this.state.enemies()[x.ei] && !this.state.enemies()[x.ei].dead);
+        .filter(x => {
+          const ex = this.state.enemies()[x.ei];
+          return ex && this.enemyAcceptsHeroEffects(ex);
+        });
       entries.sort((a, b) => a.ei - b.ei);
       if (entries.length) {
         for (const x of entries) {
@@ -314,11 +339,11 @@ export class CombatService {
             this.log.log(`▸ ${h.name} splits ${x.dmg} dmg → ${this.state.enemies()[x.ei].name}.`, 'pl');
           }
         }
-      } else if (tgtE && !tgtE.dead && (ab.dmg || 0) > 0) {
+      } else if (tgtE && this.enemyAcceptsHeroEffects(tgtE) && (ab.dmg || 0) > 0) {
         await this.pulseEnemyPortrait(tgtIdx, 'pf-flash-red');
         this.applyDamageToEnemy(tgtIdx, ab.dmg, h.name, !!(ab.ignSh));
       }
-    } else if ((ab.dmg || 0) > 0 && tgtE && !tgtE.dead) {
+    } else if ((ab.dmg || 0) > 0 && tgtE && this.enemyAcceptsHeroEffects(tgtE)) {
       await this.pulseEnemyPortrait(tgtIdx, 'pf-flash-red');
       this.applyDamageToEnemy(tgtIdx, ab.dmg, h.name, !!(ab.ignSh));
     }
@@ -389,7 +414,7 @@ export class CombatService {
       if (ab.blastAll) {
         for (let idx = 0; idx < this.state.enemies().length; idx++) {
           const e = this.state.enemies()[idx];
-          if (e.dead) continue;
+          if (!this.enemyAcceptsHeroEffects(e)) continue;
           await this.pulseEnemyPortrait(idx, 'pf-flash-red');
           this.state.updateEnemy(idx, {
             dot: (e.dot || 0) + ab.dot,
@@ -400,7 +425,7 @@ export class CombatService {
           `▸ Enemies poisoned (${ab.dot} DoT${ab.dT && ab.dT > 1 ? `, ${ab.dT}t` : ''}).`,
           'pl',
         );
-      } else if (tgtE && !tgtE.dead) {
+      } else if (tgtE && this.enemyAcceptsHeroEffects(tgtE)) {
         await this.pulseEnemyPortrait(tgtIdx, 'pf-flash-red');
         this.state.updateEnemy(tgtIdx, {
           dot: (tgtE.dot || 0) + ab.dot,
@@ -418,14 +443,14 @@ export class CombatService {
       if (ab.rfeAll) {
         for (let idx = 0; idx < this.state.enemies().length; idx++) {
           const e = this.state.enemies()[idx];
-          if (e.dead) continue;
+          if (!this.enemyAcceptsHeroEffects(e)) continue;
           await this.pulseEnemyPortrait(idx, 'pf-flash-amber');
           const nextStacks = [...(e.rfeStacks || []), { amt: ab.rfe, turnsLeft: dur }];
           const { rfe, rfT } = enemyRfeFromStacks(nextStacks);
           this.state.updateEnemy(idx, { rfeStacks: nextStacks, rfe, rfT });
           this.recomputeEnemy(idx);
         }
-      } else if (tgtE && !tgtE.dead) {
+      } else if (tgtE && this.enemyAcceptsHeroEffects(tgtE)) {
         await this.pulseEnemyPortrait(tgtIdx, 'pf-flash-amber');
         const nextStacks = [...(tgtE.rfeStacks || []), { amt: ab.rfe, turnsLeft: dur }];
         const { rfe, rfT } = enemyRfeFromStacks(nextStacks);
@@ -504,6 +529,13 @@ export class CombatService {
       if (hIdx >= 0) {
         const ht = heroes[hIdx];
         let dmg = act.dmg;
+        if (act.packBonus) {
+          const packCount = this.state.enemies().filter(x => !x.dead && x.type === e.type && x.id !== e.id).length;
+          if (packCount > 0) {
+            dmg += packCount;
+            this.log.log(`▸ ${e.name} — Pack bonus +${packCount}.`, 'en');
+          }
+        }
         if (ht.cloaked && Math.random() < 0.8) {
           this.state.updateHero(hIdx, { cloaked: false });
           this.log.log(`▸ ${e.name} attacks ${ht.name} — MISS! (Cloak)`, 'bl');
@@ -633,14 +665,15 @@ export class CombatService {
       if (act.erbAll) {
         const n = this.state.enemies().length;
         for (let i = 0; i < n; i++) {
+          if (i === ei) continue;
           const ex = this.state.enemies()[i];
-          if (ex.dead) continue;
+          if (ex.dead || ex.currentHp <= 0) continue;
           await this.pulseEnemyPortrait(i, 'pf-flash-green');
           const nb = (ex.rollBuff || 0) + amt;
           const nt = Math.max(ex.rollBuffT || 0, dur);
           this.state.updateEnemy(i, { rollBuff: nb, rollBuffT: nt });
         }
-        this.log.log(`▸ ${e.name} → ${act.name}! +${amt} enemy roll all (${dur}t).`, 'en');
+        this.log.log(`▸ ${e.name} → ${act.name}! +${amt} roll to allies (${dur}t).`, 'en');
       } else {
         await this.pulseEnemyPortrait(ei, 'pf-flash-green');
         const ex = this.state.enemies()[ei];
@@ -712,11 +745,31 @@ export class CombatService {
       }
     }
 
+    if (act.enemySelfTaunt) {
+      this.state.forcedEnemyTargetIdx.set(ei);
+      this.log.log(`▸ ${e.name} draws focus — heroes must target it next round.`, 'en');
+    }
+
+    if (act.curseDice) {
+      const hIdx = this.state.heroes().findIndex(h => h.id === e.targeting && h.currentHp > 0);
+      if (hIdx >= 0) {
+        const ht = this.state.heroes()[hIdx];
+        await this.pulseHeroPortrait(hIdx, 'pf-flash-amber');
+        this.state.updateHero(hIdx, { cursed: true });
+        this.log.log(`▸ ${e.name} curses ${ht.name} — rolls twice, keeps lower next turn.`, 'en');
+      }
+    }
+
+    if (act.packBonus) {
+      // Pack bonus was already applied in the dmg block above; no additional action needed here.
+    }
+
     await this.maybeEliteNaturalTwentySummon(ei, e, act);
   }
 
   applyDamageToEnemy(idx: number, dmg: number, src: string, ignSh: boolean): void {
     const e = this.state.enemies()[idx];
+    if (!e || !this.enemyAcceptsHeroEffects(e)) return;
     let actualDmg = dmg;
     if (e.shield > 0 && e.shT > 0 && !ignSh) {
       const absorbed = Math.min(e.shield, actualDmg);
@@ -741,8 +794,27 @@ export class CombatService {
   checkDead(idx: number): void {
     const e = this.state.enemies()[idx];
     if (e.currentHp <= 0 && !e.dead) {
-      this.state.updateEnemy(idx, { dead: true });
+      this.state.updateEnemy(idx, {
+        dead: true,
+        dot: 0,
+        dT: 0,
+        rfeStacks: [],
+        rfe: 0,
+        rfT: 0,
+        shield: 0,
+        shT: 0,
+        rollBuff: 0,
+        rollBuffT: 0,
+        rampageCharges: 0,
+        plan: null,
+        preRoll: 0,
+        effRoll: 0,
+        curZone: 'recharge',
+      });
       this.log.log(`▸ ${e.name} destroyed.`, 'sy');
+      if (this.state.forcedEnemyTargetIdx() === idx) {
+        this.state.forcedEnemyTargetIdx.set(null);
+      }
       const enemies = this.state.enemies();
       const nextAlive = enemies.findIndex(en => !en.dead);
       if (nextAlive >= 0) {
@@ -752,6 +824,7 @@ export class CombatService {
     // Boss phase 2
     const updated = this.state.enemies()[idx];
     if (
+      updated.currentHp > 0 &&
       (updated.type === 'boss' ||
       updated.type === 'hiveBoss' ||
       updated.type === 'veilBoss' ||
@@ -801,6 +874,7 @@ export class CombatService {
     this.state.clearSquadRfmStacks();
     this.state.clearAllHeroRfmStacks();
     this.state.tauntHeroId.set(null);
+    this.state.forcedEnemyTargetIdx.set(null);
     this.state.selectedHeroIdx.set(null);
     this.state.pendingProtocol.set(null);
     this.state.pendingItemSelection.set(null);
@@ -841,6 +915,11 @@ export class CombatService {
 
     const preset = this.tutorial.getHeroRollPreset(idx);
     let raw = preset ?? this.dice.d20();
+    if (!preset && h.cursed) {
+      raw = Math.min(raw, this.dice.d20());
+      this.state.updateHero(idx, { cursed: false });
+      this.log.log(`▸ ${h.name} — Cursed! Rolled twice, kept lower.`, 'sy');
+    }
     const rfmPen = this.state.combinedHeroRawRfmPenalty(idx);
     if (rfmPen > 0) raw = Math.max(1, raw - rfmPen);
     this.state.updateHero(idx, { roll: raw, rawRoll: raw });
@@ -860,9 +939,71 @@ export class CombatService {
     }
   }
 
+  /**
+   * Build the same hero/enemy d20 results ROLL ALL would use (tutorial presets + RFM penalties).
+   * Returns null when there is nothing left to roll on the tray.
+   */
+  computeRollAllPresets(): ComputedRollAllPayload | null {
+    const heroes = this.state.heroes();
+    const enemies = this.state.enemies();
+
+    const heroRolls: ComputedRollAllPayload['heroRolls'] = [];
+    for (let i = 0; i < heroes.length; i++) {
+      const h = heroes[i];
+      if (h.currentHp <= 0 || (h.cowerTurns || 0) > 0 || h.roll !== null) continue;
+      const preset = this.tutorial.getHeroRollPreset(i);
+      let raw = preset ?? this.dice.d20();
+      if (!preset && h.cursed) {
+        raw = Math.min(raw, this.dice.d20());
+        this.state.updateHero(i, { cursed: false });
+        this.log.log(`▸ ${h.name} — Cursed! Rolled twice, kept lower.`, 'sy');
+      }
+      const rfmPen = this.state.combinedHeroRawRfmPenalty(i);
+      if (rfmPen > 0) raw = Math.max(1, raw - rfmPen);
+      heroRolls.push({ heroIdx: i, finalRoll: raw });
+    }
+
+    const tutEnemyPre = this.tutorial.getTutorialEnemyPreRoll();
+    const enemyRolls: ComputedRollAllPayload['enemyRolls'] = [];
+    for (let i = 0; i < enemies.length; i++) {
+      const e = enemies[i];
+      if (e.dead) continue;
+      const preRoll = tutEnemyPre ?? this.dice.d20();
+      const displayEff = Math.min(20, Math.max(1, preRoll - (e.rfe || 0) + (e.rollBuff || 0)));
+      enemyRolls.push({ enemyIdx: i, preRoll, displayEff });
+    }
+
+    if (!heroRolls.length && !enemyRolls.length) return null;
+    return { heroRolls, enemyRolls };
+  }
+
+  /** Apply tray roll results after animation or instant sim (matches dice-tray onFinished). */
+  applyRollAllPayload(payload: ComputedRollAllPayload): void {
+    for (const hr of payload.heroRolls) {
+      this.state.updateHero(hr.heroIdx, {
+        roll: hr.finalRoll,
+        rawRoll: hr.finalRoll,
+        noRR: true,
+      });
+      this.clearAndAutoTarget(hr.heroIdx);
+    }
+    if (payload.enemyRolls.length) {
+      this.applyEnemyAbilityRollsFromPreRolls(
+        payload.enemyRolls.map(er => ({ enemyIndex: er.enemyIdx, preRoll: er.preRoll })),
+      );
+    }
+    this.state.enemyTrayRevealed.set(true);
+    this.tutorial.notifyRollAllFinished();
+  }
+
+  instantRollAllForSim(): void {
+    const payload = this.computeRollAllPresets();
+    if (payload) this.applyRollAllPayload(payload);
+  }
+
   // ── End turn (player turn resolution) ──
 
-  async endTurn(): Promise<void> {
+  async endTurn(opts?: { chainEnemyPhase?: boolean }): Promise<void> {
     if (this.state.phase() !== 'player') return;
     if (this.state.pendingItemSelection()) {
       this.state.pendingItemSelection.set(null);
@@ -955,9 +1096,74 @@ export class CombatService {
 
       // Switch to enemy phase
       this.state.phase.set('enemy');
-      setTimeout(() => this.enemyTurn(), 700);
+      if (opts?.chainEnemyPhase) {
+        await this.enemyTurn();
+      } else {
+        setTimeout(() => void this.enemyTurn(), 700);
+      }
     } finally {
       this.state.endTurnHeroResolveCursor.set(null);
+    }
+  }
+
+  /**
+   * Auto-play the current battle to completion: same RNG and rules as manual play.
+   * With animations on, uses the dice-tray roll animation and normal combat pacing; with animations off, resolves instantly.
+   */
+  async runSimBattle(): Promise<void> {
+    if (this.state.tutorial()?.active) return;
+    if (this.state.pendingProtocol() != null || this.state.pendingItemSelection() != null) {
+      this.log.log('▸ Finish the current action before Sim Battle.', 'sy');
+      return;
+    }
+    if (this.simBattleRunning()) return;
+    this.simBattleRunning.set(true);
+    const maxRounds = 500;
+    let rounds = 0;
+    try {
+      while (rounds < maxRounds) {
+        rounds++;
+        const phase = this.state.phase();
+        if (phase === 'over') break;
+
+        if (phase === 'enemy') {
+          await this.enemyTurn();
+          continue;
+        }
+
+        if (phase !== 'player') break;
+
+        if (!this.state.allHeroesRolled()) {
+          if (this.state.animOn() && this.rollAllDelegate) {
+            await this.rollAllDelegate.applyAnimated();
+          } else {
+            if (this.state.animOn() && !this.rollAllDelegate) {
+              this.log.log('▸ Sim battle: tray not ready for animated rolls; applying rolls instantly.', 'sy');
+            }
+            this.instantRollAllForSim();
+          }
+        }
+
+        this.targeting.applySimBattleAutoTargets();
+
+        if (!this.targeting.allHeroesReadyForEndTurn()) {
+          this.log.log('▸ Sim battle stopped: could not auto-complete targeting.', 'sy');
+          break;
+        }
+
+        const tutErr = this.tutorial.validateBeforePlayerResolve();
+        if (tutErr) {
+          this.state.addLog(tutErr, 'sy');
+          break;
+        }
+
+        await this.endTurn({ chainEnemyPhase: true });
+      }
+      if (rounds >= maxRounds && this.state.phase() !== 'over') {
+        this.log.log('▸ Sim battle stopped: round limit (stalemate or loop).', 'sy');
+      }
+    } finally {
+      this.simBattleRunning.set(false);
     }
   }
 
@@ -1035,6 +1241,7 @@ export class CombatService {
     this.targeting.assignTargets();
 
     this.state.phase.set('player');
+    this.state.forcedEnemyTargetIdx.set(null);
     this.state.selectedHeroIdx.set(null);
     this.state.pendingProtocol.set(null);
     this.state.pendingItemSelection.set(null);
@@ -1075,7 +1282,7 @@ export class CombatService {
   }
 
   private afterItemDraftWin(): void {
-    this.evolution.awardHrs();
+    this.evolution.awardXp();
     const eligible = this.evolution.getEligibleHeroes();
     if (eligible.length > 0) {
       this.state.pendingEvolutions.set(eligible.map(i => ({ heroIdx: i, chosen: null })));

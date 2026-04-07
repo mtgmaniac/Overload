@@ -115,6 +115,56 @@ export class TargetingService {
     return true;
   }
 
+  /**
+   * Sim Battle: assign default ally/enemy targets so END TURN can resolve without manual picks.
+   * (Self for heal/shield, first other living hero for rfmTgt, first living enemy, first dead for revive.)
+   */
+  applySimBattleAutoTargets(): void {
+    const heroes = this.state.heroes();
+    const enemies = this.state.enemies();
+    const firstAliveEnemy = enemies.findIndex(e => !e.dead);
+
+    for (let hi = 0; hi < heroes.length; hi++) {
+      const h = heroes[hi];
+      if (h.currentHp <= 0 || h.roll === null) continue;
+      const ab = this.dice.getAbilityOrNull(h);
+      if (!ab) continue;
+
+      const patch: Partial<HeroState> = {};
+
+      if (this.needsEnemyPick(ab)) {
+        const ei = h.lockedTarget;
+        const ok = ei !== undefined && ei !== null && enemies[ei] && !enemies[ei].dead;
+        if (!ok && firstAliveEnemy >= 0) {
+          patch.lockedTarget = firstAliveEnemy;
+        }
+      }
+
+      if (this.needsAllyHealPick(ab) && h.healTgtIdx == null) {
+        patch.healTgtIdx = hi;
+      }
+      if (this.needsAllyShieldPick(ab) && h.shTgtIdx == null) {
+        patch.shTgtIdx = hi;
+      }
+      if (this.needsAllyRollBuffPick(ab) && h.rfmTgtIdx == null) {
+        const other = heroes.findIndex((x, j) => j !== hi && x.currentHp > 0);
+        patch.rfmTgtIdx = other >= 0 ? other : hi;
+      }
+      if (this.reviveRequiresTargetPick(ab) && h.reviveTgtIdx == null) {
+        const deadIdx = heroes.findIndex((x, j) => j !== hi && x.currentHp <= 0);
+        if (deadIdx >= 0) {
+          patch.reviveTgtIdx = deadIdx;
+        }
+      }
+
+      if (Object.keys(patch).length > 0) {
+        this.state.updateHero(hi, patch);
+      }
+      this.runAutoTargetForHero(hi);
+      this.tryFinalizeHeroAfterTargets(hi);
+    }
+  }
+
   runAutoTargetForHero(hi: number): void {
     const heroes = this.state.heroes();
     const h = heroes[hi];
@@ -350,6 +400,9 @@ export class TargetingService {
       }
       return;
     }
+
+    const forced = this.state.forcedEnemyTargetIdx();
+    if (forced !== null && forced !== ei) return;
 
     const shi = this.state.selectedHeroIdx();
     if (shi == null) return;

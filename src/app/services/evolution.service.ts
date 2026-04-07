@@ -40,8 +40,8 @@ export class EvolutionService {
     return Array.from(map.values());
   }
 
-  /** Calculate HRS (hero roll score) after battle win */
-  calculateHrs(h: HeroState): number {
+  /** Calculate XP after battle win */
+  calculateXp(h: HeroState): number {
     if (h.tier !== 1 || !h.bRolls || h.bRolls.length === 0) return 0;
     const avg = h.bRolls.reduce((a, b) => a + b, 0) / h.bRolls.length;
     let pts: number;
@@ -62,7 +62,7 @@ export class EvolutionService {
       const h = heroes[i];
       if (h.tier !== 1) continue;
       if (h.currentHp <= 0) continue;
-      if (h.hrs < 18) continue;
+      if (h.xp < 18) continue;
       if (battle < 2) continue;
       if (h.evolvedTo) continue;
       eligible.push(i);
@@ -70,13 +70,13 @@ export class EvolutionService {
     return eligible;
   }
 
-  /** Award HRS to heroes after a battle win */
-  awardHrs(): void {
+  /** Award XP to heroes after a battle win */
+  awardXp(): void {
     const heroes = this.state.heroes();
     heroes.forEach((h, i) => {
       if (h.currentHp <= 0 || h.tier !== 1) return;
-      const pts = this.calculateHrs(h);
-      this.state.updateHero(i, { hrs: h.hrs + pts });
+      const pts = this.calculateXp(h);
+      this.state.updateHero(i, { xp: h.xp + pts });
     });
   }
 
@@ -99,7 +99,7 @@ export class EvolutionService {
       hp: newMaxHp,
       currentHp: newCurrentHp,
       tier: 2,
-      hrs: 0,
+      xp: 0,
       bRolls: [],
       evolvedTo: path.name,
       cls: path.focus || h.cls,

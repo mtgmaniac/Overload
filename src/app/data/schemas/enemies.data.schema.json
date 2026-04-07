@@ -109,7 +109,10 @@
         "grantRampage": { "type": "integer", "minimum": 0 },
         "grantRampageAll": { "type": "integer", "minimum": 0 },
         "cowerT": { "type": "integer", "minimum": 1 },
-        "cowerAll": { "type": "boolean" }
+        "cowerAll": { "type": "boolean" },
+        "enemySelfTaunt": { "type": "boolean" },
+        "curseDice": { "type": "boolean" },
+        "packBonus": { "type": "boolean" }
       }
     },
     "enemyAbilitySuite": {

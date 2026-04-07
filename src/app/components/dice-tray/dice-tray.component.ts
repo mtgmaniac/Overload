@@ -12,7 +12,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { GameStateService } from '../../services/game-state.service';
 import { DiceService } from '../../services/dice.service';
-import { CombatService } from '../../services/combat.service';
+import { CombatService, type ComputedRollAllPayload } from '../../services/combat.service';
 import { ProtocolService } from '../../services/protocol.service';
 import {
   RerollAnimationRequestService,
@@ -37,18 +37,6 @@ const DIE_H = 78;
 /** Horizontal drift during tumble (px); snaps back to slot on reveal. */
 const ROLL_DRIFT_TOTAL = 43;
 
-interface PrecomputedRoll {
-  heroIdx: number;
-  finalRoll: number;
-}
-
-interface PrecomputedEnemyRoll {
-  enemyIdx: number;
-  preRoll: number;
-  /** Effective roll after enemy rfe (for face during reveal) */
-  displayEff: number;
-}
-
 interface JitterPos {
   left: string;
   top: string;
@@ -65,7 +53,7 @@ interface JitterPos {
 export class DiceTrayComponent {
   state = inject(GameStateService);
   private dice = inject(DiceService);
-  private combat = inject(CombatService);
+  combat = inject(CombatService);
   private protocol = inject(ProtocolService);
   tutorial = inject(TutorialService);
   private rerollRequests = inject(RerollAnimationRequestService);
@@ -82,6 +70,11 @@ export class DiceTrayComponent {
     this.rerollRequests.requests$.pipe(takeUntilDestroyed()).subscribe(p => this.playRerollAnimation(p));
 
     afterNextRender(() => {
+      this.combat.setRollAllDelegate({
+        applyAnimated: () => this.runRollAllAsPromise(),
+      });
+      this.destroyRef.onDestroy(() => this.combat.setRollAllDelegate(null));
+
       const wrap = this.host.nativeElement.querySelector('.dice-tray-wrap') as HTMLElement | null;
       if (!wrap) return;
       const apply = () => {
@@ -143,56 +136,44 @@ export class DiceTrayComponent {
   onRollAll(): void {
     if (this.state.phase() !== 'player' || this.state.rollAllInProgress() || this.isAnimating()) return;
 
+    const payload = this.combat.computeRollAllPresets();
+    if (!payload) return;
+
     const heroes = this.state.heroes();
     const enemies = this.state.enemies();
-
-    const heroRolls: PrecomputedRoll[] = [];
-    for (let i = 0; i < heroes.length; i++) {
-      const h = heroes[i];
-      if (h.currentHp <= 0 || (h.cowerTurns || 0) > 0 || h.roll !== null) continue;
-      const preset = this.tutorial.getHeroRollPreset(i);
-      let raw = preset ?? this.dice.d20();
-      const rfmPen = this.state.combinedHeroRawRfmPenalty(i);
-      if (rfmPen > 0) raw = Math.max(1, raw - rfmPen);
-      heroRolls.push({ heroIdx: i, finalRoll: raw });
-    }
-
-    const tutEnemyPre = this.tutorial.getTutorialEnemyPreRoll();
-    const enemyRolls: PrecomputedEnemyRoll[] = [];
-    for (let i = 0; i < enemies.length; i++) {
-      const e = enemies[i];
-      if (e.dead) continue;
-      const preRoll = tutEnemyPre ?? this.dice.d20();
-      const displayEff = Math.min(20, Math.max(1, preRoll - (e.rfe || 0) + (e.rollBuff || 0)));
-      enemyRolls.push({ enemyIdx: i, preRoll, displayEff });
-    }
-
-    if (!heroRolls.length && !enemyRolls.length) return;
 
     this.runMultiDieAnimation({
       heroes,
       enemies,
-      heroRolls,
-      enemyRolls,
+      heroRolls: payload.heroRolls,
+      enemyRolls: payload.enemyRolls,
       rerollHeroIdx: null,
       progressFlag: 'rollAll',
-      onFinished: () => {
-        for (const hr of heroRolls) {
-          this.state.updateHero(hr.heroIdx, {
-            roll: hr.finalRoll,
-            rawRoll: hr.finalRoll,
-            noRR: true,
-          });
-          this.combat.clearAndAutoTarget(hr.heroIdx);
-        }
-        if (enemyRolls.length) {
-          this.combat.applyEnemyAbilityRollsFromPreRolls(
-            enemyRolls.map(er => ({ enemyIndex: er.enemyIdx, preRoll: er.preRoll })),
-          );
-        }
-        this.state.enemyTrayRevealed.set(true);
-        this.tutorial.notifyRollAllFinished();
-      },
+      onFinished: () => this.combat.applyRollAllPayload(payload),
+    });
+  }
+
+  /** Sim Battle (animations on): await until ROLL ALL tray animation finishes and state is applied. */
+  runRollAllAsPromise(): Promise<void> {
+    if (this.state.phase() !== 'player' || this.state.rollAllInProgress() || this.isAnimating()) {
+      return Promise.resolve();
+    }
+    const payload = this.combat.computeRollAllPresets();
+    if (!payload) return Promise.resolve();
+
+    return new Promise<void>(resolve => {
+      this.runMultiDieAnimation({
+        heroes: this.state.heroes(),
+        enemies: this.state.enemies(),
+        heroRolls: payload.heroRolls,
+        enemyRolls: payload.enemyRolls,
+        rerollHeroIdx: null,
+        progressFlag: 'rollAll',
+        onFinished: () => {
+          this.combat.applyRollAllPayload(payload);
+          resolve();
+        },
+      });
     });
   }
 
@@ -221,8 +202,8 @@ export class DiceTrayComponent {
   private runMultiDieAnimation(args: {
     heroes: HeroState[];
     enemies: EnemyState[];
-    heroRolls: PrecomputedRoll[];
-    enemyRolls: PrecomputedEnemyRoll[];
+    heroRolls: ComputedRollAllPayload['heroRolls'];
+    enemyRolls: ComputedRollAllPayload['enemyRolls'];
     rerollHeroIdx: number | null;
     progressFlag: 'rollAll' | 'rollAnim';
     onFinished: () => void;

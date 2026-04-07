@@ -64,7 +64,9 @@ export interface HeroState extends HeroDefinition {
   noRR: boolean;
   splitAlloc: Record<number, number>;
   tier: 1 | 2;
-  hrs: number;
+  xp: number;
+  /** Set by Void Wisp cursed dice: hero rolls twice next turn, keeping the lower result. */
+  cursed?: boolean;
   bRolls: number[];
   evolvedTo: string | null;
   _pulseBanked?: boolean;
@@ -107,7 +109,7 @@ export function createHeroState(def: HeroDefinition): HeroState {
     noRR: false,
     splitAlloc: {},
     tier: 1,
-    hrs: 0,
+    xp: 0,
     bRolls: [],
     evolvedTo: null,
   };

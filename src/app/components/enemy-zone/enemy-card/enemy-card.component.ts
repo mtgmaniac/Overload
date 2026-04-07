@@ -52,15 +52,38 @@ export class EnemyCardComponent {
   enemyStatusLines = computed((): UnitStatusRibbonLine[] => {
     const e = this.enemy();
     if (e.dead) return [];
+    const out: UnitStatusRibbonLine[] = [];
+
     const n = e.rampageCharges || 0;
-    if (n <= 0) return [];
-    return [
-      {
+    if (n > 0) {
+      out.push({
         key: 'rampage',
         tag: 'RAMPAGE',
         detail: `The next ${n} direct hit${n > 1 ? 's' : ''} deal ×2 damage (one charge per hit).`,
-      },
-    ];
+      });
+    }
+
+    const hasPackBonus = ZONES.some(z => this.getAbilityForZone(z)?.packBonus);
+    if (hasPackBonus) {
+      const packCount = this.state.enemies().filter(x => !x.dead && x.type === e.type && x.id !== e.id).length;
+      if (packCount > 0) {
+        out.push({
+          key: 'pack',
+          tag: 'PACK',
+          detail: `+${packCount} dmg on strike (${packCount} packmate${packCount > 1 ? 's' : ''} alive).`,
+        });
+      }
+    }
+
+    if (this.state.forcedEnemyTargetIdx() === this.index()) {
+      out.push({
+        key: 'focus',
+        tag: 'FOCUS',
+        detail: 'Heroes must target this unit next player round.',
+      });
+    }
+
+    return out;
   });
 
   enemySvg = computed(() => enemyPortraitSvg(this.enemy().type));

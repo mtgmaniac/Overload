@@ -47,7 +47,7 @@
           <label>Hero</label>
           <select [ngModel]="selectedId()" (ngModelChange)="onPickHero($event)">
             @for (id of heroIds(); track id) {
-              <option [value]="id">{{ id }}</option>
+              <option [value]="id">{{ heroLabel(id) }}</option>
             }
           </select>
         </div>
@@ -250,12 +250,24 @@
       } @else {
         @if (enemySuiteDraft && enemyUnitDraft && battleScaleDraft.length) {
           <section class="dev-sec">
+            <h3>Operation zone</h3>
+            <div class="dev-row">
+              <label>Zone</label>
+              <select [ngModel]="enemyEditMode()" (ngModelChange)="onEnemyEditModeChange($event)">
+                @for (mid of battleModeOrder; track mid) {
+                  <option [value]="mid">{{ battleModeLabel(mid) }}</option>
+                }
+              </select>
+            </div>
+            <p class="dev-hint">Pick an operation first; ability suites and unit roster below are filtered to that track.</p>
+          </section>
+          <section class="dev-sec">
             <h3>Ability suite by enemy type</h3>
             <div class="dev-row">
-              <label>Type</label>
+              <label>Enemy type</label>
               <select [ngModel]="enemyAbilityType" (ngModelChange)="onEnemyTypeChange($event)">
-                @for (t of enemyTypes; track t) {
-                  <option [value]="t">{{ t }}</option>
+                @for (t of enemyTypesInEditMode(); track t) {
+                  <option [value]="t">{{ typeDisplayLabel(t) }}</option>
                 }
               </select>
             </div>
@@ -286,9 +298,9 @@
           <section class="dev-sec">
             <h3>Unit roster</h3>
             <div class="dev-row">
-              <label>Spawn name</label>
+              <label>Enemy name</label>
               <select [ngModel]="enemyUnitKey" (ngModelChange)="onEnemyUnitKeyChange($event)">
-                @for (k of enemyUnitNames(); track k) {
+                @for (k of enemyUnitKeysInEditMode(); track k) {
                   <option [value]="k">{{ k }}</option>
                 }
               </select>
@@ -300,7 +312,7 @@
               <label>type
                 <select [(ngModel)]="enemyUnitDraft.type">
                   @for (t of enemyTypes; track t) {
-                    <option [value]="t">{{ t }}</option>
+                    <option [value]="t">{{ typeDisplayLabel(t) }}</option>
                   }
                 </select>
               </label>

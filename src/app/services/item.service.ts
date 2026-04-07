@@ -82,6 +82,12 @@ export class ItemService {
     d?.();
   }
 
+  /** Close draft UI without running the post-win continuation (e.g. dev skip battle). */
+  abortDraftSilently(): void {
+    this.state.itemDraftChoices.set(null);
+    this.draftDone = null;
+  }
+
   pickDraftItem(itemId: string): void {
     if (!this.getDef(itemId)) return;
     const added = this.tryAddToInventory(itemId);
@@ -227,7 +233,7 @@ export class ItemService {
       }
     } else if (eff.type === 'enemyRfe' && enemyIdx != null) {
       const e = this.state.enemies()[enemyIdx];
-      if (e && !e.dead) {
+      if (e && !e.dead && e.currentHp > 0) {
         const nextStacks = [...(e.rfeStacks || []), { amt: eff.amount, turnsLeft: eff.rfT }];
         const { rfe, rfT } = enemyRfeFromStacks(nextStacks);
         this.state.updateEnemy(enemyIdx, { rfeStacks: nextStacks, rfe, rfT });
@@ -255,7 +261,7 @@ export class ItemService {
       }
     } else if (eff.type === 'enemyDmg' && enemyIdx != null) {
       const e = this.state.enemies()[enemyIdx];
-      if (e && !e.dead) {
+      if (e && !e.dead && e.currentHp > 0) {
         this.combat().applyDamageToEnemy(enemyIdx, eff.amount, def.name, false);
       }
     }
