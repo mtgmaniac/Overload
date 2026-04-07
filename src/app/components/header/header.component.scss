@@ -43,6 +43,9 @@ header {
   background: var(--build-bg);
 }
 .hdr-skip:hover { border-color: var(--build); color: var(--text); }
+.hdr-btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+.hdr-btn--auto { border-color: var(--crit); color: var(--crit); }
+.hdr-btn--auto:hover { border-color: var(--overload); color: var(--overload); }
 .build-tag {
   font-family: var(--font-pixel); font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
   color: var(--build); background: var(--build-bg); border: 2px solid var(--build-dim);

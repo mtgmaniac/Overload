@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, inject, output } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, output, computed } from '@angular/core';
 import { GameStateService } from '../../services/game-state.service';
 import { CombatService } from '../../services/combat.service';
 import { BUILD_VERSION, BUILD_STAMP } from '../../models/constants';
@@ -21,5 +21,16 @@ export class HeaderComponent {
 
   simBattle(): void {
     void this.combat.runSimBattle();
+  }
+
+  readonly canAutoPlay = computed(
+    () =>
+      this.state.phase() === 'player' &&
+      this.state.endTurnHeroResolveCursor() === null &&
+      !this.state.rollAllInProgress(),
+  );
+
+  autoPlayTurn(): void {
+    void this.combat.autoPlayTurn();
   }
 }
