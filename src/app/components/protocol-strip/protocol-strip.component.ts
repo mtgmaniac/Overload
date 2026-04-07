@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy, inject, computed } from '@angular/c
 import { GameStateService } from '../../services/game-state.service';
 import { ProtocolService } from '../../services/protocol.service';
 import { ItemService } from '../../services/item.service';
+import { RelicService } from '../../services/relic.service';
 import {
   PROTOCOL_MAX,
   PROTOCOL_REROLL_COST,
@@ -21,6 +22,9 @@ export class ProtocolStripComponent {
   state = inject(GameStateService);
   protocol = inject(ProtocolService);
   items = inject(ItemService);
+  relicService = inject(RelicService);
+
+  activeRelic = computed(() => this.relicService.activeRelic());
 
   max = PROTOCOL_MAX;
   rerollCost = PROTOCOL_REROLL_COST;

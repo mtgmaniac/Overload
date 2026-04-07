@@ -6,6 +6,7 @@ import { ITEM_PROTOCOL_COST, INVENTORY_MAX } from '../models/constants';
 import { enemyRfeFromStacks } from '../models/enemy.interface';
 import { GameStateService } from './game-state.service';
 import { CombatService } from './combat.service';
+import { RelicService } from './relic.service';
 
 const ITEMS: ItemDefinition[] = (raw as { items: ItemDefinition[] }).items;
 const BY_ID = new Map(ITEMS.map(i => [i.id, i]));
@@ -35,6 +36,7 @@ function pickDraftRarity(): ItemRarity {
 export class ItemService {
   private state = inject(GameStateService);
   private injector = inject(Injector);
+  private relicService = inject(RelicService);
   private draftDone: (() => void) | null = null;
 
   private combat(): CombatService {
@@ -50,6 +52,8 @@ export class ItemService {
   }
 
   protocolCost(def: ItemDefinition): number {
+    // Protocol Override relic: all items cost 0
+    if (this.relicService.isProtocolFree()) return 0;
     return ITEM_PROTOCOL_COST[def.rarity];
   }
 

@@ -73,6 +73,10 @@ export interface HeroState extends HeroDefinition {
   freezeDiceTgtHeroIdx: number | null;
   /** Glacial Lattice: freeze target is this enemy index. */
   freezeDiceTgtEnemyIdx: number | null;
+  /** Rampage charges: next N direct ability attacks deal double damage (one charge consumed per attack). */
+  rampageCharges: number;
+  /** Permanent per-battle roll bonus from relics; not merged into rollBuff and not reset by resetHeroForNewRound. */
+  relicRollBonus: number;
   bRolls: number[];
   evolvedTo: string | null;
   _evoRollRecorded?: boolean;
@@ -120,5 +124,7 @@ export function createHeroState(def: HeroDefinition): HeroState {
     dieFreezeRollsRemaining: 0,
     freezeDiceTgtHeroIdx: null,
     freezeDiceTgtEnemyIdx: null,
+    rampageCharges: 0,
+    relicRollBonus: 0,
   };
 }

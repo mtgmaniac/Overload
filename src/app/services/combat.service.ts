@@ -26,6 +26,7 @@ import { EvolutionService } from './evolution.service';
 import { TutorialService } from './tutorial.service';
 import { ItemService } from './item.service';
 import { PortraitPreloadService } from './portrait-preload.service';
+import { RelicService } from './relic.service';
 
 /** Precomputed squad + enemy tray rolls (shared by dice animation and instant sim). */
 export interface ComputedRollAllPayload {
@@ -54,7 +55,11 @@ export class CombatService {
     private enemyContent: EnemyContentService,
     private items: ItemService,
     private portraitPreload: PortraitPreloadService,
+    private relicService: RelicService,
   ) {}
+
+  /** Guard: prevents Chain Reaction from cascading recursively within one checkDead call. */
+  private chainReactionInProgress = false;
 
   /** Sim Battle / animated roll-all: dice tray registers `applyAnimated` when present. */
   private rollAllDelegate: RollAllAnimatedDelegate | null = null;
@@ -328,12 +333,25 @@ export class CombatService {
       }
     }
 
-    if ((ab.blastAll || ab.multiHit) && (ab.dmg || 0) > 0) {
+    // Compute effective ability damage: Overcharge relic (×1.3 ceil) + hero RAMPAGE (×2, consumes 1 charge).
+    let effectiveDmg = ab.dmg || 0;
+    if (effectiveDmg > 0) {
+      const heroDmgMult = this.relicService.getHeroDmgMult();
+      if (heroDmgMult !== 1) effectiveDmg = Math.ceil(effectiveDmg * heroDmgMult);
+      const hxRamp = this.state.heroes()[hi];
+      if ((hxRamp.rampageCharges || 0) > 0) {
+        effectiveDmg *= 2;
+        this.state.updateHero(hi, { rampageCharges: hxRamp.rampageCharges - 1 });
+        this.log.log(`▸ ${h.name} — RAMPAGE (×2).`, 'pl');
+      }
+    }
+
+    if ((ab.blastAll || ab.multiHit) && effectiveDmg > 0) {
       for (let idx = 0; idx < this.state.enemies().length; idx++) {
         const e = this.state.enemies()[idx];
         if (!this.enemyAcceptsHeroEffects(e)) continue;
         await this.pulseEnemyPortrait(idx, 'pf-flash-red');
-        this.applyDamageToEnemy(idx, ab.dmg, h.name, !!(ab.ignSh));
+        this.applyDamageToEnemy(idx, effectiveDmg, h.name, !!(ab.ignSh));
       }
     } else if (ab.splitDmg) {
       const alloc = h.splitAlloc || {};
@@ -353,13 +371,13 @@ export class CombatService {
             this.log.log(`▸ ${h.name} splits ${x.dmg} dmg → ${this.state.enemies()[x.ei].name}.`, 'pl');
           }
         }
-      } else if (tgtE && this.enemyAcceptsHeroEffects(tgtE) && (ab.dmg || 0) > 0) {
+      } else if (tgtE && this.enemyAcceptsHeroEffects(tgtE) && effectiveDmg > 0) {
         await this.pulseEnemyPortrait(tgtIdx, 'pf-flash-red');
-        this.applyDamageToEnemy(tgtIdx, ab.dmg, h.name, !!(ab.ignSh));
+        this.applyDamageToEnemy(tgtIdx, effectiveDmg, h.name, !!(ab.ignSh));
       }
-    } else if ((ab.dmg || 0) > 0 && tgtE && this.enemyAcceptsHeroEffects(tgtE)) {
+    } else if (effectiveDmg > 0 && tgtE && this.enemyAcceptsHeroEffects(tgtE)) {
       await this.pulseEnemyPortrait(tgtIdx, 'pf-flash-red');
-      this.applyDamageToEnemy(tgtIdx, ab.dmg, h.name, !!(ab.ignSh));
+      this.applyDamageToEnemy(tgtIdx, effectiveDmg, h.name, !!(ab.ignSh));
     }
 
     if (ab.rfm && ab.rfm > 0) {
@@ -417,6 +435,12 @@ export class CombatService {
     if (ab.cloak) {
       this.state.updateHero(hi, { cloaked: true });
       this.log.log(`▸ ${h.name} is cloaked.`, 'pl');
+    }
+    if ((ab.grantRampage || 0) > 0) {
+      const hxr = this.state.heroes()[hi];
+      const newCharges = (hxr.rampageCharges || 0) + (ab.grantRampage as number);
+      this.state.updateHero(hi, { rampageCharges: newCharges });
+      this.log.log(`▸ ${h.name} — blood up (+${ab.grantRampage} rampage).`, 'pl');
     }
     if (ab.taunt) {
       this.state.tauntHeroId.set(h.id);
@@ -622,6 +646,11 @@ export class CombatService {
             rCh -= 1;
             this.state.updateEnemy(ei, { rampageCharges: rCh });
             this.log.log(`▸ ${e.name} — RAMPAGE (×2).`, 'en');
+          }
+          // Iron Curtain relic: enemies deal 75% damage
+          const enemyDmgMult = this.relicService.getEnemyDmgMult();
+          if (enemyDmgMult !== 1 && dmg > 0) {
+            dmg = Math.floor(dmg * enemyDmgMult);
           }
           await this.pulseHeroPortrait(hIdx, 'pf-flash-red');
           this.state.updateHero(hIdx, { cloaked: false });
@@ -896,6 +925,22 @@ export class CombatService {
       if (nextAlive >= 0) {
         this.state.target.set(nextAlive);
       }
+      // Chain Reaction relic: splash 4 damage to all other living enemies (no cascade)
+      if (!this.chainReactionInProgress) {
+        const chainDmg = this.relicService.getChainReactionDmg();
+        if (chainDmg > 0) {
+          this.chainReactionInProgress = true;
+          this.state.enemies().forEach((en, ci) => {
+            if (!en.dead && ci !== idx) {
+              const newHp = Math.max(0, en.currentHp - chainDmg);
+              this.state.updateEnemy(ci, { currentHp: newHp });
+              this.log.log(`▸ Chain Reaction → ${en.name}: ${chainDmg} dmg.`, 'sy');
+              this.checkDead(ci);
+            }
+          });
+          this.chainReactionInProgress = false;
+        }
+      }
     }
     // Boss phase 2
     const updated = this.state.enemies()[idx];
@@ -964,7 +1009,10 @@ export class CombatService {
 
     // Fresh battle: no squad dice or locks until ROLL ALL / individual rolls (carries over from prior battle otherwise)
     this.state.heroes().forEach((_, i) => this.state.resetHeroForNewRound(i));
-    this.state.heroes().forEach((_, i) => this.state.updateHero(i, { counterspellStacks: [], cowerTurns: 0 }));
+    this.state.heroes().forEach((_, i) => this.state.updateHero(i, { counterspellStacks: [], cowerTurns: 0, rampageCharges: 0, relicRollBonus: 0 }));
+
+    // Relic battle-start effects (applied after heroes reset so relicRollBonus is fresh)
+    this.applyRelicBattleStartEffects(battleIdx);
 
     // Enemy abilities roll when the player reveals the tray (ROLL ALL / last squad die)
     this.targeting.assignTargets();
@@ -1194,11 +1242,12 @@ export class CombatService {
 
     this.state.endTurnHeroResolveCursor.set(0);
     try {
-      // Tick enemy DoTs
+      // Tick enemy DoTs (Resonance Cascade relic adds +2 per tick)
+      const dotBonus = this.relicService.getDotBonus();
       this.state.enemies().forEach((e, i) => {
         if (e.dead) return;
         if (e.dot > 0 && e.dT > 0) {
-          this.applyDamageToEnemy(i, e.dot, 'DoT', false);
+          this.applyDamageToEnemy(i, e.dot + dotBonus, 'DoT', false);
           const newDT = e.dT - 1;
           this.state.updateEnemy(i, { dT: newDT, dot: newDT <= 0 ? 0 : e.dot });
         }
@@ -1355,6 +1404,10 @@ export class CombatService {
 
     if (this.state.heroes().every(h => h.currentHp <= 0)) { this.lost(); return; }
 
+    // Relic: enemy turn start effects
+    this.applyRelicEnemyTurnStartEffects();
+    if (this.state.heroes().every(h => h.currentHp <= 0)) { this.lost(); return; }
+
     // Enemy actions (left → right), staggered like player resolution
     for (let ei = 0; ei < this.state.enemies().length; ei++) {
       await this.resolveEnemyTurnActionPacing(ei);
@@ -1459,15 +1512,15 @@ export class CombatService {
 
   /** Called after evolution confirm, or directly when no evolution was pending. */
   beginPostEvoItemDraft(): void {
-    this.items.startPostWinDraft(() =>
-      this.showOverlay(
-        'BATTLE CLEARED',
-        `Battle ${this.state.battle() + 1} complete.`,
-        'NEXT BATTLE ▶',
-        true,
-        () => this.nextBattle(),
-      ),
-    );
+    const onDone = () =>
+      this.showOverlay('BATTLE CLEARED', `Battle ${this.state.battle() + 1} complete.`, 'NEXT BATTLE ▶', true, () => this.nextBattle());
+
+    // After battle 5 (index 4): relic draft instead of item drop (once per run)
+    if (this.state.battle() === 4 && this.state.relics().length === 0) {
+      this.relicService.startRelicDraft(onDone);
+      return;
+    }
+    this.items.startPostWinDraft(onDone);
   }
 
   rerollEnemyDie(enemyIdx: number, srcLabel: string): void {
@@ -1501,11 +1554,12 @@ export class CombatService {
     this.state.battle.update(b => b + 1);
 
     // Restore hero HP: alive = 100%, dead = revive at 80% (single set so every card gets a fresh ref)
+    // Clear per-battle combat state (rampageCharges, relicRollBonus re-applied in initBattle via applyRelicBattleStartEffects)
     const heroes = this.state.heroes();
     this.state.heroes.set(
       heroes.map(h =>
         h.currentHp > 0
-          ? { ...h, currentHp: h.maxHp, shield: 0, shT: 0, dot: 0, dT: 0, cloaked: false }
+          ? { ...h, currentHp: h.maxHp, shield: 0, shT: 0, dot: 0, dT: 0, cloaked: false, rampageCharges: 0, relicRollBonus: 0 }
           : {
               ...h,
               currentHp: Math.max(1, Math.round(h.maxHp * 0.8)),
@@ -1514,6 +1568,8 @@ export class CombatService {
               dot: 0,
               dT: 0,
               cloaked: false,
+              rampageCharges: 0,
+              relicRollBonus: 0,
             },
       ),
     );
@@ -1532,6 +1588,111 @@ export class CombatService {
   returnToOperationPicker(): void {
     this.state.reset();
     this.state.showOperationPicker.set(true);
+  }
+
+  // ── Relic effect methods ─────────────────────────────────────────────────────
+
+  /**
+   * Apply battle-start relic effects after enemies are initialized and heroes are reset.
+   * Called at the end of initBattle().
+   */
+  private applyRelicBattleStartEffects(battleIdx: number): void {
+    const relics = this.state.relics();
+    if (!relics.length) return;
+
+    // Plague Protocol: all enemies start with 3 DoT (permanent for this battle)
+    if (relics.includes('plagueProtocol')) {
+      this.state.enemies().forEach((_, i) => {
+        this.state.updateEnemy(i, { dot: 3, dT: 999 });
+      });
+      this.log.log('▸ Plague Protocol — all enemies infected with 3 DoT.', 'sy');
+    }
+
+    // Signal Jam: all enemies start with −2 RFE
+    if (relics.includes('signalJam')) {
+      this.state.enemies().forEach((e, i) => {
+        const stack = { amt: 2, turnsLeft: 999 };
+        const newStacks = [...(e.rfeStacks || []), stack];
+        const { rfe, rfT } = enemyRfeFromStacks(newStacks);
+        this.state.updateEnemy(i, { rfeStacks: newStacks, rfe, rfT });
+      });
+      this.log.log('▸ Signal Jam — all enemies: −2 roll.', 'sy');
+    }
+
+    // Coordinated Strike: all heroes start with +2 roll (as relicRollBonus, not rollBuff)
+    if (relics.includes('coordinatedStrike')) {
+      this.state.heroes().forEach((h, i) => {
+        if (h.currentHp > 0) this.state.updateHero(i, { relicRollBonus: 2 });
+      });
+      this.log.log('▸ Coordinated Strike — all heroes: +2 roll.', 'sy');
+    }
+
+    // Entropy Leak: enemies lose 5 max HP per battle already cleared
+    if (relics.includes('entropyLeak') && battleIdx >= 5) {
+      const reduction = 5 * battleIdx;
+      this.state.enemies().forEach((e, i) => {
+        const newMaxHp = Math.max(1, e.maxHp - reduction);
+        const newCurrHp = Math.max(1, Math.min(newMaxHp, e.currentHp));
+        this.state.updateEnemy(i, { maxHp: newMaxHp, currentHp: newCurrHp });
+      });
+      this.log.log(`▸ Entropy Leak — all enemies: −${reduction} max HP.`, 'sy');
+    }
+
+    // Opening Gambit: random enemy + random hero take 50% max HP as damage
+    if (relics.includes('openingGambit')) {
+      const aliveEnemies = this.state.enemies().map((e, i) => ({ e, i })).filter(x => !x.e.dead);
+      if (aliveEnemies.length > 0) {
+        const pick = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
+        const dmg = Math.floor(pick.e.maxHp / 2);
+        const newHp = Math.max(1, pick.e.currentHp - dmg);
+        this.state.updateEnemy(pick.i, { currentHp: newHp });
+        this.log.log(`▸ Opening Gambit — ${pick.e.name} takes ${dmg} (50% max HP).`, 'sy');
+      }
+      const aliveHeroes = this.state.heroes().map((h, i) => ({ h, i })).filter(x => x.h.currentHp > 0);
+      if (aliveHeroes.length > 0) {
+        const pick = aliveHeroes[Math.floor(Math.random() * aliveHeroes.length)];
+        const dmg = Math.floor(pick.h.maxHp / 2);
+        const newHp = Math.max(1, pick.h.currentHp - dmg);
+        this.state.updateHero(pick.i, { currentHp: newHp });
+        this.log.log(`▸ Opening Gambit — ${pick.h.name} takes ${dmg} (50% max HP).`, 'sy');
+      }
+    }
+  }
+
+  /** Apply relic effects at the start of every enemy turn, before enemies act. */
+  private applyRelicEnemyTurnStartEffects(): void {
+    const relics = this.state.relics();
+    if (!relics.length) return;
+
+    // Gravity Well: deal 2 damage to all living enemies
+    if (relics.includes('gravityWell')) {
+      this.state.enemies().forEach((e, i) => {
+        if (e.dead) return;
+        const newHp = Math.max(0, e.currentHp - 2);
+        this.state.updateEnemy(i, { currentHp: newHp });
+        this.log.log(`▸ Gravity Well → ${e.name}: 2 dmg.`, 'sy');
+        this.checkDead(i);
+      });
+    }
+
+    // Bulwark Aura: all heroes gain 3 shield
+    if (relics.includes('bulwarkAura')) {
+      this.state.heroes().forEach((h, i) => {
+        if (h.currentHp <= 0) return;
+        this.state.updateHero(i, { shield: (h.shield || 0) + 3, shT: Math.max(h.shT || 0, 1) });
+      });
+      this.log.log('▸ Bulwark Aura — all heroes gain 3 shield.', 'sy');
+    }
+
+    // Nanite Field: all heroes heal 3 HP
+    if (relics.includes('naniteField')) {
+      this.state.heroes().forEach((h, i) => {
+        if (h.currentHp <= 0) return;
+        const newHp = Math.min(h.maxHp, h.currentHp + 3);
+        if (newHp > h.currentHp) this.state.updateHero(i, { currentHp: newHp });
+      });
+      this.log.log('▸ Nanite Field — all heroes heal 3 HP.', 'sy');
+    }
   }
 
   private showOverlay(title: string, sub: string, btnText: string, isVictory: boolean, action: () => void): void {

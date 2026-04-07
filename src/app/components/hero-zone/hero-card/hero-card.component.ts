@@ -42,6 +42,14 @@ export class HeroCardComponent {
     const h = this.hero();
     const out: UnitStatusRibbonLine[] = [];
     if (h.currentHp <= 0) return out;
+    if ((h.rampageCharges || 0) > 0) {
+      const n = h.rampageCharges;
+      out.push({
+        key: 'rampage',
+        tag: 'RAMPAGE',
+        detail: `Deals double damage on next ${n} attack${n > 1 ? 's' : ''} (${n} charge${n > 1 ? 's' : ''}).`,
+      });
+    }
     if ((h.cowerTurns || 0) > 0) {
       out.push({
         key: 'cower',

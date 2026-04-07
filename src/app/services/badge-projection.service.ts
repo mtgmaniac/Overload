@@ -76,7 +76,8 @@ export class BadgeProjectionService {
       };
     }
     const netRollMod =
-      (h.rollBuff || 0) -
+      (h.rollBuff || 0) +
+      (h.relicRollBonus || 0) -
       this.state.squadRfmPenalty() -
       this.state.heroRfmPenaltyFor(heroIndex);
     const pre = this.showTurnPreviews();

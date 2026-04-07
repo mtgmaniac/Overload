@@ -39,6 +39,8 @@ export interface HeroAbility {
   freezeEnemyDice?: number;
   /** Freeze one squad/enemy die for N reveal skips — pick any hero or enemy (separate from damage target). */
   freezeAnyDice?: number;
+  /** Grant N rampage charges to this hero: next N direct ability attacks deal double damage. */
+  grantRampage?: number;
 }
 
 export interface EnemyAbility {

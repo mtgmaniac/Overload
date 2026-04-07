@@ -55,6 +55,10 @@ export class GameStateService {
   readonly inventory = signal<(string | null)[]>([null, null, null]);
   /** After winning a battle, pick one of these item ids (then cleared); skipped if inventory is full. */
   readonly itemDraftChoices = signal<string[] | null>(null);
+  /** Active relic ids for this run (max 1 under current design; array for future expansion). */
+  readonly relics = signal<string[]>([]);
+  /** The two relic ids shown in the mid-run relic draft overlay; null = draft not active. */
+  readonly relicDraftChoices = signal<string[] | null>(null);
   /** Using a consumable: pick target on board. */
   readonly pendingItemSelection = signal<PendingItemSelection | null>(null);
   readonly rollAllInProgress = signal(false);
@@ -222,6 +226,8 @@ export class GameStateService {
     this.pendingProtocol.set(null);
     this.inventory.set([null, null, null]);
     this.itemDraftChoices.set(null);
+    this.relics.set([]);
+    this.relicDraftChoices.set(null);
     this.pendingItemSelection.set(null);
     this.rollAllInProgress.set(false);
     this.rollAnimInProgress.set(false);

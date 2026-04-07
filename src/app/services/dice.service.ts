@@ -28,7 +28,7 @@ export class DiceService {
 
   effRoll(h: HeroState): number | null {
     if (!h || h.roll === null) return null;
-    return Math.min(20, (h.roll || 0) + (h.rollBuff || 0) + (h.rollNudge || 0));
+    return Math.min(20, (h.roll || 0) + (h.rollBuff || 0) + (h.rollNudge || 0) + (h.relicRollBonus || 0));
   }
 
   getHeroZone(roll: number, heroId: HeroId): Zone {

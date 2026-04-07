@@ -1,0 +1,65 @@
+.rd-overlay {
+  position: fixed; inset: 0; z-index: 625;
+  background: rgba(4, 6, 10, 0.97);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: max(20px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+  pointer-events: all;
+}
+
+.rd-label {
+  font-family: var(--font-pixel); font-size: 10px; letter-spacing: 4px;
+  color: #c8921a; margin-bottom: 6px; opacity: .8;
+}
+
+.rd-title {
+  font-size: 22px; font-weight: 900; letter-spacing: 4px;
+  color: #f5c842; margin-bottom: 8px; text-shadow: 0 0 24px rgba(245, 200, 66, 0.5);
+}
+
+.rd-sub {
+  font-family: var(--font-pixel); font-size: 10px; color: var(--muted);
+  margin-bottom: 28px; text-align: center; max-width: 400px; line-height: 1.6;
+}
+
+.rd-row {
+  display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; max-width: 680px;
+}
+
+.rd-card {
+  width: 200px; min-height: 160px;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 10px;
+  padding: 18px 14px;
+  border-radius: var(--radius-pixel); cursor: pointer;
+  font-family: var(--font-pixel); font-size: 9px; color: var(--text);
+  background: var(--bg2); touch-action: manipulation;
+  border: 2px solid #a07818;
+  box-shadow: 0 0 20px rgba(200, 146, 26, 0.3), 0 0 6px rgba(245, 200, 66, 0.15), 3px 3px 0 rgba(0,0,0,.5);
+  transition: filter 0.12s, transform 0.12s, box-shadow 0.12s;
+}
+
+.rd-card:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+  border-color: #f5c842;
+  box-shadow: 0 0 32px rgba(245, 200, 66, 0.55), 0 0 10px rgba(255, 220, 80, 0.3), 3px 3px 0 rgba(0,0,0,.5);
+}
+
+.rd-card:active { transform: translateY(0); }
+
+.rd-ic {
+  width: 44px; height: 44px;
+  color: #f5c842;
+  display: flex; align-items: center; justify-content: center;
+  filter: drop-shadow(0 0 8px rgba(245, 200, 66, 0.6));
+}
+.rd-ic svg { width: 100%; height: 100%; }
+
+.rd-name {
+  font-weight: 900; font-size: 11px; text-align: center;
+  color: #fdeea0; letter-spacing: 1px; line-height: 1.3;
+}
+
+.rd-desc {
+  font-size: 9px; text-align: center; color: var(--muted);
+  line-height: 1.55; max-width: 180px;
+}
