@@ -1167,6 +1167,22 @@ export class CombatService {
     }
   }
 
+  /** Auto-play a single turn with animations: roll all dice, auto-target, end turn. */
+  async autoPlayTurn(): Promise<void> {
+    if (this.state.phase() !== 'player') return;
+    if (this.state.endTurnHeroResolveCursor() !== null) return;
+    if (this.state.rollAllInProgress()) return;
+    if (!this.state.allHeroesRolled()) {
+      if (this.state.animOn() && this.rollAllDelegate) {
+        await this.rollAllDelegate.applyAnimated();
+      } else {
+        this.instantRollAllForSim();
+      }
+    }
+    this.targeting.applySimBattleAutoTargets();
+    this.endTurn();
+  }
+
   // ── Enemy turn ──
 
   async enemyTurn(): Promise<void> {

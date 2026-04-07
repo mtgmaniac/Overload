@@ -11,6 +11,7 @@
               [disabled]="combat.simBattleRunning()">SIM BATTLE</button>
     }
     <button type="button" class="hdr-btn" (click)="backHomeClicked.emit()">BACK TO HOME</button>
+    <button type="button" class="hdr-btn hdr-btn--auto" [disabled]="!canAutoPlay()" (click)="autoPlayTurn()">AUTO</button>
     <button type="button" class="hdr-btn" id="tut-help-btn" (click)="helpClicked.emit()">HELP</button>
     <div class="build-tag">{{ version }} · {{ stamp }}</div>
   </div>
