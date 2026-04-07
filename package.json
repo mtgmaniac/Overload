@@ -15,7 +15,9 @@
     "slice-hero-sheet": "node scripts/slice-hero-sheet.mjs",
     "optimize-assets": "node scripts/optimize-public-assets.mjs",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "private": true,
   "packageManager": "npm@10.9.3",
@@ -33,12 +35,14 @@
     "@angular/build": "^21.2.6",
     "@angular/cli": "^21.2.6",
     "@angular/compiler-cli": "^21.2.0",
+    "@vitest/coverage-v8": "^4.1.2",
     "ajv": "^8.18.0",
     "ajv-formats": "^3.0.1",
     "gh-pages": "^6.3.0",
     "prettier": "^3.8.1",
     "sharp": "^0.34.5",
     "tsx": "^4.21.0",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "vitest": "^4.1.2"
   }
 }
