@@ -75,7 +75,6 @@ export interface HeroState extends HeroDefinition {
   freezeDiceTgtEnemyIdx: number | null;
   bRolls: number[];
   evolvedTo: string | null;
-  _pulseBanked?: boolean;
   _evoRollRecorded?: boolean;
   _actionLogged?: boolean;
 }

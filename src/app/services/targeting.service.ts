@@ -254,7 +254,6 @@ export class TargetingService {
       freezeDiceTgtEnemyIdx: null,
       splitAlloc: {},
       confirmed: false,
-      _pulseBanked: false,
       _evoRollRecorded: false,
       _actionLogged: false,
     });
@@ -348,7 +347,7 @@ export class TargetingService {
   // ── Click handlers ──
 
   onHeroCardClick(hi: number): void {
-    if (this.state.phase() !== 'player') return;
+    if (!this.state.isPlayerPhase()) return;
     const h = this.state.heroes()[hi];
     if (!h) return;
 
@@ -414,7 +413,7 @@ export class TargetingService {
   }
 
   onEnemyPickClick(ei: number): void {
-    if (this.state.phase() !== 'player') return;
+    if (!this.state.isPlayerPhase()) return;
     const enemies = this.state.enemies();
     if (!enemies[ei] || enemies[ei].dead) return;
 
@@ -448,7 +447,7 @@ export class TargetingService {
   }
 
   onAllyHeroPickClick(ti: number): void {
-    if (this.state.phase() !== 'player') return;
+    if (!this.state.isPlayerPhase()) return;
 
     const pi = this.state.pendingItemSelection();
     if (pi) {

@@ -56,6 +56,8 @@ export type TargetPickKind =
   | 'rollBuff'
   | 'revive'
   | 'freezeDice'
+  | 'itemAlly'
+  | 'itemAllyDead'
   | null;
 
 export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'legendary';

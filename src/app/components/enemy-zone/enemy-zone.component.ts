@@ -19,7 +19,7 @@ export class EnemyZoneComponent {
 
   /** Mask enemy die, highlighted ability row, and target name until squad rolls are done and tray is revealed. */
   hideEnemyRolls(): boolean {
-    if (this.state.phase() !== 'player') return false;
+    if (!this.state.isPlayerPhase()) return false;
     if (!this.state.allHeroesRolled()) return true;
     return !this.state.enemyTrayRevealed();
   }
@@ -27,7 +27,7 @@ export class EnemyZoneComponent {
   isEnemyPickable(i: number): boolean {
     const enemy = this.state.enemies()[i];
     if (!enemy || enemy.dead) return false;
-    if (this.state.phase() !== 'player') return false;
+    if (!this.state.isPlayerPhase()) return false;
     const pi = this.state.pendingItemSelection();
     if (pi) {
       const def = this.items.getDef(pi.itemId);

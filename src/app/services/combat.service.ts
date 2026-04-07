@@ -991,7 +991,7 @@ export class CombatService {
     const h = this.state.heroes()[heroIdx];
     if (!h || h.currentHp <= 0 || (h.cowerTurns || 0) > 0 || h.roll !== null) return null;
     if ((h.dieFreezeRollsRemaining || 0) > 0) return null;
-    if (this.state.phase() !== 'player') return null;
+    if (!this.state.isPlayerPhase()) return null;
 
     const preset = this.tutorial.getHeroRollPreset(heroIdx);
     let raw = preset ?? this.dice.d20();
@@ -1152,7 +1152,7 @@ export class CombatService {
   // ── End turn (player turn resolution) ──
 
   async endTurn(opts?: { chainEnemyPhase?: boolean }): Promise<void> {
-    if (this.state.phase() !== 'player') return;
+    if (!this.state.isPlayerPhase()) return;
     if (this.state.pendingItemSelection()) {
       this.state.pendingItemSelection.set(null);
     }
@@ -1319,7 +1319,7 @@ export class CombatService {
 
   /** Auto-play a single turn with animations: roll all dice, auto-target, end turn. */
   async autoPlayTurn(): Promise<void> {
-    if (this.state.phase() !== 'player') return;
+    if (!this.state.isPlayerPhase()) return;
     if (this.state.endTurnHeroResolveCursor() !== null) return;
     if (this.state.rollAllInProgress()) return;
     if (!this.state.allHeroesRolled()) {
