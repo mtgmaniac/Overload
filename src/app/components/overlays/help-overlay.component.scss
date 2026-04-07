@@ -45,6 +45,14 @@
 .help-mini > div:last-child { margin-bottom: 0; }
 .help-status-list > div { margin-bottom: 8px; }
 .help-status-list > div:last-child { margin-bottom: 0; }
+.help-status-grid { width: 100%; }
+.help-status-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 560px) { .help-status-row { grid-template-columns: 1fr; } }
+.help-status-section { display: flex; flex-direction: column; gap: 6px; }
+.help-status-heading {
+  font-family: var(--font-pixel); font-size: 9px; letter-spacing: 2px;
+  color: var(--muted); border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-bottom: 2px;
+}
 .k { color: #fff; font-weight: 900; }
 .hdr-btn {
   font-family: var(--font-pixel); font-size: 10px; font-weight: 700; letter-spacing: 1px;
