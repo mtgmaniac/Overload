@@ -75,6 +75,37 @@
           <div><span class="k">RAMPAGE</span> — (Enemies) The next <span class="k">N</span> direct hits deal <span class="k">×2</span> damage; one charge per hit. Portrait glow marks it.</div>
         </div>
       </div>
+      <div class="hsec hsec-span sim-section">
+        <h3>BALANCE SIM</h3>
+        <p class="help-lead">
+          Monte Carlo — random 3-hero squads vs bundled encounter tables. Includes XP, evolution, DoT, and shield.
+          No items or summons. Max 2 000 runs (browser). Copy output for spreadsheet analysis.
+        </p>
+        <div class="sim-controls">
+          <label class="sim-label">
+            Runs
+            <input class="sim-input" type="number" min="50" max="2000" step="50"
+                   [(ngModel)]="simIterations" [disabled]="simRunning()" />
+          </label>
+          <label class="sim-label">
+            Protocol rerolls / track
+            <input class="sim-input" type="number" min="0" max="20" step="1"
+                   [(ngModel)]="simProtocolRerolls" [disabled]="simRunning()" />
+          </label>
+          <button class="hdr-btn sim-run-btn" type="button"
+                  [disabled]="simRunning()" (click)="runBalanceSim()">
+            {{ simRunning() ? 'RUNNING…' : 'RUN SIM' }}
+          </button>
+          @if (simOutput() && !simRunning()) {
+            <button class="hdr-btn sim-copy-btn" type="button" (click)="copySimOutput()">
+              {{ simJustCopied() ? 'COPIED' : 'COPY' }}
+            </button>
+          }
+        </div>
+        @if (simOutput()) {
+          <pre class="sim-output">{{ simOutput() }}</pre>
+        }
+      </div>
     </div>
   </div>
 </div>

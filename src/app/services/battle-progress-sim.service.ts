@@ -16,7 +16,7 @@ export class BattleProgressSimService {
   private readonly enemies = inject(EnemyContentService);
 
   /** Uses current in-memory hero + enemy definitions (including unsaved dev edits). */
-  buildInput(): BattleProgressSimInput {
+  buildInput(protocolRerolls = 0): BattleProgressSimInput {
     const battlesByMode = {} as Record<BattleModeId, { enemies: { name: string }[] }[]>;
     const modeLabels = {} as Record<BattleModeId, string>;
     const trackHpScaleByMode = {} as Record<BattleModeId, number>;
@@ -35,11 +35,12 @@ export class BattleProgressSimService {
       battlesByMode,
       modeLabels,
       trackHpScaleByMode,
+      protocolRerolls: Math.max(0, protocolRerolls | 0),
     };
   }
 
-  run(iterations: number): BattleProgressSimResult {
-    return runBattleProgressSim(this.buildInput(), iterations);
+  run(iterations: number, protocolRerolls = 0): BattleProgressSimResult {
+    return runBattleProgressSim(this.buildInput(protocolRerolls), iterations);
   }
 
   format(result: BattleProgressSimResult): string {
