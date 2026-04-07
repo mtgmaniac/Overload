@@ -82,14 +82,6 @@ export const ZONE_LABELS: Record<Zone, string> = {
   overload: 'OVERLOAD',
 };
 
-export const ZONE_CLASSES: Record<Zone, string> = {
-  recharge: 'az-r',
-  strike: 'az-s',
-  surge: 'az-su',
-  crit: 'az-c',
-  overload: 'az-o',
-};
-
 export const ZONE_COLORS: Record<Zone, string> = {
   recharge: '#1d9e75',
   strike: '#2e7dd4',
@@ -98,10 +90,3 @@ export const ZONE_COLORS: Record<Zone, string> = {
   overload: '#d84a2a',
 };
 
-export const ZONE_BG: Record<Zone, string> = {
-  recharge: '#0a2a1e',
-  strike: '#091828',
-  surge: '#1e1408',
-  crit: '#1e1608',
-  overload: '#1e0a06',
-};

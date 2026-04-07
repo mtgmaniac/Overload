@@ -1391,10 +1391,8 @@ export class CombatService {
       this.state.tutorial.set({
         ...tut,
         resolutions: nextRes,
-        showTurn2Modal: false,
         showComplete: true,
         coachStep: 5,
-        r2CoachStep: 0,
       });
       this.state.phase.set('player');
       this.log.log(`— TUTORIAL COMPLETE —`, 'vi');
