@@ -6,6 +6,10 @@
     </div>
   </div>
   <div class="hdr-right">
+    @if (!state.tutorial()?.active) {
+      <button type="button" class="hdr-btn hdr-skip" (click)="simBattle()"
+              [disabled]="combat.simBattleRunning()">SIM BATTLE</button>
+    }
     <button type="button" class="hdr-btn" (click)="backHomeClicked.emit()">BACK TO HOME</button>
     <button type="button" class="hdr-btn" id="tut-help-btn" (click)="helpClicked.emit()">HELP</button>
     <div class="build-tag">{{ version }} · {{ stamp }}</div>

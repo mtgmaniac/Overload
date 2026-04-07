@@ -48,39 +48,36 @@ export class ProtocolStripComponent {
     });
   });
 
-  defAt(slot: number): ItemDefinition | null {
-    const id = this.state.inventory()[slot];
-    if (!id) return null;
-    return this.items.getDef(id) ?? null;
-  }
-
-  rarityClass(slot: number): string {
-    const d = this.defAt(slot);
-    if (!d) return 'r-empty';
-    return 'r-' + d.rarity;
-  }
+  /**
+   * One computed drives all three slots so OnPush + signal CD always refreshes when inventory / phase / pending change.
+   * (Calling `canUseSlot()` / `defAt()` from the template alone can miss updates in some Angular versions.)
+   */
+  readonly invRows = computed(() => {
+    const phase = this.state.phase();
+    const inv = this.state.inventory();
+    const pending = this.state.pendingItemSelection();
+    return [0, 1, 2].map(slot => {
+      const id = inv[slot];
+      const def = id ? (this.items.getDef(id) ?? null) : null;
+      const usable = phase === 'player' && def != null;
+      let title = 'Empty inventory slot';
+      if (def) {
+        const c = this.items.protocolCost(def);
+        title = `${def.name} — ${def.desc} (Use: ${c} Protocol). Tap to use; tap again to cancel.`;
+      }
+      return {
+        slot,
+        def,
+        usable,
+        rarityClass: def ? 'r-' + def.rarity : 'r-empty',
+        activePick: pending?.invSlot === slot,
+        title,
+      };
+    });
+  });
 
   itemCost(d: ItemDefinition): number {
     return this.items.protocolCost(d);
-  }
-
-  invTitle(slot: number): string {
-    const d = this.defAt(slot);
-    if (!d) {
-      return 'Empty inventory slot';
-    }
-    const c = this.items.protocolCost(d);
-    return `${d.name} — ${d.desc} (Use: ${c} Protocol). Tap to use; tap again to cancel.`;
-  }
-
-  isPendingSlot(slot: number): boolean {
-    const p = this.state.pendingItemSelection();
-    return p?.invSlot === slot;
-  }
-
-  canUseSlot(slot: number): boolean {
-    if (this.state.phase() !== 'player') return false;
-    return this.defAt(slot) !== null;
   }
 
   toggleItem(slot: number): void {

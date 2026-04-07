@@ -2292,22 +2292,6 @@
             1,
             2
           ],
-          "name": "Probe Strike",
-          "eff": "4 dmg",
-          "dmg": 4,
-          "dMin": 4,
-          "dMax": 4,
-          "dot": 0,
-          "dT": 0,
-          "rfe": 0,
-          "heal": 0
-        },
-        {
-          "zone": "strike",
-          "range": [
-            3,
-            8
-          ],
           "name": "Cloak Protocol",
           "eff": "Cloak",
           "dmg": 0,
@@ -2318,6 +2302,22 @@
           "rfe": 0,
           "heal": 0,
           "cloak": true
+        },
+        {
+          "zone": "strike",
+          "range": [
+            3,
+            8
+          ],
+          "name": "Probe Strike",
+          "eff": "6 dmg",
+          "dmg": 6,
+          "dMin": 6,
+          "dMax": 6,
+          "dot": 0,
+          "dT": 0,
+          "rfe": 0,
+          "heal": 0
         },
         {
           "zone": "surge",

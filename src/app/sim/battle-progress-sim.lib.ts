@@ -111,9 +111,9 @@ interface SimHero {
   shield: number;
   def: HeroDefinition;
   tier: 1 | 2;
-  /** Cumulative effective d20s (tier 1 only), matches game HRS input */
+  /** Cumulative effective d20s (tier 1 only), matches game XP input */
   bRolls: number[];
-  hrs: number;
+  xp: number;
   /** Base or post-evolution kit */
   activeAbilities: HeroAbility[];
   dot: number;
@@ -189,20 +189,20 @@ function calculateHrsFromRolls(bRolls: number[]): number {
   return Math.round(pts * 1.5);
 }
 
-function awardHrsAfterWin(heroes: SimHero[]): void {
+function awardXpAfterWin(heroes: SimHero[]): void {
   for (const h of heroes) {
     if (h.hp <= 0 || h.tier !== 1) continue;
-    h.hrs += calculateHrsFromRolls(h.bRolls);
+    h.xp += calculateHrsFromRolls(h.bRolls);
   }
 }
 
 /**
- * After winning battle index `completedBattleIndex` (0-based), eligible tier-1 heroes with hrs≥18 evolve.
+ * After winning battle index `completedBattleIndex` (0-based), eligible tier-1 heroes with xp≥18 evolve.
  * Matches game: evolution offered once `battle >= 2` (third fight won).
  */
 function tryEvolveSquad(heroes: SimHero[], completedBattleIndex: number): void {
   if (completedBattleIndex < 2) return;
-  const evos = heroes.filter(h => h.hp > 0 && h.tier === 1 && h.hrs >= 18);
+  const evos = heroes.filter(h => h.hp > 0 && h.tier === 1 && h.xp >= 18);
   for (const h of evos) {
     const paths = groupEvoPaths(h.def.evolutions ?? []);
     if (paths.length === 0) continue;
@@ -213,7 +213,7 @@ function tryEvolveSquad(heroes: SimHero[], completedBattleIndex: number): void {
     h.maxHp = path.hp;
     h.hp = Math.max(1, Math.round(path.hp * ratio));
     h.tier = 2;
-    h.hrs = 0;
+    h.xp = 0;
     h.bRolls = [];
   }
 }
@@ -299,7 +299,7 @@ function freshSquadFromDefs(defs: HeroDefinition[]): SimHero[] {
     shield: 0,
     def: d,
     tier: 1,
-    hrs: 0,
+    xp: 0,
     bRolls: [],
     activeAbilities: d.abilities.map(normalizeHeroAbility),
     dot: 0,
@@ -579,7 +579,7 @@ function battlesWonBeforeWipeWithSquad(
     if (!win) return { wins, squadIds };
     wins += 1;
     interBattleReset(heroes);
-    awardHrsAfterWin(heroes);
+    awardXpAfterWin(heroes);
     tryEvolveSquad(heroes, b);
   }
   return { wins, squadIds };
@@ -722,7 +722,7 @@ export function formatBattleProgressSimResult(r: BattleProgressSimResult): strin
   const lines: string[] = [
     `Battle progress sim (${r.iterations} runs/track × ${r.tracks.length} operations, random 3-hero squads)`,
     `Reach battle 1–${r.reachBattleCount} = cleared prior fights. Full clear = won all fights on that track.`,
-    'Includes evolution: cumulative bRolls → HRS award each win; after 3rd fight win, tier-1 heroes at HRS≥18 take a random path.',
+    'Includes evolution: cumulative bRolls → XP award each win; after 3rd fight win, tier-1 heroes at XP≥18 take a random path.',
     'DoT modeled (stack + duration, ticks each sim round; shield absorbs). Per-op trackHpScale on enemy HP. No items, Protocol, summons, etc.',
     '',
   ];

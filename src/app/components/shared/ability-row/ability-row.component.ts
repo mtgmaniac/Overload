@@ -13,7 +13,6 @@ type AbilityMiniTone =
   | 'dot'
   | 'rollAlly'
   | 'rollFoe'
-  | 'enemyRollBuff'
   | 'control'
   | 'neutral';
 
@@ -200,7 +199,7 @@ export class AbilityRowComponent {
     if ((ab.lifestealPct || 0) > 0) parts.push(`lifesteal ${ab.lifestealPct}%`);
     if ((ab.erb || 0) > 0) {
       const t = (ab.erbT || 0) > 1 ? `, ${ab.erbT}t` : '';
-      parts.push(`${ab.erbAll ? 'all ' : ''}+${ab.erb} enemy roll${t}`);
+      parts.push(ab.erbAll ? `+${ab.erb} roll to allies${t}` : `+${ab.erb} roll${t}`);
     }
     if ((ab.summonChance ?? 0) > 0) parts.push(`summon ~${ab.summonChance}% nat20`);
     if (ab.counterspellZone && (ab.counterspellT || 0) > 0) {
@@ -346,12 +345,12 @@ export class AbilityRowComponent {
       });
     }
     if ((ab.erb || 0) > 0) {
-      const n = ab.erbAll ? `E+${ab.erb}·ALL` : `E+${ab.erb}`;
+      const n = ab.erbAll ? `+${ab.erb}·ALL` : `+${ab.erb}`;
       out.push({
         icon: 'die',
         num: n,
         turns: this.multiTurn(ab.erbT),
-        tone: 'enemyRollBuff',
+        tone: 'rollAlly',
       });
     }
     if ((ab.summonChance ?? 0) > 0) out.push({ icon: null, label: 'SUM', tone: 'control' });

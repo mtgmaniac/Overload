@@ -3,14 +3,15 @@
   "enemyAbilities": {
     "scrap": {
       "recharge": {
-        "name": "Power Down",
-        "eff": "—",
+        "name": "ECM Shell",
+        "eff": "8 shield, 2t",
         "dmg": 0,
         "dot": 0,
         "dT": 0,
         "heal": 0,
         "rfe": 0,
-        "shield": 0
+        "shield": 8,
+        "shT": 2
       },
       "strike": {
         "name": "Stab",
@@ -34,20 +35,20 @@
       },
       "crit": {
         "name": "Overcharge+",
-        "eff": "15 dmg, 2 DoT, 2t",
+        "eff": "15 dmg, 2 DoT, 1t",
         "dmg": 15,
         "dot": 2,
-        "dT": 2,
+        "dT": 1,
         "heal": 0,
         "rfe": 0,
         "shield": 0
       },
       "overload": {
         "name": "Detonator",
-        "eff": "20 dmg, 3 DoT, 2t",
+        "eff": "20 dmg, 3 DoT, 1t",
         "dmg": 20,
         "dot": 3,
-        "dT": 2,
+        "dT": 1,
         "heal": 0,
         "rfe": 0,
         "shield": 0
@@ -55,14 +56,15 @@
     },
     "rust": {
       "recharge": {
-        "name": "Signal Jam",
-        "eff": "-1 roll",
+        "name": "ECM Jam",
+        "eff": "-1 roll, 5 shield, 1t",
         "dmg": 0,
         "dot": 0,
         "dT": 0,
         "heal": 0,
         "rfe": 0,
-        "shield": 0,
+        "shield": 5,
+        "shT": 1,
         "rfm": 1,
         "rfmT": 1
       },
@@ -415,12 +417,12 @@
     },
     "skitter": {
       "recharge": {
-        "name": "Burrow Idle",
-        "eff": "—",
+        "name": "Burrow Regen",
+        "eff": "5 heal",
         "dmg": 0,
         "dot": 0,
         "dT": 0,
-        "heal": 0,
+        "heal": 5,
         "rfe": 0,
         "shield": 0
       },
@@ -437,30 +439,30 @@
       },
       "surge": {
         "name": "Venom Nip",
-        "eff": "9 dmg, 2 DoT, 3t",
+        "eff": "9 dmg, 2 DoT, 1t",
         "dmg": 9,
         "dot": 2,
-        "dT": 3,
+        "dT": 1,
         "heal": 0,
         "rfe": 0,
         "shield": 0
       },
       "crit": {
         "name": "Blood Frenzy",
-        "eff": "12 dmg, 3 DoT, 5t",
+        "eff": "12 dmg, 3 DoT, 1t",
         "dmg": 12,
         "dot": 3,
-        "dT": 5,
+        "dT": 1,
         "heal": 0,
         "rfe": 0,
         "shield": 0
       },
       "overload": {
         "name": "Splatter Gland",
-        "eff": "17 dmg, 4 DoT, 5t",
+        "eff": "17 dmg, 4 DoT, 1t",
         "dmg": 17,
         "dot": 4,
-        "dT": 5,
+        "dT": 1,
         "heal": 0,
         "rfe": 0,
         "shield": 0
@@ -468,12 +470,12 @@
     },
     "mite": {
       "recharge": {
-        "name": "Pheromone Mark",
-        "eff": "-1 roll",
+        "name": "Pheromone Surge",
+        "eff": "3 heal, -1 roll",
         "dmg": 0,
         "dot": 0,
         "dT": 0,
-        "heal": 0,
+        "heal": 3,
         "rfe": 0,
         "shield": 0,
         "rfm": 1,
@@ -494,10 +496,10 @@
       },
       "surge": {
         "name": "Neural Bite",
-        "eff": "8 dmg, 1 DoT, 3t, -1 roll",
+        "eff": "8 dmg, 1 DoT, 1t, -1 roll",
         "dmg": 8,
         "dot": 1,
-        "dT": 3,
+        "dT": 1,
         "heal": 0,
         "rfe": 0,
         "shield": 0,
@@ -506,10 +508,10 @@
       },
       "crit": {
         "name": "Symbiote Spike",
-        "eff": "10 dmg, 2 DoT, 4t, -2 roll",
+        "eff": "10 dmg, 2 DoT, 1t, -2 roll",
         "dmg": 10,
         "dot": 2,
-        "dT": 4,
+        "dT": 1,
         "heal": 0,
         "rfe": 0,
         "shield": 0,
@@ -518,10 +520,10 @@
       },
       "overload": {
         "name": "Hive Latch",
-        "eff": "11 dmg, 3 DoT, 5t, -3 roll",
+        "eff": "11 dmg, 3 DoT, 1t, -3 roll",
         "dmg": 11,
         "dot": 3,
-        "dT": 5,
+        "dT": 1,
         "heal": 0,
         "rfe": 0,
         "shield": 0,
@@ -897,14 +899,15 @@
     },
     "veilPrism": {
       "recharge": {
-        "name": "Idle Core",
-        "eff": "—",
+        "name": "Lattice Guard",
+        "eff": "Draw focus",
         "dmg": 0,
         "dot": 0,
         "dT": 0,
         "heal": 0,
         "rfe": 0,
-        "shield": 0
+        "shield": 0,
+        "enemySelfTaunt": true
       },
       "strike": {
         "name": "Ram",
@@ -918,14 +921,14 @@
       },
       "surge": {
         "name": "Prism Surge",
-        "eff": "11 dmg, 4 shield, 2t",
+        "eff": "11 dmg, 4 shield, 1t",
         "dmg": 11,
         "dot": 0,
         "dT": 0,
         "heal": 0,
         "rfe": 0,
         "shield": 4,
-        "shT": 2
+        "shT": 1
       },
       "crit": {
         "name": "Focused Beam",
@@ -951,14 +954,14 @@
     "veilAegis": {
       "recharge": {
         "name": "Lattice Link",
-        "eff": "6 shield, 2t, ally 6 shield, 2t, all +1 enemy roll, 2t",
+        "eff": "6 shield, 1t, ally 6 shield, 1t, all +1 enemy roll, 2t",
         "dmg": 0,
         "dot": 0,
         "dT": 0,
         "heal": 0,
         "rfe": 0,
         "shield": 6,
-        "shT": 2,
+        "shT": 1,
         "shieldAlly": 6,
         "erb": 1,
         "erbT": 2,
@@ -966,7 +969,7 @@
       },
       "strike": {
         "name": "Aegis Bash",
-        "eff": "12 dmg, ally 6 shield, 2t, all +1 enemy roll",
+        "eff": "12 dmg, ally 6 shield, 1t, all +1 enemy roll",
         "dmg": 12,
         "dot": 0,
         "dT": 0,
@@ -974,14 +977,14 @@
         "rfe": 0,
         "shield": 0,
         "shieldAlly": 6,
-        "shT": 2,
+        "shT": 1,
         "erb": 1,
         "erbT": 1,
         "erbAll": true
       },
       "surge": {
         "name": "Bulwark Pulse",
-        "eff": "14 dmg, ally 8 shield, 2t, all +1 enemy roll, 2t",
+        "eff": "14 dmg, ally 8 shield, 1t, all +1 enemy roll, 2t",
         "dmg": 14,
         "dot": 0,
         "dT": 0,
@@ -989,14 +992,14 @@
         "rfe": 0,
         "shield": 0,
         "shieldAlly": 8,
-        "shT": 2,
+        "shT": 1,
         "erb": 1,
         "erbT": 2,
         "erbAll": true
       },
       "crit": {
         "name": "Fortress Lash",
-        "eff": "18 dmg, ally 9 shield, 2t, all +2 enemy roll, 2t",
+        "eff": "18 dmg, ally 9 shield, 1t, all +2 enemy roll, 2t",
         "dmg": 18,
         "dot": 0,
         "dT": 0,
@@ -1004,14 +1007,14 @@
         "rfe": 0,
         "shield": 0,
         "shieldAlly": 9,
-        "shT": 2,
+        "shT": 1,
         "erb": 2,
         "erbT": 2,
         "erbAll": true
       },
       "overload": {
         "name": "Conclave Bulwark",
-        "eff": "20 dmg, ally 12 shield, 2t, all +2 enemy roll, 3t, summon ~42% nat20",
+        "eff": "20 dmg, ally 12 shield, 1t, all +2 enemy roll, 3t, summon ~42% nat20",
         "dmg": 20,
         "dot": 0,
         "dT": 0,
@@ -1019,7 +1022,7 @@
         "rfe": 0,
         "shield": 0,
         "shieldAlly": 12,
-        "shT": 2,
+        "shT": 1,
         "erb": 2,
         "erbT": 3,
         "erbAll": true,
@@ -1242,7 +1245,7 @@
       },
       "strike": {
         "name": "Herald Strike",
-        "eff": "11 dmg, ally 6 shield, 2t",
+        "eff": "11 dmg, ally 6 shield, 1t",
         "dmg": 11,
         "dot": 0,
         "dT": 0,
@@ -1250,11 +1253,11 @@
         "rfe": 0,
         "shield": 0,
         "shieldAlly": 6,
-        "shT": 2
+        "shT": 1
       },
       "surge": {
         "name": "Weave Shield",
-        "eff": "10 dmg, ally 7 shield, 2t, all +1 enemy roll, 2t",
+        "eff": "10 dmg, ally 7 shield, 1t, all +1 enemy roll, 2t",
         "dmg": 10,
         "dot": 0,
         "dT": 0,
@@ -1262,14 +1265,14 @@
         "rfe": 0,
         "shield": 0,
         "shieldAlly": 7,
-        "shT": 2,
+        "shT": 1,
         "erb": 1,
         "erbT": 2,
         "erbAll": true
       },
       "crit": {
         "name": "Conduit Spike",
-        "eff": "15 dmg, ally 8 shield, 2t, all +1 enemy roll, 3t",
+        "eff": "15 dmg, ally 8 shield, 1t, all +1 enemy roll, 3t",
         "dmg": 15,
         "dot": 0,
         "dT": 0,
@@ -1277,7 +1280,7 @@
         "rfe": 0,
         "shield": 0,
         "shieldAlly": 8,
-        "shT": 2,
+        "shT": 1,
         "erb": 1,
         "erbT": 3,
         "erbAll": true
@@ -1378,7 +1381,7 @@
     "voidWisp": {
       "recharge": {
         "name": "Void Hum",
-        "eff": "-1 roll",
+        "eff": "-1 roll, cursed dice",
         "dmg": 0,
         "dot": 0,
         "dT": 0,
@@ -1386,7 +1389,8 @@
         "rfe": 0,
         "shield": 0,
         "rfm": 1,
-        "rfmT": 1
+        "rfmT": 1,
+        "curseDice": true
       },
       "strike": {
         "name": "Spark Flick",
@@ -1402,10 +1406,10 @@
       },
       "surge": {
         "name": "Arc Nibble",
-        "eff": "8 dmg, 1 DoT, 3t, -1 roll",
+        "eff": "8 dmg, 1 DoT, 1t, -1 roll",
         "dmg": 8,
         "dot": 1,
-        "dT": 3,
+        "dT": 1,
         "heal": 0,
         "rfe": 0,
         "shield": 0,
@@ -1414,10 +1418,10 @@
       },
       "crit": {
         "name": "Mana Burr",
-        "eff": "10 dmg, 2 DoT, 4t, -2 roll",
+        "eff": "10 dmg, 2 DoT, 1t, -2 roll",
         "dmg": 10,
         "dot": 2,
-        "dT": 4,
+        "dT": 1,
         "heal": 0,
         "rfe": 0,
         "shield": 0,
@@ -1426,10 +1430,10 @@
       },
       "overload": {
         "name": "Circlet Surge",
-        "eff": "11 dmg, 3 DoT, 5t, -3 roll",
+        "eff": "11 dmg, 3 DoT, 1t, -3 roll",
         "dmg": 11,
         "dot": 3,
-        "dT": 5,
+        "dT": 1,
         "heal": 0,
         "rfe": 0,
         "shield": 0,
@@ -1518,7 +1522,7 @@
       },
       "strike": {
         "name": "Glyph Strike",
-        "eff": "11 dmg, ally 6 shield, 2t",
+        "eff": "11 dmg, ally 6 shield, 1t",
         "dmg": 11,
         "dot": 0,
         "dT": 0,
@@ -1526,11 +1530,11 @@
         "rfe": 0,
         "shield": 0,
         "shieldAlly": 6,
-        "shT": 2
+        "shT": 1
       },
       "surge": {
         "name": "Codex Weave",
-        "eff": "10 dmg, ally 7 shield, 2t, all +1 enemy roll, 2t",
+        "eff": "10 dmg, ally 7 shield, 1t, all +1 enemy roll, 2t",
         "dmg": 10,
         "dot": 0,
         "dT": 0,
@@ -1538,7 +1542,7 @@
         "rfe": 0,
         "shield": 0,
         "shieldAlly": 7,
-        "shT": 2,
+        "shT": 1,
         "erb": 1,
         "erbT": 2,
         "erbAll": true
@@ -1865,7 +1869,7 @@
       },
       "strike": {
         "name": "Void Grasp",
-        "eff": "6 dmg, -1 roll",
+        "eff": "6 dmg, -1 roll, +1 per packmate",
         "dmg": 6,
         "dot": 0,
         "dT": 0,
@@ -1873,14 +1877,15 @@
         "rfe": 0,
         "shield": 0,
         "rfm": 1,
-        "rfmT": 1
+        "rfmT": 1,
+        "packBonus": true
       },
       "surge": {
         "name": "Caustic Spittle",
-        "eff": "8 dmg, 2 DoT, 3t",
+        "eff": "8 dmg, 2 DoT, 1t",
         "dmg": 8,
         "dot": 2,
-        "dT": 3,
+        "dT": 1,
         "heal": 0,
         "rfe": 0,
         "shield": 0
@@ -1899,15 +1904,15 @@
       },
       "overload": {
         "name": "Troop Frenzy",
-        "eff": "13 dmg, 3 DoT, 3t, -2 roll, 2t",
+        "eff": "13 dmg, 3 DoT, 1t, -2 roll, 1t",
         "dmg": 13,
         "dot": 3,
-        "dT": 3,
+        "dT": 1,
         "heal": 0,
         "rfe": 0,
         "shield": 0,
         "rfm": 2,
-        "rfmT": 2
+        "rfmT": 1
       }
     },
     "beastWolf": {
@@ -1924,20 +1929,21 @@
       },
       "strike": {
         "name": "Rending Fang",
-        "eff": "7 dmg",
+        "eff": "7 dmg, +1 per packmate",
         "dmg": 7,
         "dot": 0,
         "dT": 0,
         "heal": 0,
         "rfe": 0,
-        "shield": 0
+        "shield": 0,
+        "packBonus": true
       },
       "surge": {
         "name": "Hamstring Lunge",
-        "eff": "9 dmg, 1 DoT, 2t",
+        "eff": "9 dmg, 1 DoT, 1t",
         "dmg": 9,
         "dot": 1,
-        "dT": 2,
+        "dT": 1,
         "heal": 0,
         "rfe": 0,
         "shield": 0
@@ -2268,14 +2274,15 @@
     },
     "signalSkimmer": {
       "recharge": {
-        "name": "Carrier Hum",
-        "eff": "-1 roll, 2t",
+        "name": "ECM Ping",
+        "eff": "-1 roll, 2t, 5 shield, 1t",
         "dmg": 0,
         "dot": 0,
         "dT": 0,
         "heal": 0,
         "rfe": 0,
-        "shield": 0,
+        "shield": 5,
+        "shT": 1,
         "rfm": 1,
         "rfmT": 2
       },

@@ -30,11 +30,11 @@
       </svg>
       <span class="proto-cost">{{ nudgeCost }}</span>
     </button>
-    @for (slot of [0, 1, 2]; track slot) {
-      <button type="button" class="inv-slot" [class]="rarityClass(slot)" [class.active-pick]="isPendingSlot(slot)"
-              [disabled]="!canUseSlot(slot)" (click)="toggleItem(slot)"
-              [attr.title]="invTitle(slot)">
-        @if (defAt(slot); as d) {
+    @for (row of invRows(); track row.slot) {
+      <button type="button" class="inv-slot" [class]="row.rarityClass" [class.active-pick]="row.activePick"
+              [disabled]="!row.usable" (click)="toggleItem(row.slot)"
+              [attr.title]="row.title">
+        @if (row.def; as d) {
           <span class="inv-ic" aria-hidden="true">
             @switch (d.icon) {
               @case ('heart') {

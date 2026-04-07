@@ -66,6 +66,13 @@ export class HeroCardComponent {
         detail: 'Enemies target you with attacks this turn.',
       });
     }
+    if (h.cursed) {
+      out.push({
+        key: 'cursed',
+        tag: 'CURSED',
+        detail: 'You roll twice next turn and keep the lower result.',
+      });
+    }
     const stacks = h.counterspellStacks || [];
     for (let i = 0; i < stacks.length; i++) {
       const s = stacks[i];
@@ -107,7 +114,7 @@ export class HeroCardComponent {
   });
 
   xpWidth = computed(() => {
-    const pct = Math.min(100, (this.hero().hrs / 18) * 100);
+    const pct = Math.min(100, (this.hero().xp / 18) * 100);
     return pct + '%';
   });
 
@@ -133,7 +140,8 @@ export class HeroCardComponent {
       pm === 'shield' ||
       pm === 'rollBuff' ||
       pm === 'revive' ||
-      pm === 'itemAlly'
+      pm === 'itemAlly' ||
+      pm === 'itemAllyDead'
     ) {
       this.allyPickClicked.emit();
       return;

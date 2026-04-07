@@ -37,6 +37,12 @@ header {
 }
 .hdr-btn:hover { border-color: var(--strike); color: var(--strike); }
 .hdr-btn:active { filter: brightness(1.08); }
+.hdr-skip {
+  border-color: var(--build-dim);
+  color: var(--build);
+  background: var(--build-bg);
+}
+.hdr-skip:hover { border-color: var(--build); color: var(--text); }
 .build-tag {
   font-family: var(--font-pixel); font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
   color: var(--build); background: var(--build-bg); border: 2px solid var(--build-dim);

@@ -75,6 +75,12 @@ export interface EnemyAbility {
   /** Hero cannot roll next player round(s); loses their turn. */
   cowerT?: number;
   cowerAll?: boolean;
+  /** Veil grunt: this enemy forces all heroes to target it next player phase (clears when it dies). */
+  enemySelfTaunt?: boolean;
+  /** Void grunt: targeted hero must roll twice next turn and keep the lower result. */
+  curseDice?: boolean;
+  /** Menagerie grunt: damage bonus based on number of living allies of the same enemy type. */
+  packBonus?: boolean;
 }
 
 export type EnemyAbilitySuite = Record<Zone, EnemyAbility>;

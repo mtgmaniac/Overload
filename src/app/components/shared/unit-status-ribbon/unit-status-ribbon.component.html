@@ -8,6 +8,9 @@
         [class.usr-taunt]="line.tag === 'TAUNT'"
         [class.usr-seal]="line.tag === 'SEAL'"
         [class.usr-rampage]="line.tag === 'RAMPAGE'"
+        [class.usr-cursed]="line.tag === 'CURSED'"
+        [class.usr-pack]="line.tag === 'PACK'"
+        [class.usr-focus]="line.tag === 'FOCUS'"
         [attr.title]="line.detail">
         <span class="usr-tag">{{ line.tag }}</span>
         @if (line.detail) {

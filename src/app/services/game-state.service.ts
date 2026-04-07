@@ -32,6 +32,8 @@ export class GameStateService {
   /** Independent stacks — sum of `amt` is the raw d20 penalty while any stack lives. */
   readonly squadRfmStacks = signal<SquadRfmStack[]>([]);
   readonly tauntHeroId = signal<HeroId | null>(null);
+  /** Veil grunt self-taunt: index of enemy forcing itself as the only valid damage target. Null when inactive. */
+  readonly forcedEnemyTargetIdx = signal<number | null>(null);
   readonly pendingEvolutions = signal<PendingEvolution[]>([]);
   readonly logMode = signal<LogMode>('min');
   readonly logOpen = signal(false);

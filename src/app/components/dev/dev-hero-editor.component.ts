@@ -10,8 +10,10 @@ import { HeroDefinition, EvolutionTier } from '../../models/hero.interface';
 import { HeroAbility } from '../../models/ability.interface';
 import { EnemyAbility, EnemyAbilitySuite } from '../../models/ability.interface';
 import { EnemyDefinition } from '../../models/enemy.interface';
-import { HeroId, Zone, ZONES, EnemyType } from '../../models/types';
+import { BattleModeId, EnemyRace, HeroId, Zone, ZONES, EnemyType } from '../../models/types';
 import { HERO_PORTRAIT_PATHS } from '../../data/sprites.data';
+import { BATTLE_MODE_ORDER, BATTLE_MODES } from '../../data/battle-modes.data';
+import { ENEMY_TYPE_TO_RACE } from '../../data/unit-frame-colors';
 
 type BracketRow = { lo: number; hi: number; zone: Zone };
 
@@ -100,12 +102,15 @@ export class DevHeroEditorComponent {
   zoneBracketRows: BracketRow[] = [];
 
   enemyAbilityType: EnemyType = 'scrap';
+  /** Operation track bucket for enemy editing (facility / hive / veil / void / menagerie). */
+  readonly enemyEditMode = signal<BattleModeId>('facility');
   enemySuiteDraft: EnemyAbilitySuite | null = null;
   enemyUnitKey = '';
   enemyUnitDraft: Omit<EnemyDefinition, 'name'> | null = null;
   battleScaleDraft: { hp: number; dmg: number }[] = [];
 
   readonly enemyTypes = ENEMY_TYPES;
+  readonly battleModeOrder = BATTLE_MODE_ORDER;
 
   readonly msg = signal('');
   readonly msgIsErr = signal(false);
@@ -119,8 +124,12 @@ export class DevHeroEditorComponent {
 
   readonly heroIds = computed(() => this.content.heroes().map(h => h.id));
 
-  readonly enemyUnitNames = computed(() =>
-    Object.keys(this.enemyContent.enemyUnitDefs()).sort((a, b) => a.localeCompare(b)),
+  readonly enemyTypesInEditMode = computed(() =>
+    ENEMY_TYPES.filter(t => this.typeMatchesBattleMode(t, this.enemyEditMode())),
+  );
+
+  readonly enemyUnitKeysInEditMode = computed(() =>
+    this.sortedUnitKeysForMode(this.enemyContent.enemyUnitDefs(), this.enemyEditMode()),
   );
 
   readonly zones = ZONES;
@@ -161,10 +170,70 @@ export class DevHeroEditorComponent {
     this.refreshEnemyDrafts();
   }
 
-  refreshEnemyDrafts(): void {
-    this.enemySuiteDraft = structuredClone(this.enemyContent.suiteFor(this.enemyAbilityType));
+  battleModeLabel(id: BattleModeId): string {
+    return BATTLE_MODES[id]?.label ?? id;
+  }
+
+  heroLabel(id: HeroId): string {
+    return this.content.getHero(id)?.name ?? id;
+  }
+
+  /** First roster spawn name for this enemy type (for readable type picker labels). */
+  typeDisplayLabel(t: EnemyType): string {
     const defs = this.enemyContent.enemyUnitDefs();
-    const keys = Object.keys(defs).sort((a, b) => a.localeCompare(b));
+    const keys = Object.keys(defs)
+      .filter(k => defs[k]?.type === t)
+      .sort((a, b) => a.localeCompare(b));
+    return keys[0] ?? t;
+  }
+
+  onEnemyEditModeChange(mode: string): void {
+    this.enemyEditMode.set(mode as BattleModeId);
+    this.refreshEnemyDrafts();
+  }
+
+  private raceMatchesBattleMode(race: EnemyRace, mode: BattleModeId): boolean {
+    switch (mode) {
+      case 'facility':
+        return race === 'facility' || race === 'signal';
+      case 'hive':
+        return race === 'hive';
+      case 'veil':
+        return race === 'veil';
+      case 'voidCirclet':
+        return race === 'void';
+      case 'stellarMenagerie':
+        return race === 'beast';
+      default:
+        return false;
+    }
+  }
+
+  private typeMatchesBattleMode(t: EnemyType, mode: BattleModeId): boolean {
+    return this.raceMatchesBattleMode(ENEMY_TYPE_TO_RACE[t], mode);
+  }
+
+  private sortedUnitKeysForMode(
+    defs: Record<string, Omit<EnemyDefinition, 'name'>>,
+    mode: BattleModeId,
+  ): string[] {
+    return Object.keys(defs)
+      .filter(k => {
+        const d = defs[k];
+        return d && this.typeMatchesBattleMode(d.type, mode);
+      })
+      .sort((a, b) => a.localeCompare(b));
+  }
+
+  refreshEnemyDrafts(): void {
+    const mode = this.enemyEditMode();
+    const defs = this.enemyContent.enemyUnitDefs();
+    const typesInMode = ENEMY_TYPES.filter(t => this.typeMatchesBattleMode(t, mode));
+    if (!typesInMode.includes(this.enemyAbilityType)) {
+      this.enemyAbilityType = typesInMode[0] ?? 'scrap';
+    }
+    this.enemySuiteDraft = structuredClone(this.enemyContent.suiteFor(this.enemyAbilityType));
+    const keys = this.sortedUnitKeysForMode(defs, mode);
     if (!this.enemyUnitKey || !keys.includes(this.enemyUnitKey)) {
       this.enemyUnitKey = keys[0] ?? '';
     }

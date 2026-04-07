@@ -38,14 +38,14 @@
           </button>
         } @else if (!state.allHeroesRolled()) {
           <button id="tut-main-action" class="btn-main roll btn-main--accent" (click)="onRollAll()"
-                  [disabled]="state.rollAllInProgress() || state.rollAnimInProgress() || tutorial.tutorialModalOpen()">
+                  [disabled]="state.rollAllInProgress() || state.rollAnimInProgress() || tutorial.tutorialModalOpen() || combat.simBattleRunning()">
             <span class="ma-arrow">▶</span> ROLL ALL DICE
           </button>
         } @else {
           <button id="tut-main-action" class="btn-main end"
                   [class.btn-main--ready]="endTurnReadyGlow()"
                   (click)="onEndTurn()"
-                  [disabled]="!state.allHeroesReady() || state.phase() !== 'player' || isAnimating() || tutorial.tutorialModalOpen()">
+                  [disabled]="!state.allHeroesReady() || state.phase() !== 'player' || isAnimating() || tutorial.tutorialModalOpen() || combat.simBattleRunning()">
             END TURN <span class="ma-arrow">▶</span>
           </button>
         }
@@ -67,7 +67,7 @@
                 <app-die #heroDie
                   [class.tray-die--dead]="hero.currentHp <= 0"
                   [roll]="getHeroDisplayRoll(hero)"
-                  [clickable]="hero.currentHp > 0 && hero.roll === null && state.phase() === 'player' && !isAnimating()"
+                  [clickable]="hero.currentHp > 0 && hero.roll === null && state.phase() === 'player' && !isAnimating() && !combat.simBattleRunning()"
                   [displayText]="getHeroDisplayText(hero)"
                   [animDisplay]="heroAnimDisplays()[i] ?? null"
                   [spriteCell]="heroAnimSpriteCells()[i] ?? null"
