@@ -19,26 +19,29 @@
         }
       }
     </div>
-    <!-- Bottom section: info + portrait (matches hero card) -->
+    <!-- Bottom section: full-width name/target, then HP + portrait (matches hero card) -->
     <div class="hbot">
-      <div class="info-col">
-        <div>
-          <div class="hname">{{ enemy().name }}</div>
-          <div class="hero-target-line">
-            <span class="hero-target-text">
-              @for (seg of targetLine().segments; track $index) {
-                @switch (seg.t) {
-                  @case ('plain') { <span>{{ seg.text }}</span> }
-                  @case ('muted') { <span class="tgt-muted">{{ seg.text }}</span> }
-                  @case ('all') { <span class="tgt-all">{{ seg.text }}</span> }
-                  @case ('self') { <span class="tgt-self">{{ seg.text }}</span> }
-                  @case ('enemy') { <span class="tgt-enemy">{{ seg.text }}</span> }
-                  @case ('ally') { <span class="tgt-ally">{{ seg.text }}</span> }
-                }
-              }
-            </span>
-          </div>
+      <div class="hbot-head">
+        <div class="hname-row">
+          <span class="hname">{{ enemy().name }}</span>
         </div>
+        <div class="hero-target-line">
+          <span class="hero-target-text">
+            @for (seg of targetLine().segments; track $index) {
+              @switch (seg.t) {
+                @case ('plain') { <span>{{ seg.text }}</span> }
+                @case ('muted') { <span class="tgt-muted">{{ seg.text }}</span> }
+                @case ('all') { <span class="tgt-all">{{ seg.text }}</span> }
+                @case ('self') { <span class="tgt-self">{{ seg.text }}</span> }
+                @case ('enemy') { <span class="tgt-enemy">{{ seg.text }}</span> }
+                @case ('ally') { <span class="tgt-ally">{{ seg.text }}</span> }
+              }
+            }
+          </span>
+        </div>
+      </div>
+      <div class="hbot-main">
+        <div class="info-col">
         <div>
           <app-hp-bar [current]="enemy().currentHp" [max]="enemy().maxHp">
             <div data-hp-aside>
@@ -54,6 +57,7 @@
           [anchorId]="'action-enemy-' + index()"
           [rampageGlow]="(enemy().rampageCharges || 0) > 0"
           [rampageTip]="rampagePortraitTip()" />
+      </div>
       </div>
     </div>
   </div>

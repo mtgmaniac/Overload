@@ -147,11 +147,11 @@
     {
       "id": "shock_charge",
       "name": "Shock Charge",
-      "desc": "Deal 5 damage to one enemy.",
+      "desc": "Deal 10 damage to one enemy.",
       "rarity": "common",
       "icon": "bolt",
       "target": "enemy",
-      "effect": { "type": "enemyDmg", "amount": 5 }
+      "effect": { "type": "enemyDmg", "amount": 10 }
     },
     {
       "id": "grounding_clip",
@@ -165,11 +165,11 @@
     {
       "id": "arc_capacitor",
       "name": "Arc Capacitor",
-      "desc": "Deal 10 damage to one enemy.",
+      "desc": "Deal 20 damage to one enemy.",
       "rarity": "uncommon",
       "icon": "bolt",
       "target": "enemy",
-      "effect": { "type": "enemyDmg", "amount": 10 }
+      "effect": { "type": "enemyDmg", "amount": 20 }
     },
     {
       "id": "aegis_saturation",
@@ -219,11 +219,110 @@
     {
       "id": "terminal_spike",
       "name": "Terminal Spike",
-      "desc": "Deal 20 damage to one enemy.",
+      "desc": "Deal 40 damage to one enemy.",
       "rarity": "legendary",
       "icon": "bolt",
       "target": "enemy",
-      "effect": { "type": "enemyDmg", "amount": 20 }
+      "effect": { "type": "enemyDmg", "amount": 40 }
+    },
+    {
+      "id": "acid_vial",
+      "name": "Acid Vial",
+      "desc": "Apply 3 poison to one enemy for 3 turns.",
+      "rarity": "common",
+      "icon": "skull",
+      "target": "enemy",
+      "effect": { "type": "enemyDot", "amount": 3, "dT": 3 }
+    },
+    {
+      "id": "nanite_burn",
+      "name": "Nanite Burn",
+      "desc": "Apply 5 poison to one enemy for 3 turns.",
+      "rarity": "uncommon",
+      "icon": "skull",
+      "target": "enemy",
+      "effect": { "type": "enemyDot", "amount": 5, "dT": 3 }
+    },
+    {
+      "id": "thermite_canister",
+      "name": "Thermite Canister",
+      "desc": "Apply 8 poison to one enemy for 4 turns.",
+      "rarity": "rare",
+      "icon": "skull",
+      "target": "enemy",
+      "effect": { "type": "enemyDot", "amount": 8, "dT": 4 }
+    },
+    {
+      "id": "null_vector",
+      "name": "Null Vector",
+      "desc": "Apply 14 poison to one enemy for 4 turns.",
+      "rarity": "legendary",
+      "icon": "skull",
+      "target": "enemy",
+      "effect": { "type": "enemyDot", "amount": 14, "dT": 4 }
+    },
+    {
+      "id": "training_datachip",
+      "name": "Training Datachip",
+      "desc": "All living tier-1 heroes gain +3 XP.",
+      "rarity": "common",
+      "icon": "star",
+      "target": "none",
+      "effect": { "type": "xpBoost", "amount": 3 }
+    },
+    {
+      "id": "field_manual",
+      "name": "Field Manual",
+      "desc": "All living tier-1 heroes gain +5 XP.",
+      "rarity": "uncommon",
+      "icon": "star",
+      "target": "none",
+      "effect": { "type": "xpBoost", "amount": 5 }
+    },
+    {
+      "id": "mnemonic_core",
+      "name": "Mnemonic Core",
+      "desc": "All living tier-1 heroes gain +8 XP.",
+      "rarity": "rare",
+      "icon": "star",
+      "target": "none",
+      "effect": { "type": "xpBoost", "amount": 8 }
+    },
+    {
+      "id": "gyro_motor",
+      "name": "Gyro Motor",
+      "desc": "Reroll one enemy's die (face updates immediately).",
+      "rarity": "uncommon",
+      "icon": "die",
+      "target": "enemy",
+      "effect": { "type": "enemyRerollDie" }
+    },
+    {
+      "id": "cascade_jammer",
+      "name": "Cascade Jammer",
+      "desc": "Reroll every living enemy's die.",
+      "rarity": "rare",
+      "icon": "die",
+      "target": "none",
+      "effect": { "type": "enemyRerollAll" }
+    },
+    {
+      "id": "cryo_gel",
+      "name": "Cryo Gel",
+      "desc": "Freeze one enemy's die — it won't reroll on the next tray reveal.",
+      "rarity": "uncommon",
+      "icon": "bolt",
+      "target": "enemy",
+      "effect": { "type": "enemyDieFreeze", "skips": 1 }
+    },
+    {
+      "id": "cryo_web",
+      "name": "Cryo Web",
+      "desc": "Freeze one enemy's die — it skips the next two tray reveals.",
+      "rarity": "rare",
+      "icon": "bolt",
+      "target": "enemy",
+      "effect": { "type": "enemyDieFreeze", "skips": 2 }
     }
   ]
 }

@@ -122,7 +122,9 @@ export class EnemyCardComponent {
   isCurrentZone(zone: Zone): boolean {
     if (this.hideRoll()) return false;
     if (this.enemy().dead) return false;
-    return this.dice.getEnemyZone(this.enemy().effRoll) === zone;
+    const er = this.enemy().effRoll;
+    if (er <= 0) return false;
+    return this.dice.getEnemyZone(er) === zone;
   }
 
   onCardClick(): void {

@@ -69,6 +69,10 @@ export class TargetingService {
     return this.needsRevivePick(ab) && this.hasDeadAllyHero();
   }
 
+  needsFreezeDicePick(ab: HeroAbility | null): boolean {
+    return (ab?.freezeAnyDice || 0) > 0;
+  }
+
   abilityIsPureAutoNoHeroSelect(ab: HeroAbility | null): boolean {
     if (!ab) return true;
     if (ab.splitDmg) return true;
@@ -79,6 +83,7 @@ export class TargetingService {
     if ((ab.heal || 0) > 0 && !ab.healTgt && !ab.healAll && !ab.healLowest && !this.needsEnemyPick(ab)) return true;
     if ((ab.shield || 0) > 0 && !ab.shTgt && !ab.shieldAll && !this.needsEnemyPick(ab)) return true;
     if (ab.revive && !this.hasDeadAllyHero()) return true;
+    if ((ab.freezeAnyDice || 0) > 0) return false;
     return false;
   }
 
@@ -94,6 +99,13 @@ export class TargetingService {
     if (this.needsAllyShieldPick(ab) && h.shTgtIdx == null) return 'shield';
     if (this.needsAllyRollBuffPick(ab) && h.rfmTgtIdx == null) return 'rollBuff';
     if (this.reviveRequiresTargetPick(ab) && h.reviveTgtIdx == null) return 'revive';
+    if (
+      this.needsFreezeDicePick(ab) &&
+      h.freezeDiceTgtHeroIdx == null &&
+      h.freezeDiceTgtEnemyIdx == null
+    ) {
+      return 'freezeDice';
+    }
     if (this.needsEnemyPick(ab)) {
       const ei = h.lockedTarget;
       const enemies = this.state.enemies();
@@ -138,6 +150,11 @@ export class TargetingService {
         if (!ok && firstAliveEnemy >= 0) {
           patch.lockedTarget = firstAliveEnemy;
         }
+      }
+
+      if (this.needsFreezeDicePick(ab) && h.freezeDiceTgtHeroIdx == null && h.freezeDiceTgtEnemyIdx == null) {
+        if (firstAliveEnemy >= 0) patch.freezeDiceTgtEnemyIdx = firstAliveEnemy;
+        else patch.freezeDiceTgtHeroIdx = hi;
       }
 
       if (this.needsAllyHealPick(ab) && h.healTgtIdx == null) {
@@ -211,7 +228,7 @@ export class TargetingService {
 
     if (!this.needsEnemyPick(ab) && !this.needsAllyHealPick(ab) &&
         !this.needsAllyShieldPick(ab) && !this.needsAllyRollBuffPick(ab) &&
-        !this.reviveRequiresTargetPick(ab)) {
+        !this.reviveRequiresTargetPick(ab) && !this.needsFreezeDicePick(ab)) {
       confirmAndLog();
     }
   }
@@ -233,6 +250,8 @@ export class TargetingService {
       healTgtIdx: null,
       rfmTgtIdx: null,
       reviveTgtIdx: null,
+      freezeDiceTgtHeroIdx: null,
+      freezeDiceTgtEnemyIdx: null,
       splitAlloc: {},
       confirmed: false,
       _pulseBanked: false,
@@ -252,7 +271,14 @@ export class TargetingService {
   private casterRetapShouldResetTargeting(h: HeroState): boolean {
     if (h.roll === null) return false;
     if (h.lockedTarget !== undefined) return true;
-    if (h.healTgtIdx != null || h.shTgtIdx != null || h.rfmTgtIdx != null || h.reviveTgtIdx != null) {
+    if (
+      h.healTgtIdx != null ||
+      h.shTgtIdx != null ||
+      h.rfmTgtIdx != null ||
+      h.reviveTgtIdx != null ||
+      h.freezeDiceTgtHeroIdx != null ||
+      h.freezeDiceTgtEnemyIdx != null
+    ) {
       return true;
     }
     if (h.splitAlloc && Object.keys(h.splitAlloc).length > 0) return true;
@@ -406,9 +432,14 @@ export class TargetingService {
 
     const shi = this.state.selectedHeroIdx();
     if (shi == null) return;
-    if (this.nextPickKindForHero(shi) !== 'enemy') return;
-
-    this.state.updateHero(shi, { lockedTarget: ei });
+    const nk = this.nextPickKindForHero(shi);
+    if (nk === 'freezeDice') {
+      this.state.updateHero(shi, { freezeDiceTgtEnemyIdx: ei, freezeDiceTgtHeroIdx: null });
+    } else if (nk === 'enemy') {
+      this.state.updateHero(shi, { lockedTarget: ei });
+    } else {
+      return;
+    }
     if (this.nextPickKindForHero(shi) === null) {
       this.state.selectedHeroIdx.set(null);
     }
@@ -447,6 +478,9 @@ export class TargetingService {
     } else if (nk === 'revive') {
       if (heroes[ti].currentHp > 0) return;
       this.state.updateHero(shi, { reviveTgtIdx: ti });
+    } else if (nk === 'freezeDice') {
+      if (heroes[ti].currentHp <= 0) return;
+      this.state.updateHero(shi, { freezeDiceTgtHeroIdx: ti, freezeDiceTgtEnemyIdx: null });
     } else {
       return;
     }
@@ -485,14 +519,37 @@ export class TargetingService {
     });
 
     if (ab.splitDmg) return done([{ t: 'all', text: 'All enemies' }]);
+    if (
+      ab.healAll &&
+      (ab.heal || 0) > 0 &&
+      (ab.dmg || 0) > 0 &&
+      (ab.blastAll || ab.multiHit)
+    ) {
+      return done([
+        { t: 'all', text: 'All allies' },
+        { t: 'plain', text: ' · ' },
+        { t: 'all', text: 'All enemies' },
+      ]);
+    }
     if ((ab.dmg || 0) > 0 && (ab.blastAll || ab.multiHit)) {
-      return done([{ t: 'all', text: 'All enemies' }]);
+      const allyFirst =
+        this.needsAllyHealPick(ab) ||
+        this.needsAllyShieldPick(ab) ||
+        this.needsAllyRollBuffPick(ab) ||
+        this.reviveRequiresTargetPick(ab);
+      if (!allyFirst) {
+        return done([{ t: 'all', text: 'All enemies' }]);
+      }
     }
     if ((ab.rfe || 0) > 0 && ab.rfeAll && !this.needsEnemyPick(ab)) {
       return done([{ t: 'all', text: 'All enemies' }]);
     }
-    if (ab.healAll) return done([{ t: 'all', text: 'All allies' }]);
-    if (ab.shieldAll && ab.shield) return done([{ t: 'all', text: 'All allies' }]);
+    if (ab.healAll && (ab.heal || 0) > 0 && !this.needsEnemyPick(ab)) {
+      return done([{ t: 'all', text: 'All allies' }]);
+    }
+    if (ab.shieldAll && (ab.shield || 0) > 0 && !this.needsEnemyPick(ab)) {
+      return done([{ t: 'all', text: 'All allies' }]);
+    }
     if (ab.healLowest) return done([{ t: 'all', text: 'Lowest HP ally' }]);
     if (
       (ab.heal || 0) > 0 &&
@@ -518,7 +575,8 @@ export class TargetingService {
       !this.needsAllyHealPick(ab) &&
       !this.needsAllyShieldPick(ab) &&
       !this.needsAllyRollBuffPick(ab) &&
-      !this.reviveRequiresTargetPick(ab)
+      !this.reviveRequiresTargetPick(ab) &&
+      !this.needsFreezeDicePick(ab)
     ) {
       return done([{ t: 'self', text: 'Self' }]);
     }
@@ -534,8 +592,21 @@ export class TargetingService {
       const t = heroes[idx];
       if (!t) return null;
       if (idx === hi) return { t: 'self', text: 'Self' };
-      return { t: 'ally', text: t.name };
+      return { t: 'ally', text: this.displayTargetName(t.name) };
     };
+
+    /** Glacial Lattice: show ally/enemy name after pick; nk is only 'freezeDice' while unpicked. */
+    if (this.needsFreezeDicePick(ab)) {
+      if (h.freezeDiceTgtHeroIdx != null) {
+        const s = allySeg(h.freezeDiceTgtHeroIdx);
+        if (s) return done([s]);
+      }
+      if (h.freezeDiceTgtEnemyIdx != null) {
+        const ex = enemies[h.freezeDiceTgtEnemyIdx];
+        if (ex && !ex.dead) return done([{ t: 'enemy', text: this.displayTargetName(ex.name) }]);
+      }
+      return done([{ t: 'muted', text: '—' }]);
+    }
 
     if (nk === 'enemy') {
       const ei = h.lockedTarget;
@@ -543,16 +614,30 @@ export class TargetingService {
       if (ei === undefined || ei === null || !e || e.dead) {
         return done([{ t: 'muted', text: '—' }]);
       }
-      return done([{ t: 'enemy', text: e.name }]);
+      return done([{ t: 'enemy', text: this.displayTargetName(e.name) }]);
     }
     if (nk === 'shield') {
       const s = allySeg(h.shTgtIdx);
       if (!s) return done([{ t: 'muted', text: '—' }]);
+      if ((ab.dmg || 0) > 0 && (ab.blastAll || ab.multiHit)) {
+        return done([
+          s,
+          { t: 'plain', text: ' · ' },
+          { t: 'all', text: 'All enemies' },
+        ]);
+      }
       return done([s]);
     }
     if (nk === 'heal') {
       const s = allySeg(h.healTgtIdx);
       if (!s) return done([{ t: 'muted', text: '—' }]);
+      if ((ab.dmg || 0) > 0 && (ab.blastAll || ab.multiHit)) {
+        return done([
+          s,
+          { t: 'plain', text: ' · ' },
+          { t: 'all', text: 'All enemies' },
+        ]);
+      }
       return done([s]);
     }
     if (nk === 'rollBuff') {
@@ -563,7 +648,7 @@ export class TargetingService {
     if (nk === 'revive') {
       if (h.reviveTgtIdx == null) return done([{ t: 'muted', text: '—' }]);
       const t = heroes[h.reviveTgtIdx];
-      return done([{ t: 'ally', text: t ? t.name : '?' }]);
+      return done([{ t: 'ally', text: t ? this.displayTargetName(t.name) : '?' }]);
     }
 
     const bits: HeroTargetLineSegment[] = [];
@@ -581,7 +666,10 @@ export class TargetingService {
     }
     if (this.needsEnemyPick(ab) && h.lockedTarget != null) {
       const e = enemies[h.lockedTarget];
-      if (e && !e.dead) bits.push({ t: 'enemy', text: e.name });
+      if (e && !e.dead) bits.push({ t: 'enemy', text: this.displayTargetName(e.name) });
+    }
+    if ((ab.dmg || 0) > 0 && (ab.blastAll || ab.multiHit) && !this.needsEnemyPick(ab)) {
+      bits.push({ t: 'all', text: 'All enemies' });
     }
     if (
       (ab.heal || 0) > 0 &&
@@ -594,7 +682,7 @@ export class TargetingService {
     }
     if (this.needsRevivePick(ab) && h.reviveTgtIdx != null) {
       const t = heroes[h.reviveTgtIdx];
-      if (t) bits.push({ t: 'ally', text: t.name });
+      if (t) bits.push({ t: 'ally', text: this.displayTargetName(t.name) });
     }
 
     if (bits.length) {
@@ -623,10 +711,17 @@ export class TargetingService {
     if (!tgt) return done([{ t: 'muted', text: '—' }]);
     const hero = heroes.find(h => h.id === tgt);
     if (!hero) return done([{ t: 'muted', text: '—' }]);
-    return done([{ t: 'ally', text: hero.name }]);
+    return done([{ t: 'ally', text: this.displayTargetName(hero.name) }]);
   }
 
   // ── Private helpers ──
+
+  /** Card “Target:” line — keep first token only so long names fit the UI. */
+  private displayTargetName(fullName: string): string {
+    const t = fullName.trim();
+    if (!t) return fullName;
+    return t.split(/\s+/)[0]!;
+  }
 
   private logHeroLockIn(hi: number): void {
     const h = this.state.heroes()[hi];

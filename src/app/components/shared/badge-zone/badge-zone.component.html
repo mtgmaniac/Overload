@@ -1,6 +1,6 @@
 @if (kind() === 'hero') {
   @let h = heroSnap();
-  <div class="bdg-wrap">
+  <div class="bdg-wrap bdg-wrap--hero">
     <div class="bdg-lbl">Incoming</div>
     <div class="bdg-row-4">
       <div class="bdg-slot" [class.empty]="h.incomingDmg <= 0" [class.bdg-dmg]="h.incomingDmg > 0">
@@ -82,6 +82,11 @@
         </svg>
         <span>{{ rollModLabel(heroRollCombined(h)) }}</span>
       </div>
+    </div>
+    <div class="bdg-ribbon-row">
+      @if (ribbonLines().length) {
+        <app-unit-status-ribbon [lines]="ribbonLines()" [layout]="'inline'" />
+      }
     </div>
   </div>
 } @else {

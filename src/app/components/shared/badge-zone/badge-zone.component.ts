@@ -5,6 +5,10 @@ import {
   computed,
   inject,
 } from '@angular/core';
+import {
+  UnitStatusRibbonComponent,
+  type UnitStatusRibbonLine,
+} from '../unit-status-ribbon/unit-status-ribbon.component';
 import { GameStateService } from '../../../services/game-state.service';
 import {
   BadgeProjectionService,
@@ -15,6 +19,7 @@ import {
 @Component({
   selector: 'app-badge-zone',
   standalone: true,
+  imports: [UnitStatusRibbonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './badge-zone.component.html',
   styleUrl: './badge-zone.component.scss',
@@ -25,6 +30,8 @@ export class BadgeZoneComponent {
 
   kind = input.required<'hero' | 'enemy'>();
   index = input.required<number>();
+  /** Word chips (CURSED, CLOAK, etc.) — hero only; below numeric Status row. */
+  ribbonLines = input<UnitStatusRibbonLine[]>([]);
 
   heroSnap = computed((): HeroBadgeSnapshot => {
     this.state.heroes();

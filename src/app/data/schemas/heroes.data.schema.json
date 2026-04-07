@@ -92,7 +92,10 @@
         "ignSh": { "type": "boolean" },
         "splitDmg": { "type": "boolean" },
         "rfeAll": { "type": "boolean" },
-        "rfeOnly": { "type": "boolean" }
+        "rfeOnly": { "type": "boolean" },
+        "freezeAllEnemyDice": { "type": "integer", "minimum": 0 },
+        "freezeEnemyDice": { "type": "integer", "minimum": 0 },
+        "freezeAnyDice": { "type": "integer", "minimum": 0 }
       }
     },
     "evolutionTier": {

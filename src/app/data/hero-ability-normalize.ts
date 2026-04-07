@@ -26,5 +26,15 @@ export function normalizeHeroAbility(ab: HeroAbility): HeroAbility {
     shT: shT || undefined,
     rfm: rfm || undefined,
     rfmT: rfmT || undefined,
+    freezeAllEnemyDice:
+      ab.freezeAllEnemyDice != null && ri(ab.freezeAllEnemyDice) > 0
+        ? ri(ab.freezeAllEnemyDice)
+        : undefined,
+    freezeEnemyDice:
+      ab.freezeEnemyDice != null && ri(ab.freezeEnemyDice) > 0
+        ? ri(ab.freezeEnemyDice)
+        : undefined,
+    freezeAnyDice:
+      ab.freezeAnyDice != null && ri(ab.freezeAnyDice) > 0 ? ri(ab.freezeAnyDice) : undefined,
   };
 }

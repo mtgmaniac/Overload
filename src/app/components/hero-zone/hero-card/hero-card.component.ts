@@ -8,17 +8,14 @@ import { HpBarComponent } from '../../shared/hp-bar/hp-bar.component';
 import { PortraitFrameComponent } from '../../shared/portrait-frame/portrait-frame.component';
 import { AbilityRowComponent } from '../../shared/ability-row/ability-row.component';
 import { BadgeZoneComponent } from '../../shared/badge-zone/badge-zone.component';
-import {
-  UnitStatusRibbonComponent,
-  UnitStatusRibbonLine,
-} from '../../shared/unit-status-ribbon/unit-status-ribbon.component';
+import type { UnitStatusRibbonLine } from '../../shared/unit-status-ribbon/unit-status-ribbon.component';
 import { heroPortraitSvg } from '../../../data/sprites.data';
 import { HERO_UNIT_FRAME_COLOR } from '../../../data/unit-frame-colors';
 
 @Component({
   selector: 'app-hero-card',
   standalone: true,
-  imports: [HpBarComponent, PortraitFrameComponent, AbilityRowComponent, BadgeZoneComponent, UnitStatusRibbonComponent],
+  imports: [HpBarComponent, PortraitFrameComponent, AbilityRowComponent, BadgeZoneComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './hero-card.component.html',
   styleUrl: './hero-card.component.scss',
@@ -39,7 +36,7 @@ export class HeroCardComponent {
 
   heroSvg = computed(() => heroPortraitSvg(this.hero().id, this.hero().portraitPath));
 
-  /** Cower, cloak, taunt, counterspell seals — full text beside HP label. */
+  /** Status chips beside HP; full text on hover. */
   heroStatusLines = computed((): UnitStatusRibbonLine[] => {
     this.state.tauntHeroId();
     const h = this.hero();
@@ -56,7 +53,7 @@ export class HeroCardComponent {
       out.push({
         key: 'cloak',
         tag: 'CLOAK',
-        detail: '',
+        detail: 'Enemy attacks may miss; cloak clears after the next attack resolves (hit or miss).',
       });
     }
     if (this.state.tauntHeroId() === h.id) {
@@ -70,7 +67,11 @@ export class HeroCardComponent {
       out.push({
         key: 'cursed',
         tag: 'CURSED',
-        detail: 'You roll twice next turn and keep the lower result.',
+        detail: '',
+        tooltip:
+          h.roll !== null
+            ? 'Cursed dice resolved this turn (lower roll kept).'
+            : 'You roll twice and keep the lower result.',
       });
     }
     const stacks = h.counterspellStacks || [];
@@ -140,6 +141,7 @@ export class HeroCardComponent {
       pm === 'shield' ||
       pm === 'rollBuff' ||
       pm === 'revive' ||
+      pm === 'freezeDice' ||
       pm === 'itemAlly' ||
       pm === 'itemAllyDead'
     ) {

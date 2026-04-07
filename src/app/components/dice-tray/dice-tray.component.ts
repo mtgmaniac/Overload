@@ -5,7 +5,6 @@ import {
   computed,
   signal,
   viewChildren,
-  ElementRef,
   afterNextRender,
   DestroyRef,
 } from '@angular/core';
@@ -28,19 +27,8 @@ const ANIM_TICK_MS = 72;
 const PIXEL_SNAP = 4;
 const ANIM_STEPS = 8;
 const ANIM_REVEAL_STEP = 6;
-/** Default / max reference width; roll jitter uses measured tray width. */
-const TRAY_INNER_W = 736;
-/** Row height for dice band; slack matches frame + mid-bar padding for even vertical rhythm. */
-const ROW_H = 80;
-const DIE_W = 78;
-const DIE_H = 78;
-/** Horizontal drift during tumble (px); snaps back to slot on reveal. */
+/** Horizontal drift during tumble (px), applied via translateX on the die only — grid cells stay fixed. */
 const ROLL_DRIFT_TOTAL = 43;
-
-interface JitterPos {
-  left: string;
-  top: string;
-}
 
 @Component({
   selector: 'app-dice-tray',
@@ -57,14 +45,16 @@ export class DiceTrayComponent {
   private protocol = inject(ProtocolService);
   tutorial = inject(TutorialService);
   private rerollRequests = inject(RerollAnimationRequestService);
-  private host = inject(ElementRef<HTMLElement>);
   private destroyRef = inject(DestroyRef);
 
   ANIM_REVEAL_STEP = ANIM_REVEAL_STEP;
-  /** Visible tray width — drives roll jitter bounds on narrow screens. */
-  trayWidth = signal(TRAY_INNER_W);
 
   heroDieRefs = viewChildren<DieComponent>('heroDie');
+
+  /** Cursed: extra die rolls in parallel during tray anim; which slot has the second die. */
+  cursedRollingHeroIdx = signal<number | null>(null);
+  heroExtraAnimDisplays = signal<(string | null)[]>([]);
+  heroExtraAnimSpriteCells = signal<({ c: number; r: number } | null)[]>([]);
 
   constructor() {
     this.rerollRequests.requests$.pipe(takeUntilDestroyed()).subscribe(p => this.playRerollAnimation(p));
@@ -74,17 +64,6 @@ export class DiceTrayComponent {
         applyAnimated: () => this.runRollAllAsPromise(),
       });
       this.destroyRef.onDestroy(() => this.combat.setRollAllDelegate(null));
-
-      const wrap = this.host.nativeElement.querySelector('.dice-tray-wrap') as HTMLElement | null;
-      if (!wrap) return;
-      const apply = () => {
-        const w = Math.round(wrap.getBoundingClientRect().width);
-        this.trayWidth.set(Math.max(240, w));
-      };
-      apply();
-      const ro = new ResizeObserver(() => apply());
-      ro.observe(wrap);
-      this.destroyRef.onDestroy(() => ro.disconnect());
     });
   }
 
@@ -104,14 +83,22 @@ export class DiceTrayComponent {
   heroAnimSpriteCells = signal<({ c: number; r: number } | null)[]>([]);
   enemyAnimSpriteCells = signal<({ c: number; r: number } | null)[]>([]);
 
-  /** Random positions for each hero die slot during jitter phase */
-  heroJitter = signal<(JitterPos | null)[]>([]);
-  /** Random positions for each enemy die slot during jitter phase */
-  enemyJitter = signal<(JitterPos | null)[]>([]);
+  /**
+   * Horizontal drift (px) on the die+frost wrapper only. Frozen slots always 0 — columns never leave the grid.
+   */
+  heroDriftPx = signal<number[]>([]);
+  enemyDriftPx = signal<number[]>([]);
 
-  /** Jitter/reveal layout for whole tray — off during protocol reroll so other dice stay in grid. */
-  fullTrayRollPhase = computed(
-    () => this.isAnimating() && this.animStep() < this.ANIM_REVEAL_STEP && this.rerollingHeroIdx() === null,
+  /**
+   * Frost overlay from game state: pending freeze skips, or just consumed freeze (enemy skips action this phase).
+   * Stays through roll animation and until that enemy finishes their skipped enemy-phase action.
+   */
+  enemyDieFrostVisible = computed(() =>
+    this.state.enemies().map(e => !e.dead && (e.dieFreezeRollsRemaining || 0) > 0),
+  );
+
+  heroDieFrostVisible = computed(() =>
+    this.state.heroes().map(h => h.currentHp > 0 && (h.dieFreezeRollsRemaining || 0) > 0),
   );
 
   /** Match enemy-zone: hide enemy faces until squad is fully rolled, tray is revealed, and roll-all anim finished (not solo reroll). */
@@ -216,8 +203,19 @@ export class DiceTrayComponent {
     if (progressFlag === 'rollAll') this.state.rollAllInProgress.set(true);
     else this.state.rollAnimInProgress.set(true);
 
+    this.cursedRollingHeroIdx.set(heroRolls.find(hr => hr.cursedPair)?.heroIdx ?? null);
+
     const rollingHeroSet = new Set(heroRolls.map(r => r.heroIdx));
     const rollingEnemySet = new Set(enemyRolls.map(r => r.enemyIdx));
+    /** Snapshot: frozen dice never get tumble drift or sprite strip (roll-all or solo reroll). */
+    const frozenEnemySet = new Set<number>();
+    const frozenHeroSet = new Set<number>();
+    enemies.forEach((e, i) => {
+      if (!e.dead && (e.dieFreezeRollsRemaining || 0) > 0) frozenEnemySet.add(i);
+    });
+    heroes.forEach((h, i) => {
+      if (h.currentHp > 0 && (h.dieFreezeRollsRemaining || 0) > 0) frozenHeroSet.add(i);
+    });
 
     let step = 0;
 
@@ -229,6 +227,8 @@ export class DiceTrayComponent {
       const enemyDisplays: (string | null)[] = enemies.map(() => null);
       const heroSprites: ({ c: number; r: number } | null)[] = heroes.map(() => null);
       const enemySprites: ({ c: number; r: number } | null)[] = enemies.map(() => null);
+      const heroExtraDisplays: (string | null)[] = heroes.map(() => null);
+      const heroExtraSprites: ({ c: number; r: number } | null)[] = heroes.map(() => null);
 
       if (step < ANIM_REVEAL_STEP) {
         const rollPhaseSpan = ANIM_REVEAL_STEP - 1;
@@ -242,36 +242,36 @@ export class DiceTrayComponent {
         for (const hr of heroRolls) {
           heroDisplays[hr.heroIdx] = null;
           heroSprites[hr.heroIdx] = cell;
+          if (hr.cursedPair) {
+            heroExtraSprites[hr.heroIdx] = cell;
+          }
         }
+        frozenHeroSet.forEach(fi => {
+          heroDisplays[fi] = null;
+          heroSprites[fi] = null;
+        });
         for (const er of enemyRolls) {
           enemyDisplays[er.enemyIdx] = null;
           enemySprites[er.enemyIdx] = cell;
         }
+        frozenEnemySet.forEach(fi => {
+          enemyDisplays[fi] = null;
+          enemySprites[fi] = null;
+        });
 
-        const rowW = this.trayWidth();
         const drift = this.snapTrayPx(rollProgress * ROLL_DRIFT_TOTAL);
-        const topPx = this.dieRollTopPx();
-
-        const hJitter: (JitterPos | null)[] =
-          rerollHeroIdx !== null
-            ? heroes.map(() => null)
-            : heroes.map((_, i) => {
-                if (!rollingHeroSet.has(i)) return null;
-                const home = this.heroDieHomeLeft(i, rowW);
-                return { left: home + drift + 'px', top: topPx + 'px' };
-              });
-
-        const eJitter: (JitterPos | null)[] =
-          rerollHeroIdx !== null
-            ? enemies.map(() => null)
-            : enemies.map((e, i) => {
-                if (!rollingEnemySet.has(i) || e.dead) return null;
-                const home = this.enemyDieHomeLeft(i, rowW, enemies);
-                return { left: home + drift + 'px', top: topPx + 'px' };
-              });
-
-        this.heroJitter.set(hJitter);
-        this.enemyJitter.set(eJitter);
+        const hDrift = heroes.map((h, i) => {
+          if (h.currentHp <= 0) return 0;
+          if (frozenHeroSet.has(i)) return 0;
+          return rollingHeroSet.has(i) ? drift : 0;
+        });
+        const eDrift = enemies.map((e, i) => {
+          if (e.dead) return 0;
+          if (frozenEnemySet.has(i)) return 0;
+          return rollingEnemySet.has(i) ? drift : 0;
+        });
+        this.heroDriftPx.set(hDrift);
+        this.enemyDriftPx.set(eDrift);
       } else {
         for (const hr of heroRolls) {
           const hx = heroes[hr.heroIdx];
@@ -280,13 +280,26 @@ export class DiceTrayComponent {
             hr.finalRoll + (hx.rollBuff || 0) + (hx.rollNudge || 0),
           );
           heroDisplays[hr.heroIdx] = String(eff);
+          if (hr.cursedPair) {
+            const effHigh = Math.min(
+              20,
+              hr.cursedPair.high + (hx.rollBuff || 0) + (hx.rollNudge || 0),
+            );
+            heroExtraDisplays[hr.heroIdx] = String(effHigh);
+          }
         }
+        frozenHeroSet.forEach(fi => {
+          heroDisplays[fi] = null;
+        });
         for (const er of enemyRolls) {
           enemyDisplays[er.enemyIdx] = String(er.displayEff);
         }
+        frozenEnemySet.forEach(fi => {
+          enemyDisplays[fi] = null;
+        });
 
-        this.heroJitter.set([]);
-        this.enemyJitter.set([]);
+        this.heroDriftPx.set(heroes.map(() => 0));
+        this.enemyDriftPx.set(enemies.map(() => 0));
 
         if (step === ANIM_REVEAL_STEP) {
           const dieRefs = this.heroDieRefs();
@@ -300,6 +313,8 @@ export class DiceTrayComponent {
       this.enemyAnimDisplays.set(enemyDisplays);
       this.heroAnimSpriteCells.set(heroSprites);
       this.enemyAnimSpriteCells.set(enemySprites);
+      this.heroExtraAnimDisplays.set(heroExtraDisplays);
+      this.heroExtraAnimSpriteCells.set(heroExtraSprites);
 
       if (step >= ANIM_STEPS) {
         clearInterval(interval);
@@ -309,8 +324,11 @@ export class DiceTrayComponent {
           this.enemyAnimDisplays.set([]);
           this.heroAnimSpriteCells.set([]);
           this.enemyAnimSpriteCells.set([]);
-          this.heroJitter.set([]);
-          this.enemyJitter.set([]);
+          this.heroExtraAnimDisplays.set([]);
+          this.heroExtraAnimSpriteCells.set([]);
+          this.heroDriftPx.set([]);
+          this.enemyDriftPx.set([]);
+          this.cursedRollingHeroIdx.set(null);
           this.rerollingHeroIdx.set(null);
           this.animStep.set(0);
 
@@ -326,7 +344,22 @@ export class DiceTrayComponent {
 
   onRollHero(i: number): void {
     if (this.isAnimating()) return;
-    this.combat.rollHero(i);
+    const presRoll = this.state.heroes().map(h => h.roll);
+    const hr = this.combat.computeHeroRollPreset(i);
+    if (!hr) return;
+    if (hr.cursedPair) {
+      this.runMultiDieAnimation({
+        heroes: this.state.heroes(),
+        enemies: this.state.enemies(),
+        heroRolls: [hr],
+        enemyRolls: [],
+        rerollHeroIdx: i,
+        progressFlag: 'rollAnim',
+        onFinished: () => this.combat.applyHeroRollPreset(hr, presRoll),
+      });
+    } else {
+      this.combat.applyHeroRollPreset(hr, presRoll);
+    }
   }
 
   onEndTurn(): void {
@@ -334,58 +367,59 @@ export class DiceTrayComponent {
     this.combat.endTurn();
   }
 
+  /** CSS transform for horizontal drift; grid columns stay fixed. */
+  dieDriftStyle(px: number | undefined): string {
+    const n = px ?? 0;
+    return n === 0 ? 'none' : `translateX(${n}px)`;
+  }
+
+  /** Extra die (discarded higher roll): visible during parallel tray anim + 2s post-resolve. */
+  cursedExtraDieVisible(heroIdx: number): boolean {
+    if (this.cursedRollingHeroIdx() === heroIdx) return true;
+    if (
+      this.heroExtraAnimDisplays()[heroIdx] != null ||
+      this.heroExtraAnimSpriteCells()[heroIdx] != null
+    ) {
+      return true;
+    }
+    const s = this.state.cursedRollShowcase();
+    return s !== null && s.heroIdx === heroIdx;
+  }
+
+  /** Effective face for discarded roll (post-anim static / 2s window). */
+  cursedTrayExtraRoll(heroIdx: number): number | null {
+    const s = this.state.cursedRollShowcase();
+    if (!s || s.heroIdx !== heroIdx) return null;
+    const h = this.state.heroes()[heroIdx];
+    return Math.min(20, s.high + (h.rollBuff || 0) + (h.rollNudge || 0));
+  }
+
   private snapTrayPx(v: number): number {
     return Math.round(v / PIXEL_SNAP) * PIXEL_SNAP;
   }
 
-  private dieRollTopPx(): number {
-    return this.snapTrayPx(Math.max(0, (ROW_H - DIE_H) / 2));
-  }
-
-  /** Matches squad grid: three columns, die centered in each cell. */
-  private heroDieHomeLeft(heroIdx: number, rowW: number): number {
-    const cols = 3;
-    const slotW = rowW / cols;
-    const col = heroIdx % cols;
-    return this.snapTrayPx(col * slotW + slotW / 2 - DIE_W / 2);
-  }
-
-  /** Matches enemy row layout (spread grid or centered pair/single). */
-  private enemyDieHomeLeft(enemyIdx: number, rowW: number, enemies: EnemyState[]): number {
-    const livingIndices = enemies
-      .map((en, idx) => (!en.dead ? idx : -1))
-      .filter((idx): idx is number => idx >= 0);
-    const posInBand = livingIndices.indexOf(enemyIdx);
-    if (posInBand < 0) return 0;
-
-    if (enemies.length >= 3) {
-      const cols = 3;
-      const slotW = rowW / cols;
-      const col = enemyIdx % cols;
-      return this.snapTrayPx(col * slotW + slotW / 2 - DIE_W / 2);
-    }
-
-    const n = livingIndices.length;
-    if (n === 1) {
-      return this.snapTrayPx(rowW / 2 - DIE_W / 2);
-    }
-    const gap = 12;
-    const totalW = DIE_W * n + gap * (n - 1);
-    const start = rowW / 2 - totalW / 2;
-    return this.snapTrayPx(start + posInBand * (DIE_W + gap));
-  }
-
   // ── Display helpers ──
 
-  getHeroDisplayRoll(hero: HeroState): number | null {
+  getHeroDisplayText(hero: HeroState, idx: number): string | null {
+    const r = this.heroTrayDieRoll(hero, idx);
+    return r === null ? null : String(r);
+  }
+
+  /** Squad die face (frozen heroes keep the same roll until the skip is consumed). */
+  heroTrayDieRoll(hero: HeroState, _idx: number): number | null {
     if (hero.currentHp <= 0 || hero.roll === null) return null;
     return this.dice.effRoll(hero);
   }
 
-  getHeroDisplayText(hero: HeroState): string | null {
-    if (hero.currentHp <= 0 || hero.roll === null) return null;
-    const er = this.dice.effRoll(hero);
-    return er === null ? null : String(er);
+  /** Enemy die: keep previous face while frozen. */
+  enemyTrayDieRoll(e: EnemyState, idx: number): number | null {
+    if (e.dead) return null;
+    if (this.enemyDieFrostVisible()[idx]) {
+      return (e.effRoll || 0) > 0 ? e.effRoll : null;
+    }
+    if ((e.effRoll || 0) <= 0) return null;
+    if (this.hideEnemyRolls()) return null;
+    return e.effRoll;
   }
 
 }

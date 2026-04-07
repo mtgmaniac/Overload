@@ -35,6 +35,7 @@ export class EnemyZoneComponent {
     }
     const shi = this.state.selectedHeroIdx();
     if (shi === null) return false;
-    return this.targeting.nextPickKindForHero(shi) === 'enemy';
+    const nk = this.targeting.nextPickKindForHero(shi);
+    return nk === 'enemy' || nk === 'freezeDice';
   }
 }

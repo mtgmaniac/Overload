@@ -31,12 +31,6 @@ function pickDraftRarity(): ItemRarity {
   return 'common';
 }
 
-function randomItemIdOfRarity(rarity: ItemRarity): string {
-  const pool = ITEMS.filter(i => i.rarity === rarity);
-  const pick = pool[Math.floor(Math.random() * pool.length)];
-  return pick?.id ?? ITEMS[0]!.id;
-}
-
 @Injectable({ providedIn: 'root' })
 export class ItemService {
   private state = inject(GameStateService);
@@ -59,6 +53,22 @@ export class ItemService {
     return ITEM_PROTOCOL_COST[def.rarity];
   }
 
+  /** XP draft picks only when someone can still evolve (tier 1, not yet evolved). */
+  private draftPoolAllowsXpBoost(): boolean {
+    return this.state.heroes().some(h => h.tier === 1 && !h.evolvedTo);
+  }
+
+  private pickRandomDraftItemId(): string {
+    const rarity = pickDraftRarity();
+    let pool = ITEMS.filter(i => i.rarity === rarity);
+    if (!this.draftPoolAllowsXpBoost()) {
+      const filtered = pool.filter(i => i.effect.type !== 'xpBoost');
+      if (filtered.length) pool = filtered;
+    }
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    return pick?.id ?? ITEMS[0]!.id;
+  }
+
   /** Begin post-win draft if there is inventory space; otherwise run `done` immediately. */
   startPostWinDraft(done: () => void): void {
     const inv = this.state.inventory();
@@ -70,7 +80,7 @@ export class ItemService {
     this.draftDone = done;
     const picks: string[] = [];
     for (let i = 0; i < 3; i++) {
-      picks.push(randomItemIdOfRarity(pickDraftRarity()));
+      picks.push(this.pickRandomDraftItemId());
     }
     this.state.itemDraftChoices.set(picks);
   }
@@ -139,6 +149,12 @@ export class ItemService {
     this.state.pendingProtocol.set(null);
     this.state.selectedHeroIdx.set(null);
 
+    const block = this.itemUseBlockedMessage(def);
+    if (block) {
+      this.state.addLog(block, 'sy');
+      return;
+    }
+
     if (def.target === 'none') {
       this.commitConsumeAndApply(slot, def, null, null);
       return;
@@ -181,12 +197,32 @@ export class ItemService {
     this.commitConsumeAndApply(invSlot, def, null, enemyIdx);
   }
 
+  /** Blocks using items that depend on the enemy tray state (before spending Protocol). */
+  private itemUseBlockedMessage(def: ItemDefinition): string | null {
+    const eff = def.effect;
+    if (eff.type === 'enemyRerollDie' || eff.type === 'enemyDieFreeze' || eff.type === 'enemyRerollAll') {
+      if (!this.state.enemyTrayRevealed()) return 'Enemy dice not revealed yet.';
+    }
+    if (eff.type === 'xpBoost') {
+      if (!this.state.heroes().some(h => h.tier === 1 && !h.evolvedTo && h.currentHp > 0)) {
+        return 'No evolving heroes can take XP.';
+      }
+    }
+    return null;
+  }
+
   private commitConsumeAndApply(
     invSlot: number,
     def: ItemDefinition,
     allyIdx: number | null,
     enemyIdx: number | null,
   ): void {
+    const block = this.itemUseBlockedMessage(def);
+    if (block) {
+      this.state.addLog(block, 'sy');
+      return;
+    }
+
     const cost = this.protocolCost(def);
     if (this.state.protocol() < cost) return;
 
@@ -263,6 +299,39 @@ export class ItemService {
       const e = this.state.enemies()[enemyIdx];
       if (e && !e.dead && e.currentHp > 0) {
         this.combat().applyDamageToEnemy(enemyIdx, eff.amount, def.name, false);
+      }
+    } else if (eff.type === 'enemyDot' && enemyIdx != null) {
+      const e = this.state.enemies()[enemyIdx];
+      if (e && !e.dead && e.currentHp > 0) {
+        const dot = (e.dot || 0) + eff.amount;
+        const dT = Math.max(e.dT || 0, eff.dT);
+        this.state.updateEnemy(enemyIdx, { dot, dT });
+        const dur = eff.dT > 1 ? `, ${eff.dT}t` : '';
+        this.state.addLog(`▸ Item: ${def.name} → ${e.name} (${eff.amount} DoT${dur}).`, 'pl');
+      }
+    } else if (eff.type === 'xpBoost') {
+      const heroes = this.state.heroes();
+      let n = 0;
+      for (let i = 0; i < heroes.length; i++) {
+        const h = heroes[i];
+        if (!h || h.currentHp <= 0 || h.tier !== 1 || h.evolvedTo) continue;
+        this.state.updateHero(i, { xp: h.xp + eff.amount });
+        n++;
+      }
+      if (n > 0) {
+        this.state.addLog(`▸ Item: ${def.name} → +${eff.amount} XP (${n} hero${n > 1 ? 'es' : ''}).`, 'pl');
+      }
+    } else if (eff.type === 'enemyRerollDie' && enemyIdx != null) {
+      this.combat().rerollEnemyDie(enemyIdx, def.name);
+    } else if (eff.type === 'enemyRerollAll') {
+      this.combat().rerollAllEnemyDice(def.name);
+    } else if (eff.type === 'enemyDieFreeze' && enemyIdx != null) {
+      const e = this.state.enemies()[enemyIdx];
+      if (e && !e.dead && e.currentHp > 0) {
+        const n = (e.dieFreezeRollsRemaining || 0) + eff.skips;
+        this.state.updateEnemy(enemyIdx, { dieFreezeRollsRemaining: n });
+        const rolls = eff.skips === 1 ? '1 roll' : `${eff.skips} rolls`;
+        this.state.addLog(`▸ Item: ${def.name} → ${e.name} skips next ${rolls} on the tray.`, 'pl');
       }
     }
   }

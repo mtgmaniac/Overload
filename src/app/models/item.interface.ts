@@ -9,8 +9,13 @@ export type ItemEffect =
   | { type: 'revive'; pct: number }
   | { type: 'enemyRfe'; amount: number; rfT: number }
   | { type: 'enemyDmg'; amount: number }
+  | { type: 'enemyDot'; amount: number; dT: number }
   | { type: 'cloak' }
-  | { type: 'cloakAll' };
+  | { type: 'cloakAll' }
+  | { type: 'xpBoost'; amount: number }
+  | { type: 'enemyRerollDie' }
+  | { type: 'enemyRerollAll' }
+  | { type: 'enemyDieFreeze'; skips: number };
 
 export interface ItemDefinition {
   id: string;

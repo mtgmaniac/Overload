@@ -59,6 +59,8 @@ export interface EnemyState extends EnemyDefinition {
   rollBuffT: number;
   /** Next direct hit(s) on a hero deal double damage; one charge consumed per damaging hit. */
   rampageCharges: number;
+  /** Skip the next N squad reveal rolls; die/plan preserved across enemy→player clear until consumed. */
+  dieFreezeRollsRemaining: number;
 }
 
 export function createEnemyState(def: EnemyDefinition, id: number): EnemyState {
@@ -86,5 +88,6 @@ export function createEnemyState(def: EnemyDefinition, id: number): EnemyState {
     rollBuff: 0,
     rollBuffT: 0,
     rampageCharges: 0,
+    dieFreezeRollsRemaining: 0,
   };
 }

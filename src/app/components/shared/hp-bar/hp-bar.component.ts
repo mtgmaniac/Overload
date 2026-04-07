@@ -12,6 +12,10 @@ export class HpBarComponent {
   max = input.required<number>();
   /** When false, only the bar renders (use an external label row if needed). */
   showLabel = input(true);
+  /** When true, HP label is full-width (no aside slot for ribbons). */
+  compactHead = input(false);
+  /** Tighter margins on the label row (hero card bottom stack). */
+  tightMargins = input(false);
 
   widthPct = computed(() => {
     const m = this.max();

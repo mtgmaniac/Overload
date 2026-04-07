@@ -45,7 +45,6 @@ export class EvolutionOverlayComponent {
       }
     }
     this.state.pendingEvolutions.set([]);
-    // Show next battle overlay
-    this.combat.nextBattle();
+    this.combat.beginPostEvoItemDraft();
   }
 }

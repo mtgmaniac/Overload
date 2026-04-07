@@ -1021,7 +1021,7 @@
                 10
               ],
               "name": "Cover Fire",
-              "eff": "4 dmg, ally 6 shield, 2t",
+              "eff": "4 dmg all enemies, ally 6 shield, 2t",
               "dmg": 4,
               "dMin": 4,
               "dMax": 4,
@@ -1031,7 +1031,8 @@
               "heal": 0,
               "shield": 6,
               "shT": 2,
-              "shTgt": true
+              "shTgt": true,
+              "blastAll": true
             }
           ]
         },
@@ -1073,7 +1074,7 @@
                 19
               ],
               "name": "Bastion Protocol",
-              "eff": "6 dmg, ally 10 shield, 2t, -2 roll, 2t",
+              "eff": "6 dmg, all allies 10 shield, 2t, -2 roll, 2t",
               "dmg": 6,
               "dMin": 6,
               "dMax": 6,
@@ -1084,7 +1085,7 @@
               "heal": 0,
               "shield": 10,
               "shT": 2,
-              "shTgt": true
+              "shieldAll": true
             }
           ]
         },
@@ -1251,8 +1252,8 @@
             1,
             6
           ],
-          "name": "Snowpack Lattice",
-          "eff": "all 5 shield",
+          "name": "Glacial Lattice",
+          "eff": "freeze any one die 1 reveal (ally or enemy)",
           "dmg": 0,
           "dMin": 0,
           "dMax": 0,
@@ -1260,9 +1261,7 @@
           "dT": 0,
           "rfe": 0,
           "heal": 0,
-          "shield": 5,
-          "shT": 1,
-          "shieldAll": true
+          "freezeAnyDice": 1
         },
         {
           "zone": "strike",
@@ -1271,7 +1270,7 @@
             12
           ],
           "name": "Glacial Shove",
-          "eff": "5 dmg, ally 7 shield, 2t",
+          "eff": "5 dmg, freeze target enemy die 1 reveal",
           "dmg": 5,
           "dMin": 5,
           "dMax": 5,
@@ -1279,9 +1278,7 @@
           "dT": 0,
           "rfe": 0,
           "heal": 0,
-          "shield": 7,
-          "shT": 2,
-          "shTgt": true
+          "freezeEnemyDice": 1
         },
         {
           "zone": "surge",
@@ -1378,7 +1375,7 @@
                 12
               ],
               "name": "Cover Fire",
-              "eff": "4 dmg, ally 6 shield, 2t",
+              "eff": "4 dmg all enemies, ally 6 shield, 2t",
               "dmg": 4,
               "dMin": 4,
               "dMax": 4,
@@ -1388,7 +1385,8 @@
               "heal": 0,
               "shield": 6,
               "shT": 2,
-              "shTgt": true
+              "shTgt": true,
+              "blastAll": true
             }
           ]
         },
@@ -1430,7 +1428,7 @@
                 19
               ],
               "name": "Bastion Protocol",
-              "eff": "6 dmg, ally 10 shield, 2t, -2 roll, 2t",
+              "eff": "6 dmg, all allies 10 shield, 2t, -2 roll, 2t",
               "dmg": 6,
               "dMin": 6,
               "dMax": 6,
@@ -1441,7 +1439,7 @@
               "heal": 0,
               "shield": 10,
               "shT": 2,
-              "shTgt": true
+              "shieldAll": true
             }
           ]
         },
@@ -1748,7 +1746,7 @@
                 15
               ],
               "name": "Trauma Protocol",
-              "eff": "8 dmg, 7 heal (ally)",
+              "eff": "8 dmg all enemies, 7 heal (ally)",
               "dmg": 8,
               "dMin": 8,
               "dMax": 8,
@@ -1756,7 +1754,8 @@
               "dT": 0,
               "rfe": 0,
               "heal": 7,
-              "healTgt": true
+              "healTgt": true,
+              "blastAll": true
             }
           ]
         },
@@ -1772,7 +1771,7 @@
                 19
               ],
               "name": "Surge Heal",
-              "eff": "10 dmg, 10 heal (ally)",
+              "eff": "10 dmg all enemies, 10 heal all allies",
               "dmg": 10,
               "dMin": 10,
               "dMax": 10,
@@ -1780,7 +1779,8 @@
               "dT": 0,
               "rfe": 0,
               "heal": 10,
-              "healTgt": true
+              "healAll": true,
+              "blastAll": true
             }
           ]
         },
@@ -2310,14 +2310,15 @@
             8
           ],
           "name": "Probe Strike",
-          "eff": "6 dmg",
+          "eff": "6 dmg, Cloak",
           "dmg": 6,
           "dMin": 6,
           "dMax": 6,
           "dot": 0,
           "dT": 0,
           "rfe": 0,
-          "heal": 0
+          "heal": 0,
+          "cloak": true
         },
         {
           "zone": "surge",

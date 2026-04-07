@@ -53,6 +53,10 @@ export class HeroZoneComponent {
       if (t.currentHp > 0) return null;
       return nk;
     }
+    if (nk === 'freezeDice') {
+      if (t.currentHp <= 0) return null;
+      return nk;
+    }
     return null;
   }
 }

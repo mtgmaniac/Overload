@@ -33,6 +33,12 @@ export interface HeroAbility {
   splitDmg?: boolean;
   rfeAll?: boolean;
   rfeOnly?: boolean;
+  /** Add this many “skip tray roll” charges to every living enemy (cryo-style). */
+  freezeAllEnemyDice?: number;
+  /** Add skip charges to the enemy targeted by this ability’s damage (single-target). */
+  freezeEnemyDice?: number;
+  /** Freeze one squad/enemy die for N reveal skips — pick any hero or enemy (separate from damage target). */
+  freezeAnyDice?: number;
 }
 
 export interface EnemyAbility {

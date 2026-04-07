@@ -29,7 +29,12 @@ import { PortraitPreloadService } from './portrait-preload.service';
 
 /** Precomputed squad + enemy tray rolls (shared by dice animation and instant sim). */
 export interface ComputedRollAllPayload {
-  heroRolls: { heroIdx: number; finalRoll: number }[];
+  heroRolls: {
+    heroIdx: number;
+    finalRoll: number;
+    /** Raw d20 pair before RFM when this roll resolved cursed dice (tray dual animation). */
+    cursedPair?: { low: number; high: number; r1: number; r2: number };
+  }[];
   enemyRolls: { enemyIdx: number; preRoll: number; displayEff: number }[];
 }
 
@@ -109,6 +114,7 @@ export class CombatService {
   clearEnemyPlansForNextPlayerRound(): void {
     this.state.enemies().forEach((e, i) => {
       if (e.dead) return;
+      if ((e.dieFreezeRollsRemaining || 0) > 0) return;
       this.state.updateEnemy(i, {
         preRoll: 0,
         effRoll: 0,
@@ -122,7 +128,14 @@ export class CombatService {
   rollFreshEnemyPlansForReveal(): void {
     const enemies = this.state.enemies();
     for (let i = 0; i < enemies.length; i++) {
-      if (!enemies[i].dead) this.applyEnemyAbilityRoll(i, this.dice.d20());
+      const e = enemies[i];
+      if (e.dead) continue;
+      if ((e.dieFreezeRollsRemaining || 0) > 0) {
+        const next = e.dieFreezeRollsRemaining - 1;
+        this.state.updateEnemy(i, { dieFreezeRollsRemaining: next });
+        continue;
+      }
+      this.applyEnemyAbilityRoll(i, this.dice.d20());
     }
     this.targeting.assignTargets();
   }
@@ -137,6 +150,7 @@ export class CombatService {
 
   recomputeEnemy(idx: number): void {
     const e = this.state.enemies()[idx];
+    if ((e.preRoll || 0) <= 0) return;
     const effR = Math.min(20, Math.max(1, e.preRoll - (e.rfe || 0) + (e.rollBuff || 0)));
     const zone = this.dice.getEnemyZone(effR);
     const plan = this.getEnemyAbility(e, zone);
@@ -456,6 +470,67 @@ export class CombatService {
         const { rfe, rfT } = enemyRfeFromStacks(nextStacks);
         this.state.updateEnemy(tgtIdx, { rfeStacks: nextStacks, rfe, rfT });
         this.recomputeEnemy(tgtIdx);
+      }
+    }
+
+    const freezeAll = ab.freezeAllEnemyDice || 0;
+    if (freezeAll > 0) {
+      const ens = this.state.enemies();
+      for (let idx = 0; idx < ens.length; idx++) {
+        const ex = ens[idx];
+        if (ex.dead || !this.enemyAcceptsHeroEffects(ex)) continue;
+        await this.pulseEnemyPortrait(idx, 'pf-flash-blue');
+        const n = (ex.dieFreezeRollsRemaining || 0) + freezeAll;
+        this.state.updateEnemy(idx, { dieFreezeRollsRemaining: n });
+      }
+      this.log.log(
+        `▸ ${h.name} → ${ab.name}. Enemy dice frozen (${freezeAll} skip${freezeAll > 1 ? 's' : ''} on reveal).`,
+        'pl',
+      );
+    }
+    const freezeTgtSkips = ab.freezeEnemyDice || 0;
+    if (freezeTgtSkips > 0) {
+      const ex = this.state.enemies()[tgtIdx];
+      if (ex && !ex.dead && this.enemyAcceptsHeroEffects(ex)) {
+        await this.pulseEnemyPortrait(tgtIdx, 'pf-flash-blue');
+        const n = (ex.dieFreezeRollsRemaining || 0) + freezeTgtSkips;
+        this.state.updateEnemy(tgtIdx, { dieFreezeRollsRemaining: n });
+        this.log.log(
+          `▸ ${h.name} → ${ab.name}. ${ex.name}'s dice frozen (${freezeTgtSkips} reveal skip${freezeTgtSkips > 1 ? 's' : ''}).`,
+          'pl',
+        );
+      }
+    }
+
+    const freezeAny = ab.freezeAnyDice || 0;
+    if (freezeAny > 0) {
+      const heroes = this.state.heroes();
+      if (h.freezeDiceTgtHeroIdx != null) {
+        const ti = h.freezeDiceTgtHeroIdx;
+        if (ti >= 0 && ti < heroes.length) {
+          const tgt = heroes[ti];
+          if (tgt && tgt.currentHp > 0) {
+            await this.pulseHeroPortrait(ti, 'pf-flash-blue');
+            const n = (tgt.dieFreezeRollsRemaining || 0) + freezeAny;
+            this.state.updateHero(ti, { dieFreezeRollsRemaining: n });
+            this.log.log(
+              `▸ ${h.name} → ${ab.name}. ${tgt.name}'s die frozen (${freezeAny} reveal skip${freezeAny > 1 ? 's' : ''}).`,
+              'pl',
+            );
+          }
+        }
+      } else if (h.freezeDiceTgtEnemyIdx != null) {
+        const ei = h.freezeDiceTgtEnemyIdx;
+        const ex = this.state.enemies()[ei];
+        if (ex && !ex.dead && this.enemyAcceptsHeroEffects(ex)) {
+          await this.pulseEnemyPortrait(ei, 'pf-flash-blue');
+          const n = (ex.dieFreezeRollsRemaining || 0) + freezeAny;
+          this.state.updateEnemy(ei, { dieFreezeRollsRemaining: n });
+          this.log.log(
+            `▸ ${h.name} → ${ab.name}. ${ex.name}'s die frozen (${freezeAny} reveal skip${freezeAny > 1 ? 's' : ''}).`,
+            'pl',
+          );
+        }
       }
     }
   }
@@ -806,6 +881,7 @@ export class CombatService {
         rollBuff: 0,
         rollBuffT: 0,
         rampageCharges: 0,
+        dieFreezeRollsRemaining: 0,
         plan: null,
         preRoll: 0,
         effRoll: 0,
@@ -907,22 +983,43 @@ export class CombatService {
     this.targeting.runAutoTargetForHero(heroIdx);
   }
 
-  /** Roll a single hero die (no animation — instant, for clicking individual dice) */
-  rollHero(idx: number): void {
-    const h = this.state.heroes()[idx];
-    if (!h || h.currentHp <= 0 || (h.cowerTurns || 0) > 0 || h.roll !== null) return;
-    if (this.state.phase() !== 'player') return;
+  /**
+   * Precompute one hero roll (tutorial presets, cursed pair, RFM). Does not write roll/rawRoll.
+   * Does not clear `cursed` — the CURSED ribbon drops at end of the player round.
+   */
+  computeHeroRollPreset(heroIdx: number): ComputedRollAllPayload['heroRolls'][number] | null {
+    const h = this.state.heroes()[heroIdx];
+    if (!h || h.currentHp <= 0 || (h.cowerTurns || 0) > 0 || h.roll !== null) return null;
+    if ((h.dieFreezeRollsRemaining || 0) > 0) return null;
+    if (this.state.phase() !== 'player') return null;
 
-    const preset = this.tutorial.getHeroRollPreset(idx);
+    const preset = this.tutorial.getHeroRollPreset(heroIdx);
     let raw = preset ?? this.dice.d20();
+    let cursedPair: { low: number; high: number; r1: number; r2: number } | undefined;
     if (!preset && h.cursed) {
-      raw = Math.min(raw, this.dice.d20());
-      this.state.updateHero(idx, { cursed: false });
+      const r1 = raw;
+      const r2 = this.dice.d20();
+      const low = Math.min(r1, r2);
+      const high = Math.max(r1, r2);
+      raw = low;
+      cursedPair = { low, high, r1, r2 };
       this.log.log(`▸ ${h.name} — Cursed! Rolled twice, kept lower.`, 'sy');
     }
-    const rfmPen = this.state.combinedHeroRawRfmPenalty(idx);
+    const rfmPen = this.state.combinedHeroRawRfmPenalty(heroIdx);
     if (rfmPen > 0) raw = Math.max(1, raw - rfmPen);
-    this.state.updateHero(idx, { roll: raw, rawRoll: raw });
+    return { heroIdx, finalRoll: raw, cursedPair };
+  }
+
+  /** Apply a single hero roll after instant click or tray animation. */
+  applyHeroRollPreset(
+    hr: ComputedRollAllPayload['heroRolls'][number],
+    presRoll: (number | null)[],
+  ): void {
+    const idx = hr.heroIdx;
+    this.state.updateHero(idx, { roll: hr.finalRoll, rawRoll: hr.finalRoll });
+    if (hr.cursedPair) {
+      this.state.beginCursedRollShowcase(idx, hr.cursedPair.low, hr.cursedPair.high);
+    }
     this.targeting.clearHeroTargetingOnRollChange(idx);
     this.targeting.runAutoTargetForHero(idx);
     if (
@@ -933,10 +1030,27 @@ export class CombatService {
           ((x.cowerTurns || 0) > 0 && x.roll === null),
       )
     ) {
+      this.state.heroes().forEach((h, i) => {
+        if (h.currentHp <= 0) return;
+        if (i === idx) return;
+        if ((h.dieFreezeRollsRemaining || 0) <= 0) return;
+        if (presRoll[i] !== null) {
+          const next = h.dieFreezeRollsRemaining - 1;
+          this.state.updateHero(i, { dieFreezeRollsRemaining: next });
+        }
+      });
       this.rollFreshEnemyPlansForReveal();
       this.state.enemyTrayRevealed.set(true);
       this.tutorial.notifyRollAllFinished();
     }
+  }
+
+  /** Roll a single hero die (no animation — instant; dice-tray uses compute/apply + animation when cursed). */
+  rollHero(idx: number): void {
+    const presRoll = this.state.heroes().map(h => h.roll);
+    const hr = this.computeHeroRollPreset(idx);
+    if (!hr) return;
+    this.applyHeroRollPreset(hr, presRoll);
   }
 
   /**
@@ -951,16 +1065,22 @@ export class CombatService {
     for (let i = 0; i < heroes.length; i++) {
       const h = heroes[i];
       if (h.currentHp <= 0 || (h.cowerTurns || 0) > 0 || h.roll !== null) continue;
+      if ((h.dieFreezeRollsRemaining || 0) > 0) continue;
       const preset = this.tutorial.getHeroRollPreset(i);
       let raw = preset ?? this.dice.d20();
+      let cursedPair: { low: number; high: number; r1: number; r2: number } | undefined;
       if (!preset && h.cursed) {
-        raw = Math.min(raw, this.dice.d20());
-        this.state.updateHero(i, { cursed: false });
+        const r1 = raw;
+        const r2 = this.dice.d20();
+        const low = Math.min(r1, r2);
+        const high = Math.max(r1, r2);
+        raw = low;
+        cursedPair = { low, high, r1, r2 };
         this.log.log(`▸ ${h.name} — Cursed! Rolled twice, kept lower.`, 'sy');
       }
       const rfmPen = this.state.combinedHeroRawRfmPenalty(i);
       if (rfmPen > 0) raw = Math.max(1, raw - rfmPen);
-      heroRolls.push({ heroIdx: i, finalRoll: raw });
+      heroRolls.push({ heroIdx: i, finalRoll: raw, cursedPair });
     }
 
     const tutEnemyPre = this.tutorial.getTutorialEnemyPreRoll();
@@ -968,6 +1088,7 @@ export class CombatService {
     for (let i = 0; i < enemies.length; i++) {
       const e = enemies[i];
       if (e.dead) continue;
+      if ((e.dieFreezeRollsRemaining || 0) > 0) continue;
       const preRoll = tutEnemyPre ?? this.dice.d20();
       const displayEff = Math.min(20, Math.max(1, preRoll - (e.rfe || 0) + (e.rollBuff || 0)));
       enemyRolls.push({ enemyIdx: i, preRoll, displayEff });
@@ -979,26 +1100,53 @@ export class CombatService {
 
   /** Apply tray roll results after animation or instant sim (matches dice-tray onFinished). */
   applyRollAllPayload(payload: ComputedRollAllPayload): void {
+    const rolledHero = new Set(payload.heroRolls.map(hr => hr.heroIdx));
     for (const hr of payload.heroRolls) {
       this.state.updateHero(hr.heroIdx, {
         roll: hr.finalRoll,
         rawRoll: hr.finalRoll,
         noRR: true,
       });
+      if (hr.cursedPair) {
+        this.state.beginCursedRollShowcase(hr.heroIdx, hr.cursedPair.low, hr.cursedPair.high);
+      }
       this.clearAndAutoTarget(hr.heroIdx);
     }
+    this.state.heroes().forEach((h, i) => {
+      if (h.currentHp <= 0) return;
+      if (rolledHero.has(i)) return;
+      if ((h.dieFreezeRollsRemaining || 0) <= 0) return;
+      const next = h.dieFreezeRollsRemaining - 1;
+      this.state.updateHero(i, { dieFreezeRollsRemaining: next });
+    });
     if (payload.enemyRolls.length) {
       this.applyEnemyAbilityRollsFromPreRolls(
         payload.enemyRolls.map(er => ({ enemyIndex: er.enemyIdx, preRoll: er.preRoll })),
       );
     }
+    const rolledEnemy = new Set(payload.enemyRolls.map(er => er.enemyIdx));
+    this.state.enemies().forEach((e, i) => {
+      if (e.dead) return;
+      if (rolledEnemy.has(i)) return;
+      if ((e.dieFreezeRollsRemaining || 0) <= 0) return;
+      const next = e.dieFreezeRollsRemaining - 1;
+      this.state.updateEnemy(i, { dieFreezeRollsRemaining: next });
+    });
     this.state.enemyTrayRevealed.set(true);
     this.tutorial.notifyRollAllFinished();
+    this.targeting.assignTargets();
   }
 
   instantRollAllForSim(): void {
     const payload = this.computeRollAllPresets();
     if (payload) this.applyRollAllPayload(payload);
+  }
+
+  /** CURSED ribbon stays through roll + targeting until the player round ends. */
+  private clearCursedRibbonAfterPlayerRound(): void {
+    this.state.heroes().forEach((h, i) => {
+      if (h.cursed) this.state.updateHero(i, { cursed: false });
+    });
   }
 
   // ── End turn (player turn resolution) ──
@@ -1093,6 +1241,8 @@ export class CombatService {
         this.won();
         return;
       }
+
+      this.clearCursedRibbonAfterPlayerRound();
 
       // Switch to enemy phase
       this.state.phase.set('enemy');
@@ -1276,6 +1426,7 @@ export class CombatService {
     if (this.state.tutorial()?.active) {
       return;
     }
+    this.clearCursedRibbonAfterPlayerRound();
     this.state.phase.set('over');
     this.log.log(`▸ All enemies down. Battle ${this.state.battle() + 1} complete.`, 'vi');
 
@@ -1293,21 +1444,55 @@ export class CombatService {
       this.portraitPreload.warmEnemyTypes(types);
     }
 
-    // Item draft after every cleared battle (easier to test); skip when inventory full — see ItemService.
-    this.items.startPostWinDraft(() => this.afterItemDraftWin());
+    // XP → evolution (if any) → item draft → next battle overlay. ItemService skips draft when inventory full.
+    this.afterBattleVictorySequence();
   }
 
-  private afterItemDraftWin(): void {
+  /** Award XP, show evolution overlay first when applicable, then item draft, then “next battle” overlay. */
+  afterBattleVictorySequence(): void {
     this.evolution.awardXp();
     const eligible = this.evolution.getEligibleHeroes();
     if (eligible.length > 0) {
       this.state.pendingEvolutions.set(eligible.map(i => ({ heroIdx: i, chosen: null })));
     } else {
-      this.showOverlay('BATTLE CLEARED', `Battle ${this.state.battle() + 1} complete.`, 'NEXT BATTLE ▶', true, () => this.nextBattle());
+      this.beginPostEvoItemDraft();
     }
   }
 
+  /** Called after evolution confirm, or directly when no evolution was pending. */
+  beginPostEvoItemDraft(): void {
+    this.items.startPostWinDraft(() =>
+      this.showOverlay(
+        'BATTLE CLEARED',
+        `Battle ${this.state.battle() + 1} complete.`,
+        'NEXT BATTLE ▶',
+        true,
+        () => this.nextBattle(),
+      ),
+    );
+  }
+
+  rerollEnemyDie(enemyIdx: number, srcLabel: string): void {
+    const e = this.state.enemies()[enemyIdx];
+    if (!e || e.dead) return;
+    const pre = this.dice.d20();
+    this.state.updateEnemy(enemyIdx, { dieFreezeRollsRemaining: 0 });
+    this.applyEnemyAbilityRoll(enemyIdx, pre);
+    this.log.log(`▸ Item: ${srcLabel} → ${e.name} die rerolled (face ${e.effRoll}).`, 'pl');
+  }
+
+  rerollAllEnemyDice(srcLabel: string): void {
+    const enemies = this.state.enemies();
+    for (let i = 0; i < enemies.length; i++) {
+      if (enemies[i].dead) continue;
+      this.state.updateEnemy(i, { dieFreezeRollsRemaining: 0 });
+      this.applyEnemyAbilityRoll(i, this.dice.d20());
+    }
+    this.log.log(`▸ Item: ${srcLabel} → all enemy dice rerolled.`, 'pl');
+  }
+
   lost(): void {
+    this.clearCursedRibbonAfterPlayerRound();
     this.state.phase.set('over');
     this.log.log(`▸ Squad wiped. Run terminated.`, 'de');
     this.showOverlay('SQUAD WIPED', `Eliminated at battle ${this.state.battle() + 1}.`, 'NEW RUN ↺', false, () => this.newRun());

@@ -132,6 +132,7 @@ interface SimEnemy {
   dmgScale: number;
   dot: number;
   dT: number;
+  dieFreezeRollsRemaining: number;
 }
 
 function d20(): number {
@@ -248,7 +249,13 @@ function scaleEnemyDef(
     dmgScale: dmgM,
     dot: 0,
     dT: 0,
+    dieFreezeRollsRemaining: 0,
   };
+}
+
+function applyEnemyDieFreeze(e: SimEnemy, skips: number): void {
+  if (skips <= 0 || e.hp <= 0) return;
+  e.dieFreezeRollsRemaining += skips;
 }
 
 function getEnemyPlan(enemy: SimEnemy, suites: Record<string, EnemyAbilitySuite>): EnemyAbility {
@@ -431,6 +438,14 @@ function resolveHeroAbility(h: SimHero, heroes: SimHero[], enemies: SimEnemy[], 
     }
   }
 
+  if (ab.healTgt && (ab.heal || 0) > 0) {
+    const others = heroes.map((_, i) => i).filter(i => i !== heroIdx && heroes[i]!.hp > 0);
+    const ti = others.length ? others[Math.floor(Math.random() * others.length)]! : heroIdx;
+    if (heroes[ti]!.hp > 0) {
+      heroes[ti]!.hp = Math.min(heroes[ti]!.maxHp, heroes[ti]!.hp + ab.heal!);
+    }
+  }
+
   const healOnlySelf =
     (ab.heal || 0) > 0 &&
     !ab.healAll &&
@@ -447,13 +462,17 @@ function resolveHeroAbility(h: SimHero, heroes: SimHero[], enemies: SimEnemy[], 
   const dotAmt = ab.dot || 0;
   const dotTurns = Math.max(ab.dT || 0, dotAmt > 0 ? DEFAULT_DOT_TURNS : 0);
 
+  let singleDmgTargetIdx = -1;
   if ((ab.blastAll || ab.multiHit) && dmgVal > 0) {
     for (const e of enemies) {
       if (e.hp > 0) damageEnemy(e, dmgVal, ignSh);
     }
   } else if ((ab.dmg || 0) > 0 || dmgVal > 0) {
     const ei = lowestHpEnemyIndex(enemies);
-    if (ei >= 0) damageEnemy(enemies[ei]!, dmgVal, ignSh);
+    if (ei >= 0) {
+      singleDmgTargetIdx = ei;
+      damageEnemy(enemies[ei]!, dmgVal, ignSh);
+    }
   }
 
   if (dotAmt > 0) {
@@ -467,8 +486,26 @@ function resolveHeroAbility(h: SimHero, heroes: SimHero[], enemies: SimEnemy[], 
     }
   }
 
-  if ((ab.heal || 0) > 0 && (ab.dmg || 0) > 0 && h.hp < h.maxHp) {
+  if (
+    (ab.heal || 0) > 0 &&
+    (ab.dmg || 0) > 0 &&
+    !ab.healTgt &&
+    !ab.healAll &&
+    h.hp < h.maxHp
+  ) {
     h.hp = Math.min(h.maxHp, h.hp + ab.heal!);
+  }
+
+  const freezeAll = ab.freezeAllEnemyDice || 0;
+  if (freezeAll > 0) {
+    for (const e of enemies) {
+      if (e.hp > 0) applyEnemyDieFreeze(e, freezeAll);
+    }
+  }
+  const freezeTgt = ab.freezeEnemyDice || 0;
+  if (freezeTgt > 0 && singleDmgTargetIdx >= 0) {
+    const te = enemies[singleDmgTargetIdx]!;
+    if (te.hp > 0) applyEnemyDieFreeze(te, freezeTgt);
   }
 }
 

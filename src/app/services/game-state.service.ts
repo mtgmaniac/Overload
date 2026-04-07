@@ -60,6 +60,36 @@ export class GameStateService {
    */
   readonly endTurnHeroResolveCursor = signal<number | null>(null);
 
+  /**
+   * After a cursed roll resolves: both dice stay visible briefly; the higher (discarded) die is removed after 2s.
+   */
+  readonly cursedRollShowcase = signal<{
+    heroIdx: number;
+    low: number;
+    high: number;
+  } | null>(null);
+  private cursedShowcaseTimer: ReturnType<typeof setTimeout> | null = null;
+
+  beginCursedRollShowcase(heroIdx: number, low: number, high: number): void {
+    if (this.cursedShowcaseTimer) {
+      clearTimeout(this.cursedShowcaseTimer);
+      this.cursedShowcaseTimer = null;
+    }
+    this.cursedRollShowcase.set({ heroIdx, low, high });
+    this.cursedShowcaseTimer = setTimeout(() => {
+      this.cursedShowcaseTimer = null;
+      this.cursedRollShowcase.set(null);
+    }, 2000);
+  }
+
+  private clearCursedRollShowcaseTimers(): void {
+    if (this.cursedShowcaseTimer) {
+      clearTimeout(this.cursedShowcaseTimer);
+      this.cursedShowcaseTimer = null;
+    }
+    this.cursedRollShowcase.set(null);
+  }
+
   // ── Overlay signals ──
   readonly showOverlay = signal(false);
   readonly overlayTitle = signal('');
@@ -266,11 +296,14 @@ export class GameStateService {
 
   resetHeroForNewRound(index: number): void {
     const h = this.heroes()[index];
-    const mergedBuff = (h?.rollBuff || 0) + (h?.pendingRollBuff || 0);
-    const mergedT = Math.max(h?.rollBuffT || 0, h?.pendingRollBuffT || 0);
+    if (!h) return;
+    const mergedBuff = (h.rollBuff || 0) + (h.pendingRollBuff || 0);
+    const mergedT = Math.max(h.rollBuffT || 0, h.pendingRollBuffT || 0);
+    const keepFrozenRoll =
+      (h.dieFreezeRollsRemaining || 0) > 0 && h.roll !== null && h.currentHp > 0;
     this.updateHero(index, {
-      roll: null,
-      rawRoll: null,
+      roll: keepFrozenRoll ? h.roll : null,
+      rawRoll: keepFrozenRoll ? h.rawRoll : null,
       rollNudge: 0,
       rollBuff: mergedBuff,
       rollBuffT: mergedBuff > 0 ? mergedT : 0,
@@ -282,6 +315,8 @@ export class GameStateService {
       healTgtIdx: null,
       rfmTgtIdx: null,
       reviveTgtIdx: null,
+      freezeDiceTgtHeroIdx: null,
+      freezeDiceTgtEnemyIdx: null,
       noRR: false,
       splitAlloc: {},
       _pulseBanked: false,
@@ -315,5 +350,6 @@ export class GameStateService {
     this.enemyTrayRevealed.set(false);
     this.endTurnHeroResolveCursor.set(null);
     this.showOverlay.set(false);
+    this.clearCursedRollShowcaseTimers();
   }
 }

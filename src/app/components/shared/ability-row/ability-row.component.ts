@@ -3,7 +3,7 @@ import { HeroAbility, EnemyAbility } from '../../../models/ability.interface';
 import { Zone } from '../../../models/types';
 import { clampHeroAbilityForTier1 } from '../../../utils/hero-ability-tier.util';
 
-type MiniIcon = 'bolt' | 'plus' | 'shield' | 'skull' | 'die';
+type MiniIcon = 'bolt' | 'plus' | 'shield' | 'skull' | 'die' | 'frost';
 
 /** Visual family for mini chips — matches combat badge / zone attack colors. */
 type AbilityMiniTone =
@@ -161,6 +161,15 @@ export class AbilityRowComponent {
     if (a.revive) parts.push('revive 50%');
     if (a.cloak) parts.push('Cloak');
     if (a.taunt) parts.push('taunt (enemies target you)');
+    if ((a.freezeAllEnemyDice || 0) > 0) {
+      parts.push(`freeze (${a.freezeAllEnemyDice} reveal skip${(a.freezeAllEnemyDice || 0) > 1 ? 's' : ''})`);
+    }
+    if ((a.freezeEnemyDice || 0) > 0) {
+      parts.push(`freeze (${a.freezeEnemyDice} reveal skip${(a.freezeEnemyDice || 0) > 1 ? 's' : ''})`);
+    }
+    if ((a.freezeAnyDice || 0) > 0) {
+      parts.push(`freeze (${a.freezeAnyDice} reveal skip${(a.freezeAnyDice || 0) > 1 ? 's' : ''})`);
+    }
 
     return parts.length ? parts.join(', ') : '—';
   }
@@ -287,6 +296,27 @@ export class AbilityRowComponent {
     if (a.revive) out.push({ icon: null, label: 'REVIVE', wide: true, tone: 'heal' });
     if (a.cloak) out.push({ icon: null, label: 'Cloak', tone: 'control' });
     if (a.taunt) out.push({ icon: null, label: 'TAUNT', tone: 'control' });
+    if ((a.freezeAllEnemyDice || 0) > 0) {
+      out.push({
+        icon: 'frost',
+        num: `${a.freezeAllEnemyDice}×`,
+        tone: 'control',
+      });
+    }
+    if ((a.freezeEnemyDice || 0) > 0) {
+      out.push({
+        icon: 'frost',
+        num: `${a.freezeEnemyDice}×`,
+        tone: 'control',
+      });
+    }
+    if ((a.freezeAnyDice || 0) > 0) {
+      out.push({
+        icon: 'frost',
+        num: `${a.freezeAnyDice}×`,
+        tone: 'control',
+      });
+    }
     if (!out.length) out.push({ icon: null, label: '—', tone: 'neutral' });
     return out;
   }

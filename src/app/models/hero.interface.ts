@@ -65,8 +65,14 @@ export interface HeroState extends HeroDefinition {
   splitAlloc: Record<number, number>;
   tier: 1 | 2;
   xp: number;
-  /** Set by Void Wisp cursed dice: hero rolls twice next turn, keeping the lower result. */
+  /** Void Wisp: double roll (keep lower) while set; ribbon clears after that player round ends. */
   cursed?: boolean;
+  /** Skip the next N squad reveal rolls; previous roll/ability zone preserved until consumed. */
+  dieFreezeRollsRemaining: number;
+  /** Glacial Lattice: freeze target is this hero index (mutually exclusive with freezeDiceTgtEnemyIdx). */
+  freezeDiceTgtHeroIdx: number | null;
+  /** Glacial Lattice: freeze target is this enemy index. */
+  freezeDiceTgtEnemyIdx: number | null;
   bRolls: number[];
   evolvedTo: string | null;
   _pulseBanked?: boolean;
@@ -112,5 +118,8 @@ export function createHeroState(def: HeroDefinition): HeroState {
     xp: 0,
     bRolls: [],
     evolvedTo: null,
+    dieFreezeRollsRemaining: 0,
+    freezeDiceTgtHeroIdx: null,
+    freezeDiceTgtEnemyIdx: null,
   };
 }
