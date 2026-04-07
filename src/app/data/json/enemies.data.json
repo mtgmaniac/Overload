@@ -2510,12 +2510,12 @@
     },
     "Hive Matriarch": {
       "hp": 180,
-      "dMin": 19,
-      "dMax": 25,
+      "dMin": 15,
+      "dMax": 21,
       "type": "hiveBoss",
       "ai": "smart",
-      "p2dMin": 27,
-      "p2dMax": 35,
+      "p2dMin": 23,
+      "p2dMax": 31,
       "pThr": 86
     },
     "Shardmite": {
