@@ -92,7 +92,6 @@ export class ProtocolService {
       rfmTgtIdx: null,
       reviveTgtIdx: null,
       splitAlloc: {},
-      _pulseBanked: false,
       _evoRollRecorded: false,
       _actionLogged: false,
     });
@@ -133,7 +132,6 @@ export class ProtocolService {
       rfmTgtIdx: null,
       reviveTgtIdx: null,
       splitAlloc: {},
-      _pulseBanked: false,
       _evoRollRecorded: false,
       _actionLogged: false,
     });

@@ -103,7 +103,7 @@ export class DiceTrayComponent {
 
   /** Match enemy-zone: hide enemy faces until squad is fully rolled, tray is revealed, and roll-all anim finished (not solo reroll). */
   hideEnemyRolls = computed(() => {
-    if (this.state.phase() !== 'player') return false;
+    if (!this.state.isPlayerPhase()) return false;
     if (!this.state.allHeroesRolled()) return true;
     if (this.isAnimating() && this.rerollingHeroIdx() === null) return true;
     return !this.state.enemyTrayRevealed();

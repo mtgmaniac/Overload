@@ -45,6 +45,14 @@
 .help-mini > div:last-child { margin-bottom: 0; }
 .help-status-list > div { margin-bottom: 8px; }
 .help-status-list > div:last-child { margin-bottom: 0; }
+.help-status-grid { width: 100%; }
+.help-status-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 560px) { .help-status-row { grid-template-columns: 1fr; } }
+.help-status-section { display: flex; flex-direction: column; gap: 6px; }
+.help-status-heading {
+  font-family: var(--font-pixel); font-size: 9px; letter-spacing: 2px;
+  color: var(--muted); border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-bottom: 2px;
+}
 .k { color: #fff; font-weight: 900; }
 .hdr-btn {
   font-family: var(--font-pixel); font-size: 10px; font-weight: 700; letter-spacing: 1px;
@@ -57,3 +65,30 @@
 .hdr-btn-accent:hover { border-color: #7ab8ff; color: #fff; }
 .hdr-btn-data { border-color: rgba(74,138,212,.55); color: #cfe8ff; background: rgba(12,21,36,.9); }
 .hdr-btn-data:hover { border-color: #7ab8ff; color: #fff; }
+
+// ── Balance sim ──
+.sim-section { background: var(--bg2); }
+.sim-controls {
+  display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;
+}
+.sim-label {
+  display: flex; flex-direction: column; gap: 4px;
+  font-family: var(--font-pixel); font-size: 9px; letter-spacing: 1px; color: var(--muted);
+}
+.sim-input {
+  font-family: var(--font-pixel); font-size: 10px; font-weight: 700;
+  background: var(--bg3); color: var(--text); border: 2px solid var(--border);
+  border-radius: var(--radius-pixel); padding: 4px 6px; width: 72px;
+  box-shadow: 2px 2px 0 #000;
+}
+.sim-input:focus { outline: none; border-color: var(--strike); }
+.sim-run-btn { border-color: var(--crit); color: var(--crit); min-height: unset; padding: 4px 12px; }
+.sim-run-btn:hover { border-color: var(--overload); color: var(--overload); }
+.sim-run-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.sim-copy-btn { min-height: unset; padding: 4px 10px; }
+.sim-output {
+  font-family: var(--font-pixel); font-size: 9px; line-height: 1.6; color: var(--muted);
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-pixel);
+  padding: 10px; overflow-x: auto; white-space: pre; max-height: 340px; overflow-y: auto;
+  margin: 0;
+}

@@ -33,13 +33,13 @@ export class ProtocolStripComponent {
   });
 
   canReroll = computed(() => {
-    if (this.state.phase() !== 'player') return false;
+    if (!this.state.isPlayerPhase()) return false;
     if (this.state.protocol() < PROTOCOL_REROLL_COST) return false;
     return this.state.heroes().some(h => h.currentHp > 0 && h.roll !== null);
   });
 
   canNudge = computed(() => {
-    if (this.state.phase() !== 'player') return false;
+    if (!this.state.isPlayerPhase()) return false;
     if (this.state.protocol() < PROTOCOL_NUDGE_COST) return false;
     return this.state.heroes().some(h => {
       if (h.currentHp <= 0 || h.roll === null) return false;

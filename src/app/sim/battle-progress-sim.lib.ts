@@ -40,6 +40,12 @@ export interface BattleProgressSimInput {
   modeLabels: Record<BattleModeId, string>;
   /** Per-operation enemy max HP multiplier after battle index scale (matches game `trackHpScale`). */
   trackHpScaleByMode: Record<BattleModeId, number>;
+  /**
+   * Protocol reroll budget for the entire track (shared across all heroes and all battles).
+   * When a hero rolls ≤4 (recharge zone) and budget remains, they reroll once and keep the higher result.
+   * 0 = no Protocol modeled (default).
+   */
+  protocolRerolls: number;
 }
 
 /** Battles 1..N “reach” ladder (here N=10). */
@@ -75,11 +81,23 @@ export interface BattleProgressSimTrioStats {
 export interface BattleProgressSimResult {
   iterations: number;
   reachBattleCount: number;
+  protocolRerolls: number;
   tracks: {
     modeId: BattleModeId;
     label: string;
     battlesInTrack: number;
+    /** Cumulative: % of runs that reached (and attempted) battle N. Index 0 = battle 1. */
     reachBattlePct: number[];
+    /**
+     * Conditional: given a squad reached battle N, % that won it.
+     * Index 0 = battle 1 (always reached, so = win rate of first fight).
+     */
+    conditionalWinPct: number[];
+    /**
+     * Average HP% of surviving heroes immediately after winning each battle.
+     * Index 0 = battle 1. null when no wins recorded for that battle.
+     */
+    avgSurvivorHpPct: (number | null)[];
     /** Won every fight in this track */
     fullClearPct: number;
   }[];
@@ -404,8 +422,20 @@ function pickDumbHeroIndex(heroes: SimHero[]): number {
   return alive[Math.floor(Math.random() * alive.length)]!;
 }
 
-function resolveHeroAbility(h: SimHero, heroes: SimHero[], enemies: SimEnemy[], heroIdx: number): void {
-  const roll = d20();
+function resolveHeroAbility(
+  h: SimHero,
+  heroes: SimHero[],
+  enemies: SimEnemy[],
+  heroIdx: number,
+  protocolBudget: { charges: number },
+): void {
+  let roll = d20();
+  // Protocol: spend a charge to reroll if we landed in the worst zone (recharge ≤4)
+  if (roll <= 4 && protocolBudget.charges > 0) {
+    const reroll = d20();
+    if (reroll > roll) roll = reroll;
+    protocolBudget.charges--;
+  }
   const ab = pickAbilityForRoll(h.activeAbilities, roll);
   if (!ab) return;
   if (h.tier === 1) h.bRolls.push(roll);
@@ -554,7 +584,12 @@ function resolveEnemyTurn(
   }
 }
 
-function simulateBattle(heroes: SimHero[], enemies: SimEnemy[], suites: Record<string, EnemyAbilitySuite>): boolean {
+function simulateBattle(
+  heroes: SimHero[],
+  enemies: SimEnemy[],
+  suites: Record<string, EnemyAbilitySuite>,
+  protocolBudget: { charges: number },
+): boolean {
   const maxRounds = 400;
   for (let round = 0; round < maxRounds; round++) {
     if (!livingEnemies(enemies).length) return true;
@@ -567,7 +602,7 @@ function simulateBattle(heroes: SimHero[], enemies: SimEnemy[], suites: Record<s
     const order = [0, 1, 2].sort(() => Math.random() - 0.5);
     for (const hi of order) {
       const h = heroes[hi]!;
-      if (h.hp > 0) resolveHeroAbility(h, heroes, enemies, hi);
+      if (h.hp > 0) resolveHeroAbility(h, heroes, enemies, hi, protocolBudget);
       if (!livingEnemies(enemies).length) return true;
     }
 
@@ -598,28 +633,38 @@ function trioKey(sortedIds: string[]): string {
   return sortedIds.join('+');
 }
 
+function survivorHpPct(heroes: SimHero[]): number {
+  const alive = heroes.filter(h => h.hp > 0);
+  if (!alive.length) return 0;
+  return alive.reduce((sum, h) => sum + h.hp / h.maxHp, 0) / alive.length;
+}
+
 function battlesWonBeforeWipeWithSquad(
   battles: { enemies: { name: string }[] }[],
   input: BattleProgressSimInput,
   modeId: BattleModeId,
-): { wins: number; squadIds: string[] } {
+): { wins: number; squadIds: string[]; hpPctPerWin: number[] } {
   const defs = pick3Heroes(input.heroes);
-  if (defs.length === 0) return { wins: 0, squadIds: [] };
+  if (defs.length === 0) return { wins: 0, squadIds: [], hpPctPerWin: [] };
   const squadIds = defs.map(d => d.id);
-  let heroes = freshSquadFromDefs(defs);
+  const heroes = freshSquadFromDefs(defs);
   let wins = 0;
+  const hpPctPerWin: number[] = [];
   const trackHp = input.trackHpScaleByMode[modeId] ?? 1;
+  // Protocol budget is shared across the whole track
+  const protocolBudget = { charges: Math.max(0, input.protocolRerolls | 0) };
 
   for (let b = 0; b < battles.length; b++) {
     const enemies = spawnEnemies(battles[b]!.enemies, b, input.unitDefs, input.battleScale, trackHp);
-    const win = simulateBattle(heroes, enemies, input.suites);
-    if (!win) return { wins, squadIds };
+    const win = simulateBattle(heroes, enemies, input.suites, protocolBudget);
+    if (!win) return { wins, squadIds, hpPctPerWin };
     wins += 1;
+    hpPctPerWin.push(survivorHpPct(heroes));
     interBattleReset(heroes);
     awardXpAfterWin(heroes);
     tryEvolveSquad(heroes, b);
   }
-  return { wins, squadIds };
+  return { wins, squadIds, hpPctPerWin };
 }
 
 export function runBattleProgressSim(input: BattleProgressSimInput, iterations: number): BattleProgressSimResult {
@@ -638,11 +683,17 @@ export function runBattleProgressSim(input: BattleProgressSimInput, iterations: 
     if (!battles?.length) continue;
 
     const nBattles = battles.length;
-    const counts = new Array(REACH_BATTLE_COUNT).fill(0);
+    // counts[k] = runs that reached (attempted) battle k+1 (0-based)
+    const reachCounts = new Array(REACH_BATTLE_COUNT).fill(0);
+    // winCounts[k] = runs that WON battle k+1 (0-based)
+    const winCounts = new Array(REACH_BATTLE_COUNT).fill(0);
+    // hpPctSum[k] / hpPctN[k] = avg survivor HP% after winning battle k+1
+    const hpPctSum = new Array(nBattles).fill(0);
+    const hpPctN = new Array(nBattles).fill(0);
     let modeFullClears = 0;
 
     for (let i = 0; i < n; i++) {
-      const { wins, squadIds } = battlesWonBeforeWipeWithSquad(battles, input, modeId);
+      const { wins, squadIds, hpPctPerWin } = battlesWonBeforeWipeWithSquad(battles, input, modeId);
       totalRuns += 1;
       if (squadIds.length === 3) {
         const sorted = [...squadIds].sort() as [string, string, string];
@@ -668,17 +719,33 @@ export function runBattleProgressSim(input: BattleProgressSimInput, iterations: 
           heroFullHits[id] = (heroFullHits[id] || 0) + 1;
         }
       }
-      for (let k = 1; k <= REACH_BATTLE_COUNT; k++) {
-        if (wins >= k - 1) counts[k - 1] += 1;
+      // Reach counts: a squad "reaches" battle k if it won k-1 prior fights
+      for (let k = 0; k < REACH_BATTLE_COUNT; k++) {
+        if (wins >= k) reachCounts[k] += 1;       // reached battle k+1
+        if (wins >= k + 1) winCounts[k] += 1;     // won battle k+1
+      }
+      // HP% per won battle
+      for (let b = 0; b < hpPctPerWin.length && b < nBattles; b++) {
+        hpPctSum[b] += hpPctPerWin[b]!;
+        hpPctN[b] += 1;
       }
     }
 
-    const reachBattlePct = counts.map(c => (100 * c) / n);
+    const reachBattlePct = reachCounts.map(c => (100 * c) / n);
+    const conditionalWinPct = reachCounts.map((reached, k) =>
+      reached > 0 ? (100 * winCounts[k]!) / reached : 0,
+    );
+    const avgSurvivorHpPct: (number | null)[] = hpPctN.map((cnt, b) =>
+      cnt > 0 ? (100 * hpPctSum[b]!) / cnt : null,
+    );
+
     tracks.push({
       modeId,
       label: input.modeLabels[modeId] ?? modeId,
       battlesInTrack: nBattles,
       reachBattlePct,
+      conditionalWinPct,
+      avgSurvivorHpPct,
       fullClearPct: (100 * modeFullClears) / n,
     });
   }
@@ -740,6 +807,7 @@ export function runBattleProgressSim(input: BattleProgressSimInput, iterations: 
   return {
     iterations: n,
     reachBattleCount: REACH_BATTLE_COUNT,
+    protocolRerolls: Math.max(0, input.protocolRerolls | 0),
     tracks,
     heroRepresentation: {
       totalRuns,
@@ -756,21 +824,28 @@ export function runBattleProgressSim(input: BattleProgressSimInput, iterations: 
 }
 
 export function formatBattleProgressSimResult(r: BattleProgressSimResult): string {
+  const protoNote = r.protocolRerolls > 0
+    ? `Protocol: ${r.protocolRerolls} reroll(s)/track (spend on ≤4 roll, keep higher).`
+    : 'Protocol: none modeled.';
   const lines: string[] = [
-    `Battle progress sim (${r.iterations} runs/track × ${r.tracks.length} operations, random 3-hero squads)`,
-    `Reach battle 1–${r.reachBattleCount} = cleared prior fights. Full clear = won all fights on that track.`,
-    'Includes evolution: cumulative bRolls → XP award each win; after 3rd fight win, tier-1 heroes at XP≥18 take a random path.',
-    'DoT modeled (stack + duration, ticks each sim round; shield absorbs). Per-op trackHpScale on enemy HP. No items, Protocol, summons, etc.',
+    `Battle progress sim — ${r.iterations} runs/track × ${r.tracks.length} operations, random 3-hero squads`,
+    `Reach% = cumulative (attempted that fight). Cond% = win rate given you reached that fight. HP% = avg survivor HP after a win.`,
+    `Evolution included. DoT + shield modeled. ${protoNote} No items or summons.`,
     '',
   ];
   for (const t of r.tracks) {
     lines.push(`── ${t.label} (${t.modeId}) — ${t.battlesInTrack} fights ──`);
-    lines.push(`  ${'Full clear (all fights)'.padEnd(42)} ${t.fullClearPct.toFixed(1)}%`);
-    for (let k = 1; k <= r.reachBattleCount; k++) {
-      const pct = (t.reachBattlePct[k - 1] ?? 0).toFixed(1);
-      const label =
-        k === 1 ? 'Reach battle 1 (always)' : `Reach battle ${k} (won ${k - 1} prior)`;
-      lines.push(`  ${label.padEnd(42)} ${pct}%`);
+    lines.push(`  ${'Full clear'.padEnd(22)} ${'Reach%'.padStart(7)} ${'Cond%'.padStart(7)} ${'HP%'.padStart(6)}`);
+    lines.push(`  ${'(all fights)'.padEnd(22)} ${t.fullClearPct.toFixed(1).padStart(7)}%`);
+    const nFights = Math.min(t.battlesInTrack, r.reachBattleCount);
+    for (let k = 0; k < nFights; k++) {
+      const label = `Fight ${k + 1}`;
+      const reach = (t.reachBattlePct[k] ?? 0).toFixed(1).padStart(7);
+      const cond  = (t.conditionalWinPct[k] ?? 0).toFixed(1).padStart(7);
+      const hp    = t.avgSurvivorHpPct[k] != null
+        ? (t.avgSurvivorHpPct[k]! * 100 / 100).toFixed(1).padStart(6)
+        : '  n/a';
+      lines.push(`  ${label.padEnd(22)} ${reach}% ${cond}% ${hp}%`);
     }
     lines.push('');
   }

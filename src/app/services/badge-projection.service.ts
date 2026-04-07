@@ -49,7 +49,7 @@ export class BadgeProjectionService {
 
   /** Incoming line only in player phase, once squad dice are set (not during enemy turn / transition). */
   private showTurnPreviews(): boolean {
-    if (this.state.phase() !== 'player') return false;
+    if (!this.state.isPlayerPhase()) return false;
     return this.state.heroes().every(x => x.currentHp <= 0 || x.roll !== null);
   }
 

@@ -96,10 +96,8 @@ export class TutorialService {
       introStep: 0,
       introComplete: false,
       resolutions: 0,
-      showTurn2Modal: false,
       showComplete: false,
       coachStep: 0,
-      r2CoachStep: 0,
     };
   }
 

@@ -129,7 +129,7 @@ export class ItemService {
 
   /** Toggle: same slot cancels. */
   beginUseInventorySlot(slot: number): void {
-    if (this.state.phase() !== 'player') return;
+    if (!this.state.isPlayerPhase()) return;
     const id = this.state.inventory()[slot];
     if (!id) return;
     const def = this.getDef(id);
