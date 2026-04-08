@@ -35,6 +35,12 @@ export class EnemyStateService {
     this.enemies.update(enemies => [...enemies, enemy]);
   }
 
+  replaceEnemy(index: number, enemy: EnemyState): void {
+    this.enemies.update(enemies =>
+      enemies.map((e, i) => i === index ? enemy : e)
+    );
+  }
+
   reset(): void {
     this.enemies.set([]);
     this.forcedEnemyTargetIdx.set(null);

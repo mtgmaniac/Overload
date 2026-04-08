@@ -188,6 +188,10 @@ export class GameStateService {
     this.enemyState.appendEnemy(enemy);
   }
 
+  replaceEnemy(index: number, enemy: EnemyState): void {
+    this.enemyState.replaceEnemy(index, enemy);
+  }
+
   // ── Squad RFM stacks ──
 
   pushSquadRfmStack(amt: number, turns: number): void {

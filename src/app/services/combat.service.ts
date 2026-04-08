@@ -623,8 +623,14 @@ export class CombatService {
     const spawned = createEnemyState(scaled, nextId);
 
     if (this.state.animOn()) await this.anim.paceBetweenSteps();
-    this.state.appendEnemy(spawned);
-    this.log.log(`▸ ${e.name} — SUMMON! ${spawned.name} joins (${pct}% on natural 20).`, 'en');
+    const deadSlot = this.state.enemies().findIndex(x => x.dead);
+    if (deadSlot >= 0) {
+      this.state.replaceEnemy(deadSlot, spawned);
+      this.log.log(`▸ ${e.name} — SUMMON! ${spawned.name} replaces the fallen (${pct}% on natural 20).`, 'en');
+    } else {
+      this.state.appendEnemy(spawned);
+      this.log.log(`▸ ${e.name} — SUMMON! ${spawned.name} joins (${pct}% on natural 20).`, 'en');
+    }
     this.targeting.assignTargets();
   }
 
