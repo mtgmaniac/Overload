@@ -1,6 +1,6 @@
 :host {
-  /* Inherited by app-unit-status-ribbon in [data-hp-aside] — keep badges aligned with HP figures */
-  --hp-label-font-size: 10px;
+  /* Match badge zone / ability row numeric scale (~12px) */
+  --hp-label-font-size: 12px;
 }
 
 .hp-head {
@@ -19,7 +19,14 @@
   margin-top: 2px;
   margin-bottom: 0;
 }
-.hp-lbl { font-family: var(--font-pixel); font-size: var(--hp-label-font-size); font-weight: 700; flex-shrink: 0; }
+.hp-lbl {
+  font-family: var(--font-pixel);
+  font-size: var(--hp-label-font-size);
+  font-weight: 800;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+}
 .hp-aside {
   flex: 1;
   min-width: 0;

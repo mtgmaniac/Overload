@@ -1,7 +1,9 @@
 import { Component, ChangeDetectionStrategy, input, computed } from '@angular/core';
+import { OpTooltipDirective } from '../../../directives/op-tooltip.directive';
 import { HeroAbility, EnemyAbility } from '../../../models/ability.interface';
 import { Zone } from '../../../models/types';
 import { clampHeroAbilityForTier1 } from '../../../utils/hero-ability-tier.util';
+import { counterAbilityTooltip, counterChipLabel } from '../../../utils/counterspell.util';
 
 type MiniIcon = 'bolt' | 'plus' | 'shield' | 'skull' | 'die' | 'frost';
 
@@ -24,12 +26,19 @@ interface AbilityMiniToken {
   wide?: boolean;
   /** Show clock + this value in the same chip when > 1 (DoT, shield, ±roll durations, etc.). */
   turns?: number;
+  /** Hits all valid targets (AoE / party / all enemies) — glyph instead of “ALL” text. */
+  tagAll?: boolean;
+  /** Effect applies to self (heal/shield when not ally/all). */
+  tagSelf?: boolean;
   tone: AbilityMiniTone;
+  /** Hover: one stat gloss, or full text for keyword chips (PIERCE, REVIVE, …). */
+  tooltip: string;
 }
 
 @Component({
   selector: 'app-ability-row',
   standalone: true,
+  imports: [OpTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './ability-row.component.html',
   styleUrl: './ability-row.component.scss',
@@ -79,14 +88,14 @@ export class AbilityRowComponent {
     return this.buildHeroEffectSummary(this.heroAbilityView());
   });
 
-  /** Native tooltip: name, data `eff`, then mechanical summary when it adds detail (hover). */
-  abilityTooltip = computed((): string => {
+  /** Hover on roll range only: move name + data description (`eff`). */
+  rangeTooltip = computed((): string => {
     const a = this.ability();
-    const mech = this.effectSummary();
+    const name = a.name;
     const eff = a.eff?.trim() ?? '';
-    if (!eff.length) return `${a.name}\n\n${mech}`;
-    if (eff === mech) return `${a.name}\n\n${eff}`;
-    return `${a.name}\n\n${eff}\n\n${mech}`;
+    if (eff.length) return `${name}: ${eff}`;
+    const fallback = this.effectSummary();
+    return `${name}: ${fallback}`;
   });
 
   abilityAriaLabel = computed((): string => {
@@ -97,6 +106,13 @@ export class AbilityRowComponent {
     if (eff === mech) return `${a.name}. ${eff}`;
     return `${a.name}. ${eff}. ${mech}`;
   });
+
+  /** Mini-chip hover: `Ability name: effect` (matches roll-range column). */
+  private namedTokenTooltip(ab: HeroAbility | EnemyAbility, body: string): string {
+    const b = body.trim();
+    if (!b) return '';
+    return `${ab.name}: ${b}`;
+  }
 
   private buildHeroEffectSummary(a: HeroAbility): string {
     const parts: string[] = [];
@@ -109,17 +125,17 @@ export class AbilityRowComponent {
 
     if (combatDmg > 0) {
       let s = `${combatDmg} dmg`;
-      if (a.blastAll || a.multiHit) s += ' (all enemies)';
+      if (a.blastAll || a.multiHit) s += ' (all)';
       if (a.ignSh) s += ', pierce';
       parts.push(s);
     } else if (hasSpread) {
       let s = `${dLo}-${dHi} dmg`;
-      if (a.blastAll || a.multiHit) s += ' (all enemies)';
+      if (a.blastAll || a.multiHit) s += ' (all)';
       if (a.ignSh) s += ', pierce';
       parts.push(s);
     } else if (flatBracket > 0) {
       let s = `${flatBracket} dmg`;
-      if (a.blastAll || a.multiHit) s += ' (all enemies)';
+      if (a.blastAll || a.multiHit) s += ' (all)';
       if (a.ignSh) s += ', pierce';
       parts.push(s);
     }
@@ -160,7 +176,7 @@ export class AbilityRowComponent {
 
     if (a.revive) parts.push('revive 50%');
     if (a.cloak) parts.push('Cloak');
-    if (a.taunt) parts.push('taunt (enemies target you)');
+    if (a.taunt) parts.push('taunt (picked enemy targets you)');
     if ((a.freezeAllEnemyDice || 0) > 0) {
       parts.push(`freeze (${a.freezeAllEnemyDice} reveal skip${(a.freezeAllEnemyDice || 0) > 1 ? 's' : ''})`);
     }
@@ -211,13 +227,8 @@ export class AbilityRowComponent {
       parts.push(ab.erbAll ? `+${ab.erb} roll to allies${t}` : `+${ab.erb} roll${t}`);
     }
     if ((ab.summonChance ?? 0) > 0) parts.push(`summon ~${ab.summonChance}% nat20`);
-    if (ab.counterspellZone && (ab.counterspellT || 0) > 0) {
-      const t = ab.counterspellT || 1;
-      parts.push(
-        ab.counterspellAll
-          ? `counterspell ${ab.counterspellZone} all (${t}t)`
-          : `counterspell ${ab.counterspellZone} (${t}t)`,
-      );
+    if ((ab.counterspellPct ?? 0) > 0) {
+      parts.push(`counter ${counterChipLabel(ab.counterspellPct!)}`);
     }
     if ((ab.grantRampage || 0) > 0) parts.push(`rampage +${ab.grantRampage}`);
     if ((ab.grantRampageAll || 0) > 0) parts.push(`rampage all +${ab.grantRampageAll}`);
@@ -232,8 +243,33 @@ export class AbilityRowComponent {
     return t > 1 ? t : undefined;
   }
 
+  private durTurns(t: number | undefined): string {
+    const n = t ?? 0;
+    return n > 1 ? ` (${n} turns)` : '';
+  }
+
+  private rampageDealTooltip(n: number): string {
+    return n === 1 ? 'Next attack deals 2× damage' : `Next ${n} attacks deal 2× damage`;
+  }
+
+  private fearRollSkipTooltip(n: number, all: boolean): string {
+    const r = n === 1 ? 'roll' : 'rolls';
+    return all
+      ? `All heroes skip their next ${n} ${r}`
+      : `Target skips their next ${n} ${r}`;
+  }
+
+  /** DoT chip hover: X damage per turn, for the next Y turn(s). */
+  private dotDealTooltip(amount: number, dT: number | undefined, blastAll: boolean): string {
+    const y = Math.max(1, dT ?? 1);
+    const tail = y === 1 ? 'for the next turn' : `for the next ${y} turns`;
+    const core = `${amount} damage per turn, ${tail}`;
+    return blastAll ? `${core} (all enemies)` : core;
+  }
+
   private buildHeroMinis(a: HeroAbility): AbilityMiniToken[] {
     const out: AbilityMiniToken[] = [];
+    const tip = (body: string) => this.namedTokenTooltip(a, body);
     const dLo = a.dMin || 0;
     const dHi = a.dMax || 0;
     const hasSpread = dLo > 0 && dHi > 0 && dLo !== dHi;
@@ -244,27 +280,61 @@ export class AbilityRowComponent {
       const n = String(combatDmg);
       out.push({
         icon: 'bolt',
-        num: allDmg ? `${n}·ALL` : n,
+        num: n,
+        tagAll: allDmg,
         tone: 'dmg',
+        tooltip: tip(allDmg ? `${n} Damage (all enemies)` : `${n} Damage`),
       });
     } else if (hasSpread) {
-      const lab = allDmg ? `${dLo}-${dHi}·ALL` : `${dLo}-${dHi}`;
-      out.push({ icon: 'bolt', label: lab, tone: 'dmg' });
+      const lbl = `${dLo}-${dHi}`;
+      out.push({
+        icon: 'bolt',
+        label: lbl,
+        tagAll: allDmg,
+        tone: 'dmg',
+        tooltip: tip(allDmg ? `${lbl} Damage (all enemies)` : `${lbl} Damage`),
+      });
     } else if (flatBracket > 0) {
-      const n = allDmg ? `${flatBracket}·ALL` : String(flatBracket);
-      out.push({ icon: 'bolt', num: n, tone: 'dmg' });
+      const n = String(flatBracket);
+      out.push({
+        icon: 'bolt',
+        num: n,
+        tagAll: allDmg,
+        tone: 'dmg',
+        tooltip: tip(allDmg ? `${n} Damage (all enemies)` : `${n} Damage`),
+      });
     }
     if ((a.heal || 0) > 0) {
-      const n = a.healAll ? `${a.heal}·ALL` : String(a.heal);
-      out.push({ icon: 'plus', num: n, tone: 'heal' });
+      const healSelf = !a.healAll && !a.healLowest && !a.healTgt;
+      let ht: string;
+      if (a.healAll) ht = `Heal ${a.heal} all`;
+      else if (a.healLowest) ht = `Heal ${a.heal} lowest HP ally`;
+      else if (a.healTgt) ht = `Heal ${a.heal} chosen ally`;
+      else ht = `Heal ${a.heal} self`;
+      out.push({
+        icon: 'plus',
+        num: String(a.heal),
+        tagAll: !!a.healAll,
+        tagSelf: healSelf,
+        tone: 'heal',
+        tooltip: tip(ht),
+      });
     }
     if ((a.shield || 0) > 0) {
-      const n = a.shieldAll ? `${a.shield}·ALL` : String(a.shield);
+      const shieldSelf = !a.shieldAll && !a.shTgt;
+      const d = this.durTurns(a.shT);
+      let st: string;
+      if (a.shieldAll) st = `Shield ${a.shield} all${d}`;
+      else if (a.shTgt) st = `Shield ${a.shield} chosen ally${d}`;
+      else st = `Shield ${a.shield} self${d}`;
       out.push({
         icon: 'shield',
-        num: n,
+        num: String(a.shield),
+        tagAll: !!a.shieldAll,
+        tagSelf: shieldSelf,
         turns: this.multiTurn(a.shT),
         tone: 'shield',
+        tooltip: tip(st),
       });
     }
     if ((a.dot || 0) > 0) {
@@ -273,62 +343,128 @@ export class AbilityRowComponent {
         num: String(a.dot),
         turns: this.multiTurn(a.dT),
         tone: 'dot',
+        tooltip: tip(this.dotDealTooltip(a.dot, a.dT, !!a.blastAll)),
       });
     }
     if ((a.rfe || 0) > 0) {
+      const d = this.durTurns(a.rfT);
+      const rt = a.rfeAll
+        ? `-${a.rfe} roll to all enemies${d}`
+        : `-${a.rfe} roll to enemy${d}`;
       out.push({
         icon: 'die',
-        num: a.rfeAll ? `-${a.rfe}·ALL` : `-${a.rfe}`,
+        num: `-${a.rfe}`,
+        tagAll: !!a.rfeAll,
         turns: this.multiTurn(a.rfT),
         tone: 'rollFoe',
+        tooltip: tip(rt),
       });
     }
     if ((a.rfm || 0) > 0) {
+      const d = this.durTurns(a.rfmT);
+      let mt: string;
+      if (a.rfmTgt) mt = `+${a.rfm} roll on chosen ally's next roll${d}`;
+      else if (a.shTgt && (a.shield || 0) > 0)
+        mt = `+${a.rfm} roll on shield target's next roll${d}`;
+      else mt = `+${a.rfm} roll on your next roll${d}`;
       out.push({
         icon: 'die',
         num: `+${a.rfm}`,
         turns: this.multiTurn(a.rfmT),
         tone: 'rollAlly',
+        tooltip: tip(mt),
       });
     }
-    if (a.ignSh) out.push({ icon: null, label: 'PIERCE', tone: 'dmg' });
-    if (a.splitDmg) out.push({ icon: null, label: 'SPLIT', tone: 'dmg' });
-    if (a.revive) out.push({ icon: null, label: 'REVIVE', wide: true, tone: 'heal' });
-    if (a.cloak) out.push({ icon: null, label: 'Cloak', tone: 'control' });
-    if (a.taunt) out.push({ icon: null, label: 'TAUNT', tone: 'control' });
+    if (a.ignSh) {
+      out.push({
+        icon: null,
+        label: 'P',
+        tone: 'dmg',
+        tooltip: tip('Ignores target shields'),
+      });
+    }
+    if (a.splitDmg) {
+      out.push({
+        icon: null,
+        label: 'SPLIT',
+        tone: 'dmg',
+        tooltip: tip(
+          "Split — Divide this ability's damage across enemies you assign. If you assign none, the full amount can hit your primary target.",
+        ),
+      });
+    }
+    if (a.revive) {
+      out.push({
+        icon: null,
+        label: 'REVIVE',
+        wide: true,
+        tone: 'heal',
+        tooltip: tip('Revive 1 dead ally at 50% health'),
+      });
+    }
+    if (a.cloak) {
+      out.push({
+        icon: null,
+        label: 'CLOAK',
+        tone: 'control',
+        tooltip: tip('80% chance to dodge enemy attacks next turn'),
+      });
+    }
+    if (a.taunt) {
+      out.push({
+        icon: null,
+        label: 'T',
+        tone: 'control',
+        tooltip: tip('Force the targeted enemy to attack you this player round'),
+      });
+    }
     if ((a.freezeAllEnemyDice || 0) > 0) {
+      const n = a.freezeAllEnemyDice as number;
+      const turns = n === 1 ? 'turn' : 'turns';
       out.push({
         icon: 'frost',
-        num: `${a.freezeAllEnemyDice}×`,
+        num: `${n}×`,
         tone: 'control',
+        tooltip: tip(`Freeze every enemy's die for ${n} ${turns}.`),
       });
     }
     if ((a.freezeEnemyDice || 0) > 0) {
+      const n = a.freezeEnemyDice as number;
+      const turns = n === 1 ? 'turn' : 'turns';
       out.push({
         icon: 'frost',
-        num: `${a.freezeEnemyDice}×`,
+        num: `${n}×`,
         tone: 'control',
+        tooltip: tip(`Freeze a target's die for ${n} ${turns}.`),
       });
     }
     if ((a.freezeAnyDice || 0) > 0) {
+      const n = a.freezeAnyDice as number;
+      const turns = n === 1 ? 'turn' : 'turns';
       out.push({
         icon: 'frost',
-        num: `${a.freezeAnyDice}×`,
+        num: `${n}×`,
         tone: 'control',
+        tooltip: tip(`Freeze a target's die for ${n} ${turns}.`),
       });
     }
-    if (!out.length) out.push({ icon: null, label: '—', tone: 'neutral' });
+    if (!out.length) out.push({ icon: null, label: '—', tone: 'neutral', tooltip: '' });
     return out;
   }
 
   private buildEnemyMinis(ab: EnemyAbility): AbilityMiniToken[] {
     const out: AbilityMiniToken[] = [];
+    const tip = (body: string) => this.namedTokenTooltip(ab, body);
     if ((ab.dmg || 0) > 0) {
       const n =
         ab.dmgP2 != null && ab.dmgP2 > 0 && ab.dmgP2 !== ab.dmg
           ? `${ab.dmg}/${ab.dmgP2}`
           : String(ab.dmg);
-      out.push({ icon: 'bolt', num: n, tone: 'dmg' });
+      const dmgTip =
+        ab.dmgP2 != null && ab.dmgP2 > 0 && ab.dmgP2 !== ab.dmg
+          ? `${ab.dmg} Damage (rises to ${ab.dmgP2} in phase 2)`
+          : `${ab.dmg} Damage`;
+      out.push({ icon: 'bolt', num: n, tone: 'dmg', tooltip: tip(dmgTip) });
     }
     if ((ab.dot || 0) > 0) {
       out.push({
@@ -336,6 +472,7 @@ export class AbilityRowComponent {
         num: String(ab.dot),
         turns: this.multiTurn(ab.dT),
         tone: 'dot',
+        tooltip: tip(this.dotDealTooltip(ab.dot, ab.dT, false)),
       });
     }
     if ((ab.rfm || 0) > 0) {
@@ -344,16 +481,34 @@ export class AbilityRowComponent {
         num: `-${ab.rfm}`,
         turns: this.multiTurn(ab.rfmT),
         tone: 'rollFoe',
+        tooltip: tip(`-${ab.rfm} roll${this.durTurns(ab.rfmT)}`),
       });
     }
-    if (ab.wipeShields) out.push({ icon: null, label: 'WIPE', tone: 'dmg' });
-    if ((ab.heal || 0) > 0) out.push({ icon: 'plus', num: String(ab.heal), tone: 'heal' });
+    if (ab.wipeShields) {
+      out.push({
+        icon: null,
+        label: 'WIPE',
+        tone: 'dmg',
+        tooltip: tip('Remove shields from all heroes'),
+      });
+    }
+    if ((ab.heal || 0) > 0) {
+      out.push({
+        icon: 'plus',
+        num: String(ab.heal),
+        tagSelf: true,
+        tone: 'heal',
+        tooltip: tip(`Heal ${ab.heal} lowest-HP ally`),
+      });
+    }
     if ((ab.shield || 0) > 0) {
       out.push({
         icon: 'shield',
         num: String(ab.shield),
+        tagSelf: true,
         turns: this.multiTurn(ab.shT),
         tone: 'shield',
+        tooltip: tip(`Shield ${ab.shield} self${this.durTurns(ab.shT)}`),
       });
     }
     if ((ab.shieldAlly || 0) > 0) {
@@ -362,50 +517,98 @@ export class AbilityRowComponent {
         num: String(ab.shieldAlly),
         turns: this.multiTurn(ab.shT),
         tone: 'shield',
+        tooltip: tip(`Shield ${ab.shieldAlly} ally${this.durTurns(ab.shT)}`),
       });
     }
-    if ((ab.lifestealPct || 0) > 0)
-      out.push({ icon: 'plus', num: `${ab.lifestealPct}%`, tone: 'heal' });
+    if ((ab.lifestealPct || 0) > 0) {
+      const pct = ab.lifestealPct as number;
+      out.push({
+        icon: 'plus',
+        num: `${pct}%`,
+        tagSelf: false,
+        tone: 'heal',
+        tooltip: `Lifesteal: Heals ${pct}% of damage dealt.`,
+      });
+    }
     if ((ab.rfe || 0) > 0) {
       out.push({
         icon: 'die',
         num: `-${ab.rfe}`,
         turns: this.multiTurn(ab.rfT),
         tone: 'rollFoe',
+        tooltip: tip(`-${ab.rfe} roll${this.durTurns(ab.rfT)}`),
       });
     }
     if ((ab.erb || 0) > 0) {
-      const n = ab.erbAll ? `+${ab.erb}·ALL` : `+${ab.erb}`;
+      const d = this.durTurns(ab.erbT);
+      const et = ab.erbAll
+        ? `+${ab.erb} roll to all living allies${d}`
+        : `+${ab.erb} roll to self${d}`;
       out.push({
         icon: 'die',
-        num: n,
+        num: `+${ab.erb}`,
+        tagAll: !!ab.erbAll,
+        tagSelf: !ab.erbAll,
         turns: this.multiTurn(ab.erbT),
         tone: 'rollAlly',
+        tooltip: tip(et),
       });
     }
-    if ((ab.summonChance ?? 0) > 0) out.push({ icon: null, label: 'SUM', tone: 'control' });
-    if (ab.counterspellZone && (ab.counterspellT || 0) > 0) {
-      const z = ab.counterspellZone.toUpperCase();
+    if ((ab.summonChance ?? 0) > 0) {
+      const pct = ab.summonChance ?? 0;
+      const name = ab.summonName?.trim();
+      const pool = name ? ` Summons “${name}”.` : ' Uses the mode’s grunt pool.';
       out.push({
         icon: null,
-        label: ab.counterspellAll ? `CS·${z}·ALL` : `CS·${z}`,
-        turns: this.multiTurn(ab.counterspellT),
+        label: 'SUM',
         tone: 'control',
+        tooltip: tip(`Summon — On a natural 20 (with overload tier), ~${pct}% chance to add an extra grunt.${pool}`),
       });
     }
-    if ((ab.grantRampage || 0) > 0)
-      out.push({ icon: 'bolt', num: `R+${ab.grantRampage}`, tone: 'dmg' });
-    if ((ab.grantRampageAll || 0) > 0)
-      out.push({ icon: null, label: `RALL+${ab.grantRampageAll}`, tone: 'dmg' });
-    if ((ab.cowerT || 0) > 0) {
+    if ((ab.counterspellPct ?? 0) > 0) {
+      const pct = Math.max(0, Math.min(100, ab.counterspellPct!));
       out.push({
         icon: null,
-        label: ab.cowerAll ? 'FEAR·ALL' : 'FEAR',
-        turns: this.multiTurn(ab.cowerT),
-        tone: 'rollFoe',
+        label: counterChipLabel(pct),
+        wide: true,
+        tone: 'control',
+        tooltip: tip(counterAbilityTooltip(pct)),
       });
     }
-    if (!out.length) out.push({ icon: null, label: '—', tone: 'neutral' });
+    if ((ab.grantRampage || 0) > 0) {
+      const g = ab.grantRampage as number;
+      out.push({
+        icon: 'bolt',
+        label: 'R',
+        num: String(g),
+        tone: 'dmg',
+        tooltip: tip(this.rampageDealTooltip(g)),
+      });
+    }
+    if ((ab.grantRampageAll || 0) > 0) {
+      const g = ab.grantRampageAll as number;
+      out.push({
+        icon: 'bolt',
+        label: 'R',
+        num: String(g),
+        tagAll: true,
+        tone: 'dmg',
+        tooltip: tip(`Each enemy: ${this.rampageDealTooltip(g)}`),
+      });
+    }
+    if ((ab.cowerT || 0) > 0) {
+      const n = ab.cowerT as number;
+      const ft = this.fearRollSkipTooltip(n, !!ab.cowerAll);
+      out.push({
+        icon: null,
+        label: 'F',
+        tagAll: !!ab.cowerAll,
+        turns: n > 0 ? n : undefined,
+        tone: 'rollFoe',
+        tooltip: tip(ft),
+      });
+    }
+    if (!out.length) out.push({ icon: null, label: '—', tone: 'neutral', tooltip: '' });
     return out;
   }
 }

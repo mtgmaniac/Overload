@@ -6,7 +6,7 @@
       @for (id of ids; track id) {
         @if (defFor(id); as def) {
           <button type="button" class="id-card" [class]="'r-' + def.rarity" (click)="pick(def.id)"
-                  [attr.title]="def.name + ' — ' + def.desc">
+                  [attr.aria-label]="def.name + '. ' + def.desc">
             <span class="id-ic" aria-hidden="true">
               @switch (def.icon) {
                 @case ('heart') {
@@ -39,6 +39,7 @@
               }
             </span>
             <span class="id-name">{{ def.name }}</span>
+            <p class="id-desc">{{ def.desc }}</p>
             <span class="id-r">{{ def.rarity }}</span>
           </button>
         }

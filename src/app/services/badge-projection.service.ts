@@ -4,6 +4,7 @@ import { EnemyState } from '../models/enemy.interface';
 import { HeroId } from '../models/types';
 import { GameStateService } from './game-state.service';
 import { DiceService } from './dice.service';
+import { RelicService } from './relic.service';
 
 export interface HeroBadgeSnapshot {
   incomingDmg: number;
@@ -45,6 +46,7 @@ export class BadgeProjectionService {
   constructor(
     private state: GameStateService,
     private dice: DiceService,
+    private relicService: RelicService,
   ) {}
 
   /** Incoming line only in player phase, once squad dice are set (not during enemy turn / transition). */
@@ -224,6 +226,23 @@ export class BadgeProjectionService {
   }
 
   /**
+   * Same scaling as {@link CombatService} resolve path: relic damage mult, then RAMPAGE ×2 with
+   * one charge consumed per ability that has base damage greater than 0 (split-alloc hits still use raw
+   * allocated damage, but the charge is burned like combat).
+   */
+  private heroStrikeEffectiveForPreview(hi: number, baseDmg: number, rampRem: number[]): number {
+    if (baseDmg <= 0) return 0;
+    let d = baseDmg;
+    const mult = this.relicService.getHeroDmgMult();
+    if (mult !== 1) d = Math.ceil(d * mult);
+    if (rampRem[hi] > 0) {
+      d *= 2;
+      rampRem[hi]--;
+    }
+    return d;
+  }
+
+  /**
    * Net HP damage this enemy will take from hero abilities this turn, in hero resolution order,
    * with shield depletion and pierce matching {@link CombatService} (endTurn player loop).
    */
@@ -247,6 +266,8 @@ export class BadgeProjectionService {
     };
 
     const heroes = this.state.heroes();
+    const rampRem = heroes.map(h => h.rampageCharges || 0);
+
     for (let hi = 0; hi < heroes.length; hi++) {
       if (!this.heroContributesToEnemyIncomingPreview(hi)) continue;
       const h = heroes[hi];
@@ -254,10 +275,13 @@ export class BadgeProjectionService {
       const er = this.dice.effRoll(h);
       if (er === null) continue;
       const ab = this.dice.getAbility(h, er);
-      if (!ab || !(ab.dmg || 0)) continue;
+      const baseDmg = ab?.dmg || 0;
+      if (!ab || !baseDmg) continue;
 
       const ignSh = !!ab.ignSh;
       const hTgt = h.lockedTarget !== undefined && h.lockedTarget !== null ? h.lockedTarget : null;
+
+      const effective = this.heroStrikeEffectiveForPreview(hi, baseDmg, rampRem);
 
       if (ab.splitDmg) {
         const alloc = h.splitAlloc || {};
@@ -267,19 +291,19 @@ export class BadgeProjectionService {
           d = alloc[e.id] ?? 0;
         } else if (hTgt != null && hTgt === ei) {
           const tgtE = enemies[hTgt];
-          if (tgtE && !tgtE.dead) d = ab.dmg || 0;
+          if (tgtE && !tgtE.dead) d = effective;
         }
         applyToEnemy(d, ignSh);
         continue;
       }
 
       if (ab.blastAll || ab.multiHit) {
-        applyToEnemy(ab.dmg || 0, ignSh);
+        applyToEnemy(effective, ignSh);
         continue;
       }
 
       if (hTgt !== ei) continue;
-      applyToEnemy(ab.dmg || 0, ignSh);
+      applyToEnemy(effective, ignSh);
     }
 
     return hpDmg;

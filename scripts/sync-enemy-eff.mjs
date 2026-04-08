@@ -47,13 +47,9 @@ function buildEnemyEffectSummary(ab) {
     parts.push(`${ab.erbAll ? 'all ' : ''}+${ab.erb} enemy roll${t}`);
   }
   if ((ab.summonChance ?? 0) > 0) parts.push(`summon ~${ab.summonChance}% nat20`);
-  if (ab.counterspellZone && (ab.counterspellT || 0) > 0) {
-    const t = ab.counterspellT || 1;
-    parts.push(
-      ab.counterspellAll
-        ? `counterspell ${ab.counterspellZone} all (${t}t)`
-        : `counterspell ${ab.counterspellZone} (${t}t)`,
-    );
+  if ((ab.counterspellPct ?? 0) > 0) {
+    const p = Math.max(0, Math.min(100, ab.counterspellPct));
+    parts.push(`counter C ${p}%`);
   }
   if ((ab.grantRampage || 0) > 0) parts.push(`rampage +${ab.grantRampage}`);
   if ((ab.grantRampageAll || 0) > 0) parts.push(`rampage all +${ab.grantRampageAll}`);

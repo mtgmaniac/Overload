@@ -6,7 +6,11 @@
     <div class="rd-row">
       @for (id of ids; track id) {
         @if (defFor(id); as def) {
-          <button type="button" class="rd-card" (click)="pick(def.id)" [attr.title]="def.name + ' — ' + def.desc">
+          <button
+            type="button"
+            class="rd-card"
+            (click)="pick(def.id)"
+            [attr.aria-label]="def.name + '. ' + def.desc">
             <span class="rd-ic" aria-hidden="true">
               @switch (def.icon) {
                 @case ('heart') {
@@ -27,7 +31,7 @@
               }
             </span>
             <span class="rd-name">{{ def.name }}</span>
-            <span class="rd-desc">{{ def.desc }}</span>
+            <p class="rd-desc">{{ def.desc }}</p>
           </button>
         }
       }

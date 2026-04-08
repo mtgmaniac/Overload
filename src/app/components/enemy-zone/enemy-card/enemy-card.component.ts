@@ -10,17 +10,14 @@ import { HpBarComponent } from '../../shared/hp-bar/hp-bar.component';
 import { PortraitFrameComponent } from '../../shared/portrait-frame/portrait-frame.component';
 import { AbilityRowComponent } from '../../shared/ability-row/ability-row.component';
 import { BadgeZoneComponent } from '../../shared/badge-zone/badge-zone.component';
-import {
-  UnitStatusRibbonComponent,
-  UnitStatusRibbonLine,
-} from '../../shared/unit-status-ribbon/unit-status-ribbon.component';
+import type { UnitStatusRibbonLine } from '../../shared/unit-status-ribbon/unit-status-ribbon.component';
 import { enemyPortraitSvg } from '../../../data/sprites.data';
 import { enemyUnitFrameColor } from '../../../data/unit-frame-colors';
 
 @Component({
   selector: 'app-enemy-card',
   standalone: true,
-  imports: [HpBarComponent, PortraitFrameComponent, AbilityRowComponent, BadgeZoneComponent, UnitStatusRibbonComponent],
+  imports: [HpBarComponent, PortraitFrameComponent, AbilityRowComponent, BadgeZoneComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './enemy-card.component.html',
   styleUrl: './enemy-card.component.scss',
@@ -49,7 +46,8 @@ export class EnemyCardComponent {
     return `${e.name} is rampaging — the next ${n} direct hit${n > 1 ? 's' : ''} deal ×2 damage (one charge per hit).`;
   });
 
-  enemyStatusLines = computed((): UnitStatusRibbonLine[] => {
+  /** Word chips under status badges (mirrors hero badge zone ribbon). */
+  enemyRibbonLines = computed((): UnitStatusRibbonLine[] => {
     const e = this.enemy();
     if (e.dead) return [];
     const out: UnitStatusRibbonLine[] = [];
@@ -80,6 +78,16 @@ export class EnemyCardComponent {
         key: 'focus',
         tag: 'FOCUS',
         detail: 'Heroes must target this unit next player round.',
+      });
+    }
+
+    const cr = e.counterReflectPct;
+    if (cr != null && cr > 0) {
+      const pct = Math.round(cr);
+      out.push({
+        key: 'counter',
+        tag: `C ${pct}%`,
+        detail: `${pct}% chance to reflect the next hero damage attempt to the attacker.`,
       });
     }
 

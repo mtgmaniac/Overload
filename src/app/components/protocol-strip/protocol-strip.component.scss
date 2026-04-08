@@ -114,30 +114,61 @@
 }
 .inv-empty { font-family: var(--font-pixel); font-size: 10px; opacity: .4; }
 
-/* ── Active relic slot ─────────────────────────────────────────────────────── */
+/* ── Augment (relic) slot — always visible; icon only ───────────────────────── */
 .relic-slot {
   position: relative;
-  width: 34px; height: 34px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  width: 32px;
+  height: 28px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: var(--radius-pixel);
+  flex-shrink: 0;
+  cursor: default;
+}
+
+.relic-slot--empty {
+  border: 2px dashed var(--border);
+  background: #0a0e14;
+  color: #6a7a8c;
+  opacity: 0.55;
+  box-shadow: 2px 2px 0 #000;
+}
+
+.relic-slot--filled {
   border: 2px solid #a07818;
   background: var(--bg2);
-  box-shadow: 0 0 10px rgba(200, 146, 26, 0.45), 0 0 4px rgba(245, 200, 66, 0.2), 2px 2px 0 rgba(0,0,0,.45);
-  cursor: default;
+  box-shadow: 0 0 10px rgba(200, 146, 26, 0.45), 0 0 4px rgba(245, 200, 66, 0.2), 2px 2px 0 rgba(0, 0, 0, 0.45);
   animation: relic-pulse 3s ease-in-out infinite;
 }
 
 @keyframes relic-pulse {
-  0%, 100% { box-shadow: 0 0 10px rgba(200, 146, 26, 0.45), 0 0 4px rgba(245, 200, 66, 0.2), 2px 2px 0 rgba(0,0,0,.45); }
-  50%       { box-shadow: 0 0 18px rgba(245, 200, 66, 0.7),  0 0 8px rgba(255, 220, 80, 0.4), 2px 2px 0 rgba(0,0,0,.45); }
+  0%,
+  100% {
+    box-shadow: 0 0 10px rgba(200, 146, 26, 0.45), 0 0 4px rgba(245, 200, 66, 0.2), 2px 2px 0 rgba(0, 0, 0, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 18px rgba(245, 200, 66, 0.7), 0 0 8px rgba(255, 220, 80, 0.4), 2px 2px 0 rgba(0, 0, 0, 0.45);
+  }
 }
 
-.relic-ic { width: 16px; height: 16px; color: #f5c842; display: flex; align-items: center; justify-content: center; }
-.relic-ic svg { width: 100%; height: 100%; }
+.relic-ic {
+  width: 16px;
+  height: 16px;
+  color: #f5c842;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.relic-ic svg {
+  width: 100%;
+  height: 100%;
+}
 
-.relic-label {
-  position: absolute; bottom: 1px;
-  font-family: var(--font-pixel); font-size: 5px; font-weight: 800;
-  color: #c8921a; letter-spacing: .5px; text-align: center;
-  white-space: nowrap; overflow: hidden; max-width: 32px; text-overflow: ellipsis;
+.relic-empty {
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  opacity: 0.5;
+  line-height: 1;
 }

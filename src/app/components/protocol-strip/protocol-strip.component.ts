@@ -1,4 +1,5 @@
 import { Component, ChangeDetectionStrategy, inject, computed } from '@angular/core';
+import { OpTooltipDirective } from '../../directives/op-tooltip.directive';
 import { GameStateService } from '../../services/game-state.service';
 import { ProtocolService } from '../../services/protocol.service';
 import { ItemService } from '../../services/item.service';
@@ -14,6 +15,7 @@ import type { ItemDefinition } from '../../models/item.interface';
 @Component({
   selector: 'app-protocol-strip',
   standalone: true,
+  imports: [OpTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './protocol-strip.component.html',
   styleUrl: './protocol-strip.component.scss',
@@ -25,6 +27,13 @@ export class ProtocolStripComponent {
   relicService = inject(RelicService);
 
   activeRelic = computed(() => this.relicService.activeRelic());
+
+  relicSlotTooltip = computed(() => {
+    const relic = this.activeRelic();
+    return relic
+      ? `AUGMENT: ${relic.name} — ${relic.desc}`
+      : 'Augment slot — empty this run until you draft one (after battle 5).';
+  });
 
   max = PROTOCOL_MAX;
   rerollCost = PROTOCOL_REROLL_COST;

@@ -35,7 +35,7 @@
       },
       "crit": {
         "name": "Overcharge+",
-        "eff": "15 dmg, 2 DoT, 1t",
+        "eff": "15 dmg, 2 DoT",
         "dmg": 15,
         "dot": 2,
         "dT": 1,
@@ -45,7 +45,7 @@
       },
       "overload": {
         "name": "Detonator",
-        "eff": "20 dmg, 3 DoT, 1t",
+        "eff": "20 dmg, 3 DoT",
         "dmg": 20,
         "dot": 3,
         "dT": 1,
@@ -57,7 +57,7 @@
     "rust": {
       "recharge": {
         "name": "ECM Jam",
-        "eff": "-1 roll, 5 shield, 1t",
+        "eff": "-1 roll, 5 shield",
         "dmg": 0,
         "dot": 0,
         "dT": 0,
@@ -439,7 +439,7 @@
       },
       "surge": {
         "name": "Venom Nip",
-        "eff": "9 dmg, 2 DoT, 1t",
+        "eff": "9 dmg, 2 DoT",
         "dmg": 9,
         "dot": 2,
         "dT": 1,
@@ -449,7 +449,7 @@
       },
       "crit": {
         "name": "Blood Frenzy",
-        "eff": "12 dmg, 3 DoT, 1t",
+        "eff": "12 dmg, 3 DoT",
         "dmg": 12,
         "dot": 3,
         "dT": 1,
@@ -459,7 +459,7 @@
       },
       "overload": {
         "name": "Splatter Gland",
-        "eff": "17 dmg, 4 DoT, 1t",
+        "eff": "17 dmg, 4 DoT",
         "dmg": 17,
         "dot": 4,
         "dT": 1,
@@ -471,7 +471,7 @@
     "mite": {
       "recharge": {
         "name": "Pheromone Surge",
-        "eff": "3 heal, -1 roll",
+        "eff": "-1 roll, 3 heal",
         "dmg": 0,
         "dot": 0,
         "dT": 0,
@@ -496,7 +496,7 @@
       },
       "surge": {
         "name": "Neural Bite",
-        "eff": "8 dmg, 1 DoT, 1t, -1 roll",
+        "eff": "8 dmg, 1 DoT, -1 roll",
         "dmg": 8,
         "dot": 1,
         "dT": 1,
@@ -508,7 +508,7 @@
       },
       "crit": {
         "name": "Symbiote Spike",
-        "eff": "10 dmg, 2 DoT, 1t, -2 roll",
+        "eff": "10 dmg, 2 DoT, -2 roll",
         "dmg": 10,
         "dot": 2,
         "dT": 1,
@@ -520,7 +520,7 @@
       },
       "overload": {
         "name": "Hive Latch",
-        "eff": "11 dmg, 3 DoT, 1t, -3 roll",
+        "eff": "11 dmg, 3 DoT, -3 roll",
         "dmg": 11,
         "dot": 3,
         "dT": 1,
@@ -900,7 +900,7 @@
     "veilPrism": {
       "recharge": {
         "name": "Lattice Guard",
-        "eff": "Draw focus",
+        "eff": "—",
         "dmg": 0,
         "dot": 0,
         "dT": 0,
@@ -921,7 +921,7 @@
       },
       "surge": {
         "name": "Prism Surge",
-        "eff": "11 dmg, 4 shield, 1t",
+        "eff": "11 dmg, 4 shield",
         "dmg": 11,
         "dot": 0,
         "dT": 0,
@@ -954,7 +954,7 @@
     "veilAegis": {
       "recharge": {
         "name": "Lattice Link",
-        "eff": "6 shield, 1t, ally 6 shield, 1t, all +1 enemy roll, 2t",
+        "eff": "6 shield, ally 6 shield, all +1 enemy roll, 2t",
         "dmg": 0,
         "dot": 0,
         "dT": 0,
@@ -969,7 +969,7 @@
       },
       "strike": {
         "name": "Aegis Bash",
-        "eff": "12 dmg, ally 6 shield, 1t, all +1 enemy roll",
+        "eff": "12 dmg, ally 6 shield, all +1 enemy roll",
         "dmg": 12,
         "dot": 0,
         "dT": 0,
@@ -984,7 +984,7 @@
       },
       "surge": {
         "name": "Bulwark Pulse",
-        "eff": "14 dmg, ally 8 shield, 1t, all +1 enemy roll, 2t",
+        "eff": "14 dmg, ally 8 shield, all +1 enemy roll, 2t",
         "dmg": 14,
         "dot": 0,
         "dT": 0,
@@ -999,7 +999,7 @@
       },
       "crit": {
         "name": "Fortress Lash",
-        "eff": "18 dmg, ally 9 shield, 1t, all +2 enemy roll, 2t",
+        "eff": "18 dmg, ally 9 shield, all +2 enemy roll, 2t",
         "dmg": 18,
         "dot": 0,
         "dT": 0,
@@ -1014,7 +1014,7 @@
       },
       "overload": {
         "name": "Conclave Bulwark",
-        "eff": "20 dmg, ally 12 shield, 1t, all +2 enemy roll, 3t, summon ~42% nat20",
+        "eff": "20 dmg, ally 12 shield, all +2 enemy roll, 3t, summon ~42% nat20",
         "dmg": 20,
         "dot": 0,
         "dT": 0,
@@ -1245,7 +1245,7 @@
       },
       "strike": {
         "name": "Herald Strike",
-        "eff": "11 dmg, ally 6 shield, 1t",
+        "eff": "11 dmg, ally 6 shield",
         "dmg": 11,
         "dot": 0,
         "dT": 0,
@@ -1257,7 +1257,7 @@
       },
       "surge": {
         "name": "Weave Shield",
-        "eff": "10 dmg, ally 7 shield, 1t, all +1 enemy roll, 2t",
+        "eff": "10 dmg, ally 7 shield, all +1 enemy roll, 2t",
         "dmg": 10,
         "dot": 0,
         "dT": 0,
@@ -1272,7 +1272,7 @@
       },
       "crit": {
         "name": "Conduit Spike",
-        "eff": "15 dmg, ally 8 shield, 1t, all +1 enemy roll, 3t",
+        "eff": "15 dmg, ally 8 shield, all +1 enemy roll, 3t",
         "dmg": 15,
         "dot": 0,
         "dT": 0,
@@ -1381,7 +1381,7 @@
     "voidWisp": {
       "recharge": {
         "name": "Void Hum",
-        "eff": "-1 roll, cursed dice",
+        "eff": "-1 roll",
         "dmg": 0,
         "dot": 0,
         "dT": 0,
@@ -1406,7 +1406,7 @@
       },
       "surge": {
         "name": "Arc Nibble",
-        "eff": "8 dmg, 1 DoT, 1t, -1 roll",
+        "eff": "8 dmg, 1 DoT, -1 roll",
         "dmg": 8,
         "dot": 1,
         "dT": 1,
@@ -1418,7 +1418,7 @@
       },
       "crit": {
         "name": "Mana Burr",
-        "eff": "10 dmg, 2 DoT, 1t, -2 roll",
+        "eff": "10 dmg, 2 DoT, -2 roll",
         "dmg": 10,
         "dot": 2,
         "dT": 1,
@@ -1430,7 +1430,7 @@
       },
       "overload": {
         "name": "Circlet Surge",
-        "eff": "11 dmg, 3 DoT, 1t, -3 roll",
+        "eff": "11 dmg, 3 DoT, -3 roll",
         "dmg": 11,
         "dot": 3,
         "dT": 1,
@@ -1444,64 +1444,58 @@
     "voidAcolyte": {
       "recharge": {
         "name": "Seal Sigil",
-        "eff": "counterspell surge (2t)",
+        "eff": "counter C 50%",
         "dmg": 0,
         "dot": 0,
         "dT": 0,
         "heal": 0,
         "rfe": 0,
         "shield": 0,
-        "counterspellZone": "surge",
-        "counterspellT": 2
+        "counterspellPct": 50
       },
       "strike": {
         "name": "Binding Lash",
-        "eff": "12 dmg, counterspell strike (2t)",
+        "eff": "12 dmg, counter C 50%",
         "dmg": 12,
         "dot": 0,
         "dT": 0,
         "heal": 0,
         "rfe": 0,
         "shield": 0,
-        "counterspellZone": "strike",
-        "counterspellT": 2
+        "counterspellPct": 50
       },
       "surge": {
         "name": "Geas Needle",
-        "eff": "14 dmg, counterspell crit (1t)",
+        "eff": "14 dmg, counter C 40%",
         "dmg": 14,
         "dot": 0,
         "dT": 0,
         "heal": 0,
         "rfe": 0,
         "shield": 0,
-        "counterspellZone": "crit",
-        "counterspellT": 1
+        "counterspellPct": 40
       },
       "crit": {
         "name": "Levyn Collar",
-        "eff": "17 dmg, counterspell overload (1t)",
+        "eff": "17 dmg, counter C 40%",
         "dmg": 17,
         "dot": 0,
         "dT": 0,
         "heal": 0,
         "rfe": 0,
         "shield": 0,
-        "counterspellZone": "overload",
-        "counterspellT": 1
+        "counterspellPct": 40
       },
       "overload": {
         "name": "Ritual Clamp",
-        "eff": "18 dmg, summon ~40% nat20, counterspell strike all (1t)",
+        "eff": "18 dmg, summon ~40% nat20, counter C 40%",
         "dmg": 18,
         "dot": 0,
         "dT": 0,
         "heal": 0,
         "rfe": 0,
         "shield": 0,
-        "counterspellZone": "strike",
-        "counterspellT": 1,
-        "counterspellAll": true,
+        "counterspellPct": 40,
         "summonChance": 40,
         "summonName": "Sparksprite"
       }
@@ -1522,7 +1516,7 @@
       },
       "strike": {
         "name": "Glyph Strike",
-        "eff": "11 dmg, ally 6 shield, 1t",
+        "eff": "11 dmg, ally 6 shield",
         "dmg": 11,
         "dot": 0,
         "dT": 0,
@@ -1534,7 +1528,7 @@
       },
       "surge": {
         "name": "Codex Weave",
-        "eff": "10 dmg, ally 7 shield, 1t, all +1 enemy roll, 2t",
+        "eff": "10 dmg, ally 7 shield, all +1 enemy roll, 2t",
         "dmg": 10,
         "dot": 0,
         "dT": 0,
@@ -1615,7 +1609,7 @@
       },
       "crit": {
         "name": "Dominion Mark",
-        "eff": "19 dmg, -2 roll, 2t, counterspell crit all (1t)",
+        "eff": "19 dmg, -2 roll, 2t, counter C 40%",
         "dmg": 19,
         "dot": 0,
         "dT": 0,
@@ -1624,13 +1618,11 @@
         "shield": 0,
         "rfm": 2,
         "rfmT": 2,
-        "counterspellZone": "crit",
-        "counterspellT": 1,
-        "counterspellAll": true
+        "counterspellPct": 40
       },
       "overload": {
         "name": "Mass Snare",
-        "eff": "21 dmg, -3 roll, 2t, summon ~35% nat20, counterspell surge all (2t)",
+        "eff": "21 dmg, -3 roll, 2t, summon ~35% nat20, counter C 50%",
         "dmg": 21,
         "dot": 0,
         "dT": 0,
@@ -1639,9 +1631,7 @@
         "shield": 0,
         "rfm": 3,
         "rfmT": 2,
-        "counterspellZone": "surge",
-        "counterspellT": 2,
-        "counterspellAll": true,
+        "counterspellPct": 50,
         "summonChance": 35,
         "summonName": "Sparksprite"
       }
@@ -1660,15 +1650,14 @@
       },
       "strike": {
         "name": "False Edge",
-        "eff": "13 dmg, counterspell recharge (1t)",
+        "eff": "13 dmg, counter C 40%",
         "dmg": 13,
         "dot": 0,
         "dT": 0,
         "heal": 0,
         "rfe": 0,
         "shield": 0,
-        "counterspellZone": "recharge",
-        "counterspellT": 1
+        "counterspellPct": 40
       },
       "surge": {
         "name": "Mirror Break",
@@ -1683,19 +1672,18 @@
       },
       "crit": {
         "name": "Afterimage",
-        "eff": "17 dmg, counterspell strike (2t)",
+        "eff": "17 dmg, counter C 50%",
         "dmg": 17,
         "dot": 0,
         "dT": 0,
         "heal": 0,
         "rfe": 0,
         "shield": 0,
-        "counterspellZone": "strike",
-        "counterspellT": 2
+        "counterspellPct": 50
       },
       "overload": {
         "name": "Total Eclipse",
-        "eff": "19 dmg, wipe shields, summon ~38% nat20, counterspell surge all (1t)",
+        "eff": "19 dmg, wipe shields, summon ~38% nat20, counter C 40%",
         "dmg": 19,
         "dot": 0,
         "dT": 0,
@@ -1703,9 +1691,7 @@
         "rfe": 0,
         "shield": 0,
         "wipeShields": true,
-        "counterspellZone": "surge",
-        "counterspellT": 1,
-        "counterspellAll": true,
+        "counterspellPct": 40,
         "summonChance": 38,
         "summonName": "Sparksprite"
       }
@@ -1755,16 +1741,14 @@
       },
       "overload": {
         "name": "Warp Nova",
-        "eff": "22 dmg, 4 DoT, 4t, summon ~42% nat20, counterspell recharge all (1t)",
+        "eff": "22 dmg, 4 DoT, 4t, summon ~42% nat20, counter C 40%",
         "dmg": 22,
         "dot": 4,
         "dT": 4,
         "heal": 0,
         "rfe": 0,
         "shield": 0,
-        "counterspellZone": "recharge",
-        "counterspellT": 1,
-        "counterspellAll": true,
+        "counterspellPct": 40,
         "summonChance": 42,
         "summonName": "Sparksprite"
       }
@@ -1772,7 +1756,7 @@
     "voidCircletBoss": {
       "recharge": {
         "name": "Hierophant Mantle",
-        "eff": "20 shield, 2t, ally 8 shield, 2t, all +2 enemy roll, 2t, counterspell strike all (1t)",
+        "eff": "20 shield, 2t, ally 8 shield, 2t, all +2 enemy roll, 2t, counter C 52%",
         "dmg": 0,
         "dot": 0,
         "dT": 0,
@@ -1784,13 +1768,11 @@
         "erb": 2,
         "erbT": 2,
         "erbAll": true,
-        "counterspellZone": "strike",
-        "counterspellT": 1,
-        "counterspellAll": true
+        "counterspellPct": 52
       },
       "strike": {
         "name": "Decree of Stillness",
-        "eff": "19 dmg (P2 26), -2 roll, 2t, counterspell surge (2t)",
+        "eff": "19 dmg (P2 26), -2 roll, 2t, counter C 50%",
         "dmg": 19,
         "dmgP2": 26,
         "dot": 0,
@@ -1800,12 +1782,11 @@
         "shield": 0,
         "rfm": 2,
         "rfmT": 2,
-        "counterspellZone": "surge",
-        "counterspellT": 2
+        "counterspellPct": 50
       },
       "surge": {
         "name": "Circlet Cataclysm",
-        "eff": "22 dmg (P2 28), 2 DoT, 2t, all +1 enemy roll, 2t, counterspell crit all (1t)",
+        "eff": "22 dmg (P2 28), 2 DoT, 2t, all +1 enemy roll, 2t, counter C 40%",
         "dmg": 22,
         "dmgP2": 28,
         "dot": 2,
@@ -1816,13 +1797,11 @@
         "erb": 1,
         "erbT": 2,
         "erbAll": true,
-        "counterspellZone": "crit",
-        "counterspellT": 1,
-        "counterspellAll": true
+        "counterspellPct": 40
       },
       "crit": {
         "name": "Absolute Binding",
-        "eff": "26 dmg (P2 32), -3 roll, 2t, counterspell overload all (1t)",
+        "eff": "26 dmg (P2 32), -3 roll, 2t, counter C 40%",
         "dmg": 26,
         "dmgP2": 32,
         "dot": 0,
@@ -1832,9 +1811,7 @@
         "shield": 0,
         "rfm": 3,
         "rfmT": 2,
-        "counterspellZone": "overload",
-        "counterspellT": 1,
-        "counterspellAll": true
+        "counterspellPct": 40
       },
       "overload": {
         "name": "Void Gate",
@@ -1869,7 +1846,7 @@
       },
       "strike": {
         "name": "Void Grasp",
-        "eff": "6 dmg, -1 roll, +1 per packmate",
+        "eff": "6 dmg, -1 roll",
         "dmg": 6,
         "dot": 0,
         "dT": 0,
@@ -1882,7 +1859,7 @@
       },
       "surge": {
         "name": "Caustic Spittle",
-        "eff": "8 dmg, 2 DoT, 1t",
+        "eff": "8 dmg, 2 DoT",
         "dmg": 8,
         "dot": 2,
         "dT": 1,
@@ -1904,7 +1881,7 @@
       },
       "overload": {
         "name": "Troop Frenzy",
-        "eff": "13 dmg, 3 DoT, 1t, -2 roll, 1t",
+        "eff": "13 dmg, 3 DoT, -2 roll",
         "dmg": 13,
         "dot": 3,
         "dT": 1,
@@ -1929,7 +1906,7 @@
       },
       "strike": {
         "name": "Rending Fang",
-        "eff": "7 dmg, +1 per packmate",
+        "eff": "7 dmg",
         "dmg": 7,
         "dot": 0,
         "dT": 0,
@@ -1940,7 +1917,7 @@
       },
       "surge": {
         "name": "Hamstring Lunge",
-        "eff": "9 dmg, 1 DoT, 1t",
+        "eff": "9 dmg, 1 DoT",
         "dmg": 9,
         "dot": 1,
         "dT": 1,
@@ -2275,7 +2252,7 @@
     "signalSkimmer": {
       "recharge": {
         "name": "ECM Ping",
-        "eff": "-1 roll, 2t, 5 shield, 1t",
+        "eff": "-1 roll, 2t, 5 shield",
         "dmg": 0,
         "dot": 0,
         "dT": 0,

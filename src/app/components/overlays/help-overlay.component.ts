@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy, inject, input, output, isDevMode, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { GameStateService } from '../../services/game-state.service';
+import { SoundService } from '../../services/sound.service';
 import { DevDataPanelService } from '../../services/dev-data-panel.service';
 import { BattleProgressSimService } from '../../services/battle-progress-sim.service';
 
@@ -14,6 +15,7 @@ import { BattleProgressSimService } from '../../services/battle-progress-sim.ser
 })
 export class HelpOverlayComponent {
   readonly state = inject(GameStateService);
+  private readonly sound = inject(SoundService);
   private readonly devData = inject(DevDataPanelService);
   private readonly sim = inject(BattleProgressSimService);
   /** DATA panel only available in dev builds. */
@@ -33,6 +35,11 @@ export class HelpOverlayComponent {
   openDataPanel(): void {
     this.devData.openPanel();
     this.closed.emit();
+  }
+
+  toggleSound(): void {
+    this.state.toggleSound();
+    if (this.state.soundOn()) this.sound.resume();
   }
 
   runBalanceSim(): void {

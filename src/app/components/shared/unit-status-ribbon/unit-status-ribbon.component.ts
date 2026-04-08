@@ -1,4 +1,5 @@
 import { Component, ChangeDetectionStrategy, input } from '@angular/core';
+import { OpTooltipDirective } from '../../../directives/op-tooltip.directive';
 
 export interface UnitStatusRibbonLine {
   key: string;
@@ -12,6 +13,7 @@ export interface UnitStatusRibbonLine {
 @Component({
   selector: 'app-unit-status-ribbon',
   standalone: true,
+  imports: [OpTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './unit-status-ribbon.component.html',
   styleUrl: './unit-status-ribbon.component.scss',

@@ -2,10 +2,13 @@ import { Component, ChangeDetectionStrategy, inject, signal, computed, output } 
 import { GameStateService } from '../../services/game-state.service';
 import { HeroContentService } from '../../services/hero-content.service';
 import { CombatService } from '../../services/combat.service';
-import { BATTLE_MODES, BATTLE_MODE_ORDER } from '../../data/battle-modes.data';
+import { BATTLE_MODES, BATTLE_MODE_ORDER, battlesForMode } from '../../data/battle-modes.data';
+import { enemyPortraitHref } from '../../data/sprites.data';
+import { EnemyContentService } from '../../services/enemy-content.service';
 import { BUILD_VERSION, BUILD_STAMP } from '../../models/constants';
 import type { BattleModeId, HeroId } from '../../models/types';
 import type { HeroDefinition, HeroPickerCategory } from '../../models/hero.interface';
+import { heroPortraitHref } from '../../data/sprites.data';
 
 @Component({
   selector: 'app-operation-picker',
@@ -24,6 +27,7 @@ export class OperationPickerComponent {
   readonly state = inject(GameStateService);
   private readonly combat = inject(CombatService);
   private readonly heroContent = inject(HeroContentService);
+  private readonly enemyContent = inject(EnemyContentService);
 
   readonly modes = BATTLE_MODES;
   readonly modeOrder = BATTLE_MODE_ORDER;
@@ -73,6 +77,22 @@ export class OperationPickerComponent {
     this.state.battleModeId.set(id);
   }
 
+  /** Final encounter’s last spawn (track capstone) for picker thumbnail. */
+  trackBossPortraitSrc(id: BattleModeId): string | null {
+    const battles = battlesForMode(id);
+    const lastBattle = battles[battles.length - 1];
+    const spawns = lastBattle?.enemies;
+    if (!spawns?.length) return null;
+    const spawn = spawns[spawns.length - 1];
+    try {
+      const def = this.enemyContent.expandFromSpawn(spawn);
+      const path = enemyPortraitHref(def.type);
+      return path.startsWith('/') ? path : `/${path}`;
+    } catch {
+      return null;
+    }
+  }
+
   setSquadRandom(random: boolean): void {
     this.squadRandom.set(random);
     if (random) this.pickedOrder.set([]);
@@ -86,6 +106,12 @@ export class OperationPickerComponent {
   canToggle(id: HeroId): boolean {
     if (this.isPicked(id)) return true;
     return this.pickedOrder().length < 3;
+  }
+
+  /** Raster portrait URL for squad picker thumbnails (same assets as in-battle cards). */
+  pickerPortraitSrc(h: HeroDefinition): string {
+    const path = heroPortraitHref(h.id, h.portraitPath ?? null);
+    return path.startsWith('/') ? path : `/${path}`;
   }
 
   toggleHero(id: HeroId): void {

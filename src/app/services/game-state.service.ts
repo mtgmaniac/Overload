@@ -2,12 +2,21 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { HeroState } from '../models/hero.interface';
 import { EnemyState } from '../models/enemy.interface';
 import { LogEntry, PendingEvolution, TutorialState } from '../models/game-state.interface';
-import { BattleModeId, GamePhase, HeroId, LogClass, LogMode, ProtocolAction, Zone } from '../models/types';
+import { BattleModeId, GamePhase, HeroId, LogClass, LogMode, ProtocolAction } from '../models/types';
 import { tickStacks } from '../utils/stack.utils';
 import type { PendingItemSelection } from '../models/item.interface';
 import { battleCountForMode, battleModeConfig, DEFAULT_BATTLE_MODE } from '../data/battle-modes.data';
 import { HeroStateService } from './hero-state.service';
 import { EnemyStateService } from './enemy-state.service';
+
+const SOUND_PREF_KEY = 'overload-sound-on';
+
+function readSoundPref(): boolean {
+  if (typeof localStorage === 'undefined') return true;
+  const v = localStorage.getItem(SOUND_PREF_KEY);
+  if (v === null) return true;
+  return v === '1' || v === 'true';
+}
 
 /** One enemy-applied squad roll debuff application; expires independently. */
 export type SquadRfmStack = { amt: number; turnsLeft: number };
@@ -31,6 +40,7 @@ export class GameStateService {
   readonly anyEnemyAlive = this.enemyState.anyEnemyAlive;
   readonly forcedEnemyTargetIdx = this.enemyState.forcedEnemyTargetIdx;
   readonly tauntHeroId = this.enemyState.tauntHeroId;
+  readonly tauntEnemyIdx = this.enemyState.tauntEnemyIdx;
 
   // ── Battle-level signals ──
   /** Which operation / battle track is active (facility, hive, …). */
@@ -47,6 +57,8 @@ export class GameStateService {
   readonly logMode = signal<LogMode>('min');
   readonly logOpen = signal(false);
   readonly animOn = signal(true);
+  /** Procedural SFX (Web Audio); persisted like other UI prefs. */
+  readonly soundOn = signal(readSoundPref());
   readonly tutorial = signal<TutorialState | null>(null);
   readonly protocol = signal(0);
   readonly selectedHeroIdx = signal<number | null>(null);
@@ -156,18 +168,6 @@ export class GameStateService {
     this.heroState.clearAllHeroRfmStacks();
   }
 
-  pushHeroCounterspellStack(heroIndex: number, zone: Zone, turns: number): void {
-    this.heroState.pushHeroCounterspellStack(heroIndex, zone, turns);
-  }
-
-  pushCounterspellAllLiving(zone: Zone, turns: number): void {
-    this.heroState.pushCounterspellAllLiving(zone, turns);
-  }
-
-  tickHeroCounterspellStacksForEndOfPlayerRound(): void {
-    this.heroState.tickHeroCounterspellStacksForEndOfPlayerRound();
-  }
-
   pick3(): HeroState[] {
     return this.heroState.pick3();
   }
@@ -207,6 +207,13 @@ export class GameStateService {
 
   addLog(msg: string, cls: LogClass = ''): void {
     this.log.update(log => [{ msg, cls }, ...log]);
+  }
+
+  toggleSound(): void {
+    this.soundOn.update(v => !v);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(SOUND_PREF_KEY, this.soundOn() ? '1' : '0');
+    }
   }
 
   // ── Reset ──

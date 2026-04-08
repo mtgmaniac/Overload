@@ -10,6 +10,8 @@ export class EnemyStateService {
   readonly forcedEnemyTargetIdx = signal<number | null>(null);
 
   readonly tauntHeroId = signal<HeroId | null>(null);
+  /** Enemy index that must target `tauntHeroId`; all other enemies use normal AI. */
+  readonly tauntEnemyIdx = signal<number | null>(null);
 
   // ── Computed signals ──
 
@@ -37,5 +39,6 @@ export class EnemyStateService {
     this.enemies.set([]);
     this.forcedEnemyTargetIdx.set(null);
     this.tauntHeroId.set(null);
+    this.tauntEnemyIdx.set(null);
   }
 }

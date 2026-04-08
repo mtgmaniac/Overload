@@ -22,6 +22,7 @@ import { EnemyState } from '../../models/enemy.interface';
 import { DieComponent } from './die/die.component';
 import { D20_ROLL_CELLS } from './die/d20-sprite';
 import { TutorialService } from '../../services/tutorial.service';
+import { SoundService } from '../../services/sound.service';
 
 const ANIM_TICK_MS = 72;
 const PIXEL_SNAP = 4;
@@ -46,6 +47,7 @@ export class DiceTrayComponent {
   tutorial = inject(TutorialService);
   private rerollRequests = inject(RerollAnimationRequestService);
   private destroyRef = inject(DestroyRef);
+  private sound = inject(SoundService);
 
   ANIM_REVEAL_STEP = ANIM_REVEAL_STEP;
 
@@ -122,6 +124,7 @@ export class DiceTrayComponent {
 
   onRollAll(): void {
     if (this.state.phase() !== 'player' || this.state.rollAllInProgress() || this.isAnimating()) return;
+    this.sound.resume();
 
     const payload = this.combat.computeRollAllPresets();
     if (!payload) return;
@@ -145,6 +148,7 @@ export class DiceTrayComponent {
     if (this.state.phase() !== 'player' || this.state.rollAllInProgress() || this.isAnimating()) {
       return Promise.resolve();
     }
+    this.sound.resume();
     const payload = this.combat.computeRollAllPresets();
     if (!payload) return Promise.resolve();
 
@@ -166,6 +170,7 @@ export class DiceTrayComponent {
 
   private playRerollAnimation(p: RerollAnimationPayload): void {
     if (this.state.phase() !== 'player' || this.isAnimating()) return;
+    this.sound.resume();
     const rolled = this.protocol.drawRerollForAnimation(p.heroIdx);
     if (!rolled) return;
     const heroes = this.state.heroes();
@@ -198,6 +203,7 @@ export class DiceTrayComponent {
     const { heroes, enemies, heroRolls, enemyRolls, rerollHeroIdx, progressFlag, onFinished } = args;
     if (this.isAnimating()) return;
 
+    this.sound.resume();
     this.isAnimating.set(true);
     this.rerollingHeroIdx.set(rerollHeroIdx);
     if (progressFlag === 'rollAll') this.state.rollAllInProgress.set(true);
@@ -302,6 +308,7 @@ export class DiceTrayComponent {
         this.enemyDriftPx.set(enemies.map(() => 0));
 
         if (step === ANIM_REVEAL_STEP) {
+          this.sound.playRollReveal();
           const dieRefs = this.heroDieRefs();
           for (const hr of heroRolls) {
             dieRefs[hr.heroIdx]?.triggerBounce();
@@ -358,12 +365,15 @@ export class DiceTrayComponent {
         onFinished: () => this.combat.applyHeroRollPreset(hr, presRoll),
       });
     } else {
+      this.sound.resume();
+      this.sound.playRollTick();
       this.combat.applyHeroRollPreset(hr, presRoll);
     }
   }
 
   onEndTurn(): void {
     if (this.isAnimating()) return;
+    this.sound.resume();
     this.combat.endTurn();
   }
 

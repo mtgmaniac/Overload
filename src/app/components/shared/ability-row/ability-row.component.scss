@@ -1,4 +1,4 @@
-/* Fixed row height so hero/enemy ability panels stay aligned */
+/* Fixed row height — matches .bdg-slot (22px) so ability + badge panels align visually */
 .ap-row {
   display: flex;
   align-items: stretch;
@@ -6,9 +6,9 @@
   margin-bottom: 1px;
   opacity: 1;
   transition: opacity 0.14s ease, filter 0.14s ease;
-  height: 19px;
-  min-height: 19px;
-  max-height: 19px;
+  height: 22px;
+  min-height: 22px;
+  max-height: 22px;
   box-sizing: border-box;
   overflow: hidden;
   flex-shrink: 0;
@@ -25,16 +25,17 @@
   border-radius: var(--radius-pixel);
   box-shadow: inset 2px 2px 0 rgba(255, 255, 255, 0.07), inset -1px -1px 0 rgba(0, 0, 0, 0.35);
 }
-/* Fixed width: longest brackets are 5 chars (e.g. 10-15, 11-16); tight but with side breathing room */
+/* Fixed width: longest roll-range labels are 5 chars (e.g. 10-15, 11-16); tight but with side breathing room */
 .az {
   font-family: var(--font-pixel);
-  width: 36px;
-  min-width: 36px;
-  max-width: 36px;
+  width: 38px;
+  min-width: 38px;
+  max-width: 38px;
   padding: 0 1px;
   border-radius: var(--radius-pixel);
-  font-size: 9px;
-  font-weight: 700;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
   text-align: center;
   flex-shrink: 0;
   line-height: 1;
@@ -42,10 +43,12 @@
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
 }
 .az-neutral {
   background: rgba(255, 255, 255, 0.04);
-  color: #8fa6bc;
+  color: var(--text-chip);
   border: 1px solid rgba(80, 100, 128, 0.45);
 }
 .ae {
@@ -72,7 +75,7 @@
 .mi {
   display: inline-flex;
   align-items: center;
-  gap: 1px;
+  gap: 2px;
   padding: 0 1px;
   min-height: 0;
   border-radius: var(--radius-pixel);
@@ -127,9 +130,36 @@
   background: rgba(80, 120, 160, 0.12);
 }
 .mi-wide { padding: 0 1px; }
-.mi-wide .n { font-size: 9px; letter-spacing: 0; }
-.ic { width: 10px; height: 10px; flex-shrink: 0; color: currentColor; }
-.ic-die { width: 10px; height: 10px; }
-.ic-clock-inline { width: 9px; height: 9px; margin-left: 0; opacity: 0.92; }
-.n { font-weight: 900; font-size: 9px; font-family: var(--font-pixel); }
-.n-turns { font-size: 9px; opacity: 0.92; }
+.mi-wide .n { font-size: 12px; letter-spacing: 0; }
+.ic { width: 13px; height: 13px; flex-shrink: 0; color: currentColor; }
+/* AoE (A) / self (S) — matches badge density */
+.ic-tag-letter {
+  flex-shrink: 0;
+  align-self: center;
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  width: 10px;
+  min-width: 10px;
+  text-align: center;
+  color: currentColor;
+  opacity: 0.95;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+}
+.ic-die { width: 14px; height: 14px; }
+.ic-clock-inline { width: 12px; height: 12px; margin-left: 0; opacity: 0.92; }
+.n {
+  font-weight: 800;
+  font-size: 12px;
+  font-family: var(--font-pixel);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55);
+}
+.n-turns {
+  font-size: 11px;
+  font-weight: 800;
+  opacity: 0.92;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+}

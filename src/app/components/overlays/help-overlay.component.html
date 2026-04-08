@@ -10,6 +10,9 @@
         <button class="hdr-btn" type="button" (click)="state.animOn.update(v => !v)">
           {{ state.animOn() ? 'ANIMATIONS ON' : 'ANIMATIONS OFF' }}
         </button>
+        <button class="hdr-btn" type="button" (click)="toggleSound()">
+          {{ state.soundOn() ? 'SOUND ON' : 'SOUND OFF' }}
+        </button>
         <button class="hdr-btn" type="button" (click)="closed.emit()">CLOSE</button>
       </div>
     </div>

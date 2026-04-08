@@ -1,15 +1,12 @@
 import { HeroAbility } from './ability.interface';
 import { normalizeHeroAbility } from '../data/hero-ability-normalize';
-import { HeroId, Zone } from './types';
+import { HeroId } from './types';
 
 /** Squad picker grouping on the operation overlay. */
 export type HeroPickerCategory = 'damage' | 'defense' | 'support' | 'control';
 
 /** Per-hero −raw d20 from enemy abilities (e.g. rust jam on target); independent stacks like squad rfm. */
 export type HeroRfmStack = { amt: number; turnsLeft: number };
-
-/** Enemy counterspell: hero cannot resolve abilities whose bracket zone matches (ticks down each END TURN). */
-export type HeroCounterspellStack = { zone: Zone; turnsLeft: number };
 
 export interface EvolutionTier {
   name: string;
@@ -47,7 +44,6 @@ export interface HeroState extends HeroDefinition {
   pendingRollBuffT: number;
   /** Enemy-applied roll penalty stacks (rust targets this hero only). */
   heroRfmStacks: HeroRfmStack[];
-  counterspellStacks: HeroCounterspellStack[];
   /** >0: cannot roll this player round; ability skipped (Cower). Ticks down after each player END TURN. */
   cowerTurns: number;
   confirmed: boolean;
@@ -102,7 +98,6 @@ export function createHeroState(def: HeroDefinition): HeroState {
     pendingRollBuff: 0,
     pendingRollBuffT: 0,
     heroRfmStacks: [],
-    counterspellStacks: [],
     cowerTurns: 0,
     confirmed: false,
     dot: 0,

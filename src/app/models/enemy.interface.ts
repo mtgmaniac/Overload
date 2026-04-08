@@ -61,6 +61,13 @@ export interface EnemyState extends EnemyDefinition {
   rampageCharges: number;
   /** Skip the next N squad reveal rolls; die/plan preserved across enemy→player clear until consumed. */
   dieFreezeRollsRemaining: number;
+  /**
+   * Enemy self-buff from counter abilities (e.g. Seal Sigil): % chance to reflect the next hero damage attempt.
+   * Cleared after one attempt, at end of player round if no hero hit, or at end of enemy phase if still active.
+   */
+  counterReflectPct: number | null;
+  /** True after a hero ability damage line targets this enemy while counter was active (this player round). */
+  counterTaggedThisPlayerRound: boolean;
 }
 
 export function createEnemyState(def: EnemyDefinition, id: number): EnemyState {
@@ -89,5 +96,7 @@ export function createEnemyState(def: EnemyDefinition, id: number): EnemyState {
     rollBuffT: 0,
     rampageCharges: 0,
     dieFreezeRollsRemaining: 0,
+    counterReflectPct: null,
+    counterTaggedThisPlayerRound: false,
   };
 }

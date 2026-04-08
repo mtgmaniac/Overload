@@ -9,6 +9,7 @@ import {
   UnitStatusRibbonComponent,
   type UnitStatusRibbonLine,
 } from '../unit-status-ribbon/unit-status-ribbon.component';
+import { OpTooltipDirective } from '../../../directives/op-tooltip.directive';
 import { GameStateService } from '../../../services/game-state.service';
 import {
   BadgeProjectionService,
@@ -19,7 +20,7 @@ import {
 @Component({
   selector: 'app-badge-zone',
   standalone: true,
-  imports: [UnitStatusRibbonComponent],
+  imports: [UnitStatusRibbonComponent, OpTooltipDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './badge-zone.component.html',
   styleUrl: './badge-zone.component.scss',

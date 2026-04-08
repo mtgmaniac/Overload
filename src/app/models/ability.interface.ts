@@ -71,11 +71,8 @@ export interface EnemyAbility {
   erbT?: number;
   /** If true, `erb` applies to all living enemies. */
   erbAll?: boolean;
-  /** Counterspell: block heroes from resolving abilities in this zone for N player end-turns (tick after squad resolves). */
-  counterspellZone?: Zone;
-  counterspellT?: number;
-  /** Apply counterspell to all living heroes (else only `targeting` hero when smart). */
-  counterspellAll?: boolean;
+  /** If set and positive, the caster gains a counter buff (% chance to reflect the next hero damage attempt to the attacker). */
+  counterspellPct?: number;
   /** Add rampage charges to self: next direct hit damage ×2 per charge (consumed one per hit). */
   grantRampage?: number;
   /** Add rampage charges to all living enemies (stampede / pack frenzy). */

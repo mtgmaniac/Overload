@@ -82,17 +82,6 @@ export class HeroCardComponent {
             : 'You roll twice and keep the lower result.',
       });
     }
-    const stacks = h.counterspellStacks || [];
-    for (let i = 0; i < stacks.length; i++) {
-      const s = stacks[i];
-      if (!s || s.turnsLeft <= 0) continue;
-      const z = s.zone.toUpperCase();
-      out.push({
-        key: `seal-${i}-${s.zone}`,
-        tag: 'SEAL',
-        detail: `${z} abilities fizzle this turn (${s.turnsLeft} player round${s.turnsLeft > 1 ? 's' : ''}).`,
-      });
-    }
     return out;
   });
 

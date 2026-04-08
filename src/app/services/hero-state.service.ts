@@ -1,6 +1,6 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { HeroState, HeroRfmStack, createHeroState } from '../models/hero.interface';
-import { HeroId, Zone } from '../models/types';
+import { HeroId } from '../models/types';
 import { HeroContentService } from './hero-content.service';
 import { PortraitPreloadService } from './portrait-preload.service';
 import { tickStacks } from '../utils/stack.utils';
@@ -116,47 +116,6 @@ export class HeroStateService {
 
   clearAllHeroRfmStacks(): void {
     this.heroes.update(heroes => heroes.map(h => ({ ...h, heroRfmStacks: [] })));
-  }
-
-  // ── Counterspell stacks ──
-
-  pushHeroCounterspellStack(heroIndex: number, zone: Zone, turns: number): void {
-    const t = Math.max(1, Math.round(turns));
-    this.heroes.update(heroes =>
-      heroes.map((h, i) =>
-        i !== heroIndex
-          ? h
-          : {
-              ...h,
-              counterspellStacks: [...(h.counterspellStacks || []), { zone, turnsLeft: t }],
-            },
-      ),
-    );
-  }
-
-  /** Apply counterspell zone block to every living hero (enemy `counterspellAll`). */
-  pushCounterspellAllLiving(zone: Zone, turns: number): void {
-    const t = Math.max(1, Math.round(turns));
-    this.heroes.update(heroes =>
-      heroes.map(h =>
-        h.currentHp <= 0
-          ? h
-          : {
-              ...h,
-              counterspellStacks: [...(h.counterspellStacks || []), { zone, turnsLeft: t }],
-            },
-      ),
-    );
-  }
-
-  /** Same cadence as squad rfm — one tick per END TURN after that round's hero abilities resolve. */
-  tickHeroCounterspellStacksForEndOfPlayerRound(): void {
-    this.heroes.update(heroes =>
-      heroes.map(h => ({
-        ...h,
-        counterspellStacks: tickStacks(h.counterspellStacks || []),
-      })),
-    );
   }
 
   // ── Initialization ──

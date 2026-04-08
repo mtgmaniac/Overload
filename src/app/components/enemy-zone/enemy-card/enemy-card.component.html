@@ -44,11 +44,9 @@
         <div class="info-col">
         <div>
           <app-hp-bar [current]="enemy().currentHp" [max]="enemy().maxHp">
-            <div data-hp-aside>
-              <app-unit-status-ribbon [lines]="enemyStatusLines()" />
-            </div>
+            <div data-hp-aside></div>
           </app-hp-bar>
-          <app-badge-zone kind="enemy" [index]="index()" />
+          <app-badge-zone kind="enemy" [index]="index()" [ribbonLines]="enemyRibbonLines()" />
         </div>
       </div>
       <div class="sprite">

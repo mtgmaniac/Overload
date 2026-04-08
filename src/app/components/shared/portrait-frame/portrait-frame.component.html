@@ -3,7 +3,7 @@
   [attr.id]="anchorId() ?? null"
   [class.pf-cloaked]="isCloaked()"
   [class.pf-rampage]="rampageGlow()"
-  [attr.title]="rampageTip() ?? null"
+  [opTooltip]="rampageTip()"
   [style.width.px]="pf.width"
   [style.height.px]="pf.height"
   [innerHTML]="safeSvg()">

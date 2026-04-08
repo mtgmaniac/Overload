@@ -49,8 +49,23 @@
               [class.op-card-on]="state.battleModeId() === id"
               (click)="selectMode(id)"
               role="listitem">
-              <span class="op-card-label">{{ modes[id].label }}</span>
-              <span class="op-card-blurb">{{ modes[id].blurb }}</span>
+              <span class="op-card-inner">
+                @if (trackBossPortraitSrc(id); as bossSrc) {
+                  <span class="op-card-portrait" aria-hidden="true">
+                    <img
+                      [src]="bossSrc"
+                      [attr.alt]="modes[id].label + ' final boss'"
+                      width="38"
+                      height="50"
+                      loading="lazy"
+                      decoding="async" />
+                  </span>
+                }
+                <span class="op-card-body">
+                  <span class="op-card-label">{{ modes[id].label }}</span>
+                  <span class="op-card-blurb">{{ modes[id].blurb }}</span>
+                </span>
+              </span>
             </button>
           }
         </div>
@@ -91,9 +106,22 @@
                     [class.op-hero-card-on]="isPicked(h.id)"
                     [disabled]="!canToggle(h.id)"
                     (click)="toggleHero(h.id)">
-                    <span class="op-hero-card-name">{{ h.name }}</span>
-                    <span class="op-hero-card-cls">{{ h.cls }}</span>
-                    <span class="op-hero-card-desc">{{ h.pickerBlurb }}</span>
+                    <span class="op-hero-card-inner">
+                      <span class="op-hero-card-portrait" aria-hidden="true">
+                        <img
+                          [src]="pickerPortraitSrc(h)"
+                          [attr.alt]="h.name + ' portrait'"
+                          width="44"
+                          height="58"
+                          loading="lazy"
+                          decoding="async" />
+                      </span>
+                      <span class="op-hero-card-text">
+                        <span class="op-hero-card-name">{{ h.name }}</span>
+                        <span class="op-hero-card-cls">{{ h.cls }}</span>
+                        <span class="op-hero-card-desc">{{ h.pickerBlurb }}</span>
+                      </span>
+                    </span>
                   </button>
                 }
               </div>

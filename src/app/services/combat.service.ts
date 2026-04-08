@@ -27,7 +27,7 @@ import { TutorialService } from './tutorial.service';
 import { ItemService } from './item.service';
 import { PortraitPreloadService } from './portrait-preload.service';
 import { RelicService } from './relic.service';
-
+import { SoundService } from './sound.service';
 /** Precomputed squad + enemy tray rolls (shared by dice animation and instant sim). */
 export interface ComputedRollAllPayload {
   heroRolls: {
@@ -56,6 +56,7 @@ export class CombatService {
     private items: ItemService,
     private portraitPreload: PortraitPreloadService,
     private relicService: RelicService,
+    private sound: SoundService,
   ) {}
 
   /** Guard: prevents Chain Reaction from cascading recursively within one checkDead call. */
@@ -165,6 +166,7 @@ export class CombatService {
   }
 
   private async pulseHeroPortrait(i: number, cls: string): Promise<void> {
+    this.sound.playPortraitFlash(cls);
     const el = this.anim.heroPortraitEl(i);
     if (!el || !this.state.animOn()) return;
     await this.anim.pfPulse(el, cls, SUBFLASH_MS);
@@ -172,15 +174,11 @@ export class CombatService {
   }
 
   private async pulseEnemyPortrait(i: number, cls: string): Promise<void> {
+    this.sound.playPortraitFlash(cls);
     const el = this.anim.enemyPortraitEl(i);
     if (!el || !this.state.animOn()) return;
     await this.anim.pfPulse(el, cls, SUBFLASH_MS);
     await this.anim.paceBetweenSteps();
-  }
-
-  /** True if this hero’s rolled ability zone is counterspelled (ability fizzles — no damage, heal, etc.). */
-  private heroAbilityCounterspelled(h: HeroState, abilityZone: Zone): boolean {
-    return (h.counterspellStacks || []).some(s => s.zone === abilityZone && s.turnsLeft > 0);
   }
 
   /** One hero’s END TURN resolution with staggered highlights (caster → targets, left → right). */
@@ -199,12 +197,6 @@ export class CombatService {
 
     await this.anim.gapBetweenActors();
     await this.anim.pfShake(this.anim.heroPortraitEl(hi));
-
-    if (this.heroAbilityCounterspelled(h, ab.zone)) {
-      const z = ab.zone.toUpperCase();
-      this.log.log(`▸ ${h.name} → ${ab.name} fizzles! Counterspell (${z} tier sealed).`, 'bl');
-      return;
-    }
 
     const enemies = this.state.enemies();
     const tgtIdx = h.lockedTarget !== undefined && h.lockedTarget !== null ? h.lockedTarget : 0;
@@ -351,7 +343,7 @@ export class CombatService {
         const e = this.state.enemies()[idx];
         if (!this.enemyAcceptsHeroEffects(e)) continue;
         await this.pulseEnemyPortrait(idx, 'pf-flash-red');
-        this.applyDamageToEnemy(idx, effectiveDmg, h.name, !!(ab.ignSh));
+        this.applyDamageToEnemy(idx, effectiveDmg, h.name, !!(ab.ignSh), hi);
       }
     } else if (ab.splitDmg) {
       const alloc = h.splitAlloc || {};
@@ -367,17 +359,17 @@ export class CombatService {
         for (const x of entries) {
           if (x.dmg > 0) {
             await this.pulseEnemyPortrait(x.ei, 'pf-flash-red');
-            this.applyDamageToEnemy(x.ei, x.dmg, h.name, !!(ab.ignSh));
+            this.applyDamageToEnemy(x.ei, x.dmg, h.name, !!(ab.ignSh), hi);
             this.log.log(`▸ ${h.name} splits ${x.dmg} dmg → ${this.state.enemies()[x.ei].name}.`, 'pl');
           }
         }
       } else if (tgtE && this.enemyAcceptsHeroEffects(tgtE) && effectiveDmg > 0) {
         await this.pulseEnemyPortrait(tgtIdx, 'pf-flash-red');
-        this.applyDamageToEnemy(tgtIdx, effectiveDmg, h.name, !!(ab.ignSh));
+        this.applyDamageToEnemy(tgtIdx, effectiveDmg, h.name, !!(ab.ignSh), hi);
       }
     } else if (effectiveDmg > 0 && tgtE && this.enemyAcceptsHeroEffects(tgtE)) {
       await this.pulseEnemyPortrait(tgtIdx, 'pf-flash-red');
-      this.applyDamageToEnemy(tgtIdx, effectiveDmg, h.name, !!(ab.ignSh));
+      this.applyDamageToEnemy(tgtIdx, effectiveDmg, h.name, !!(ab.ignSh), hi);
     }
 
     if (ab.rfm && ab.rfm > 0) {
@@ -443,9 +435,17 @@ export class CombatService {
       this.log.log(`▸ ${h.name} — blood up (+${ab.grantRampage} rampage).`, 'pl');
     }
     if (ab.taunt) {
-      this.state.tauntHeroId.set(h.id);
-      this.targeting.assignTargets();
-      this.log.log(`▸ ${h.name} taunts — enemies will target ${h.name} this turn.`, 'pl');
+      const ei = h.lockedTarget;
+      if (ei !== undefined && ei !== null) {
+        const ex = this.state.enemies()[ei];
+        this.state.tauntHeroId.set(h.id);
+        this.state.tauntEnemyIdx.set(ei);
+        this.targeting.assignTargets();
+        this.log.log(
+          `▸ ${h.name} taunts ${ex?.name ?? 'enemy'} — must target ${h.name}.`,
+          'pl',
+        );
+      }
     }
 
     if (ab.dot > 0) {
@@ -663,6 +663,7 @@ export class CombatService {
           }
           const newHp = Math.max(0, this.state.heroes()[hIdx].currentHp - dmg);
           this.state.updateHero(hIdx, { currentHp: newHp });
+          if (newHp <= 0) this.sound.playDeath();
           this.log.log(`▸ ${e.name} → ${ht.name}: ${dmg} dmg. (${newHp}/${ht.maxHp} HP)`, 'en');
           if (newHp <= 0) this.log.log(`▸ ${ht.name} is down.`, 'sy');
           const ls = act.lifestealPct;
@@ -788,22 +789,11 @@ export class CombatService {
       }
     }
 
-    if (act.counterspellZone && (act.counterspellT || 0) > 0) {
-      const z = act.counterspellZone;
-      const dur = Math.max(1, act.counterspellT || 1);
-      const zLabel = z.toUpperCase();
-      if (act.counterspellAll) {
-        this.state.pushCounterspellAllLiving(z, dur);
-        this.log.log(`▸ ${e.name} — COUNTERSPELL! All heroes: ${zLabel} tier sealed (${dur}t).`, 'en');
-      } else {
-        const hIdx = this.state.heroes().findIndex(h => h.id === e.targeting && h.currentHp > 0);
-        if (hIdx >= 0) {
-          const ht = this.state.heroes()[hIdx];
-          await this.pulseHeroPortrait(hIdx, 'pf-flash-amber');
-          this.state.pushHeroCounterspellStack(hIdx, z, dur);
-          this.log.log(`▸ ${e.name} → ${ht.name}: counterspell ${zLabel} (${dur}t).`, 'en');
-        }
-      }
+    if ((act.counterspellPct ?? 0) > 0) {
+      const pct = Math.max(0, Math.min(100, act.counterspellPct!));
+      await this.pulseEnemyPortrait(ei, 'pf-flash-amber');
+      this.state.updateEnemy(ei, { counterReflectPct: pct, counterTaggedThisPlayerRound: false });
+      this.log.log(`▸ ${e.name} — COUNTER ${pct}% (next hero damage may reflect to attacker).`, 'en');
     }
 
     if ((act.grantRampage || 0) > 0) {
@@ -871,9 +861,38 @@ export class CombatService {
     await this.maybeEliteNaturalTwentySummon(ei, e, act);
   }
 
-  applyDamageToEnemy(idx: number, dmg: number, src: string, ignSh: boolean): void {
+  applyDamageToEnemy(
+    idx: number,
+    dmg: number,
+    src: string,
+    ignSh: boolean,
+    attackingHeroIdx?: number | null,
+  ): void {
     const e = this.state.enemies()[idx];
     if (!e || !this.enemyAcceptsHeroEffects(e)) return;
+    if (dmg <= 0) return;
+
+    if (
+      attackingHeroIdx != null &&
+      attackingHeroIdx >= 0 &&
+      e.counterReflectPct != null &&
+      e.counterReflectPct > 0
+    ) {
+      const pct = e.counterReflectPct;
+      this.state.updateEnemy(idx, { counterTaggedThisPlayerRound: true, counterReflectPct: null });
+      const reflects = Math.random() * 100 < pct;
+        if (reflects) {
+        const h = this.state.heroes()[attackingHeroIdx];
+        if (h && h.currentHp > 0) {
+          const newHp = Math.max(0, h.currentHp - dmg);
+          this.state.updateHero(attackingHeroIdx, { currentHp: newHp });
+          if (newHp <= 0) this.sound.playDeath();
+          this.log.log(`▸ ${e.name} COUNTERS — ${dmg} dmg reflects to ${h.name}! (${pct}% chance)`, 'pl');
+        }
+        return;
+      }
+    }
+
     let actualDmg = dmg;
     if (e.shield > 0 && e.shT > 0 && !ignSh) {
       const absorbed = Math.min(e.shield, actualDmg);
@@ -898,6 +917,7 @@ export class CombatService {
   checkDead(idx: number): void {
     const e = this.state.enemies()[idx];
     if (e.currentHp <= 0 && !e.dead) {
+      this.sound.playDeath();
       this.state.updateEnemy(idx, {
         dead: true,
         dot: 0,
@@ -911,6 +931,8 @@ export class CombatService {
         rollBuffT: 0,
         rampageCharges: 0,
         dieFreezeRollsRemaining: 0,
+        counterReflectPct: null,
+        counterTaggedThisPlayerRound: false,
         plan: null,
         preRoll: 0,
         effRoll: 0,
@@ -919,6 +941,10 @@ export class CombatService {
       this.log.log(`▸ ${e.name} destroyed.`, 'sy');
       if (this.state.forcedEnemyTargetIdx() === idx) {
         this.state.forcedEnemyTargetIdx.set(null);
+      }
+      if (this.state.tauntEnemyIdx() === idx) {
+        this.state.tauntHeroId.set(null);
+        this.state.tauntEnemyIdx.set(null);
       }
       const enemies = this.state.enemies();
       const nextAlive = enemies.findIndex(en => !en.dead);
@@ -995,6 +1021,7 @@ export class CombatService {
     this.state.clearSquadRfmStacks();
     this.state.clearAllHeroRfmStacks();
     this.state.tauntHeroId.set(null);
+    this.state.tauntEnemyIdx.set(null);
     this.state.forcedEnemyTargetIdx.set(null);
     this.state.selectedHeroIdx.set(null);
     this.state.pendingProtocol.set(null);
@@ -1009,7 +1036,9 @@ export class CombatService {
 
     // Fresh battle: no squad dice or locks until ROLL ALL / individual rolls (carries over from prior battle otherwise)
     this.state.heroes().forEach((_, i) => this.state.resetHeroForNewRound(i));
-    this.state.heroes().forEach((_, i) => this.state.updateHero(i, { counterspellStacks: [], cowerTurns: 0, rampageCharges: 0, relicRollBonus: 0 }));
+    this.state.heroes().forEach((_, i) =>
+      this.state.updateHero(i, { cowerTurns: 0, rampageCharges: 0, relicRollBonus: 0 }),
+    );
 
     // Relic battle-start effects (applied after heroes reset so relicRollBonus is fresh)
     this.applyRelicBattleStartEffects(battleIdx);
@@ -1187,7 +1216,10 @@ export class CombatService {
 
   instantRollAllForSim(): void {
     const payload = this.computeRollAllPresets();
-    if (payload) this.applyRollAllPayload(payload);
+    if (payload) {
+      this.applyRollAllPayload(payload);
+      this.sound.playRollReveal();
+    }
   }
 
   /** CURSED ribbon stays through roll + targeting until the player round ends. */
@@ -1218,6 +1250,8 @@ export class CombatService {
 
     this.tutorial.finishCoachOnEndTurn();
 
+    this.sound.playEndTurn();
+
     // Tick roll buff durations
     heroes.forEach((h, i) => {
       if (h.rollBuffT > 0) {
@@ -1242,6 +1276,14 @@ export class CombatService {
 
     this.state.endTurnHeroResolveCursor.set(0);
     try {
+      // Counter buff: fresh tag tracking for this player round
+      this.state.enemies().forEach((e, i) => {
+        if (e.dead) return;
+        if (e.counterReflectPct != null) {
+          this.state.updateEnemy(i, { counterTaggedThisPlayerRound: false });
+        }
+      });
+
       // Tick enemy DoTs (Resonance Cascade relic adds +2 per tick)
       const dotBonus = this.relicService.getDotBonus();
       this.state.enemies().forEach((e, i) => {
@@ -1263,7 +1305,6 @@ export class CombatService {
       if (this.state.enemies().every(e => e.dead)) {
         this.state.tickSquadRfmStacksForEndOfPlayerRound();
         this.state.tickHeroRfmStacksForEndOfPlayerRound();
-        this.state.tickHeroCounterspellStacksForEndOfPlayerRound();
         this.won();
         return;
       }
@@ -1274,10 +1315,17 @@ export class CombatService {
         this.state.endTurnHeroResolveCursor.set(hi + 1);
       }
 
+      // Counter: clear if no hero ability damage targeted this enemy this round
+      this.state.enemies().forEach((e, i) => {
+        if (e.dead) return;
+        if (e.counterReflectPct != null && !e.counterTaggedThisPlayerRound) {
+          this.state.updateEnemy(i, { counterReflectPct: null });
+        }
+      });
+
       // Squad / per-hero −roll debuff: one tick per END TURN after this round’s rolls and abilities resolve.
       this.state.tickSquadRfmStacksForEndOfPlayerRound();
       this.state.tickHeroRfmStacksForEndOfPlayerRound();
-      this.state.tickHeroCounterspellStacksForEndOfPlayerRound();
 
       this.state.heroes().forEach((h, i) => {
         if (h.currentHp <= 0) return;
@@ -1385,8 +1433,10 @@ export class CombatService {
   // ── Enemy turn ──
 
   async enemyTurn(): Promise<void> {
+    const hadCounterAtEnemyTurnStart = this.state.enemies().map(e => e.counterReflectPct != null);
     this.log.log(`— ENEMY TURN —`, 'sy');
     this.state.tauntHeroId.set(null);
+    this.state.tauntEnemyIdx.set(null);
 
     // Tick hero DoTs
     this.state.heroes().forEach((h, i) => {
@@ -1399,6 +1449,7 @@ export class CombatService {
           dot: newDT <= 0 ? 0 : h.dot,
         });
         this.log.log(`▸ ${h.name} takes ${h.dot} DoT damage.`, 'en');
+        if (newHp <= 0) this.sound.playDeath();
       }
     });
 
@@ -1412,6 +1463,16 @@ export class CombatService {
     for (let ei = 0; ei < this.state.enemies().length; ei++) {
       await this.resolveEnemyTurnActionPacing(ei);
     }
+
+    // Counter: expire any buff that survived through a full player round + this enemy phase
+    hadCounterAtEnemyTurnStart.forEach((had, i) => {
+      if (!had) return;
+      const ex = this.state.enemies()[i];
+      if (ex.dead) return;
+      if (ex.counterReflectPct != null) {
+        this.state.updateEnemy(i, { counterReflectPct: null, counterTaggedThisPlayerRound: false });
+      }
+    });
 
     // Decay shields + enemy roll buff duration (used on the roll just revealed this round)
     this.state.enemies().forEach((e, i) => {

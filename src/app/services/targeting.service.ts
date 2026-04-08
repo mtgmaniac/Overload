@@ -21,6 +21,9 @@ export interface HeroTargetLineView {
   segments: HeroTargetLineSegment[];
 }
 
+/** Party-wide and all-enemy auto-targets share one label; the ability makes the side obvious. */
+const ALL_TARGETS_LABEL = 'All';
+
 @Injectable({ providedIn: 'root' })
 export class TargetingService {
   constructor(
@@ -39,6 +42,7 @@ export class TargetingService {
     if (!ab) return false;
     if (ab.blastAll || ab.multiHit) return false;
     if (ab.splitDmg) return false;
+    if (ab.taunt) return true;
     if ((ab.dmg || 0) > 0) return true;
     if ((ab.dot || 0) > 0) return true;
     if ((ab.rfe || 0) > 0 && !ab.rfeAll) return true;
@@ -76,7 +80,15 @@ export class TargetingService {
   abilityIsPureAutoNoHeroSelect(ab: HeroAbility | null): boolean {
     if (!ab) return true;
     if (ab.splitDmg) return true;
-    if ((ab.dmg || 0) > 0 && (ab.blastAll || ab.multiHit)) return true;
+    if (
+      (ab.dmg || 0) > 0 &&
+      (ab.blastAll || ab.multiHit) &&
+      !this.needsAllyShieldPick(ab) &&
+      !this.needsAllyHealPick(ab) &&
+      !this.needsAllyRollBuffPick(ab)
+    ) {
+      return true;
+    }
     if (ab.healAll) return true;
     if (ab.shieldAll && ab.shield) return true;
     if (ab.healLowest && (ab.heal || 0) > 0) return true;
@@ -216,7 +228,16 @@ export class TargetingService {
       return;
     }
 
-    if ((ab.dmg || 0) > 0 && (ab.blastAll || ab.multiHit)) { confirmAndLog(); return; }
+    if (
+      (ab.dmg || 0) > 0 &&
+      (ab.blastAll || ab.multiHit) &&
+      !this.needsAllyShieldPick(ab) &&
+      !this.needsAllyHealPick(ab) &&
+      !this.needsAllyRollBuffPick(ab)
+    ) {
+      confirmAndLog();
+      return;
+    }
     if (ab.healAll || (ab.shieldAll && ab.shield)) { confirmAndLog(); return; }
     if (ab.healLowest && (ab.heal || 0) > 0) { confirmAndLog(); return; }
     if ((ab.heal || 0) > 0 && !ab.healTgt && !ab.healAll && !ab.healLowest && !this.needsEnemyPick(ab)) { confirmAndLog(); return; }
@@ -325,14 +346,26 @@ export class TargetingService {
   }
 
   assignTargets(): void {
-    const tauntId = this.state.tauntHeroId();
+    let tauntId = this.state.tauntHeroId();
+    let tauntEi = this.state.tauntEnemyIdx();
+    const heroes = this.state.heroes();
     const enemies = this.state.enemies();
+    if (tauntId != null) {
+      const tauntHero = heroes.find(h => h.id === tauntId && h.currentHp > 0);
+      const te = tauntEi != null ? enemies[tauntEi] : null;
+      if (!tauntHero || tauntEi == null || !te || te.dead) {
+        this.state.tauntHeroId.set(null);
+        this.state.tauntEnemyIdx.set(null);
+        tauntId = null;
+        tauntEi = null;
+      }
+    }
 
     enemies.forEach((e, i) => {
       if (e.dead) return;
       let tgt: HeroId | null;
-      if (tauntId) {
-        const tauntHero = this.state.heroes().find(h => h.id === tauntId && h.currentHp > 0);
+      if (tauntId && tauntEi === i) {
+        const tauntHero = heroes.find(h => h.id === tauntId && h.currentHp > 0);
         tgt = tauntHero ? tauntId : (e.ai === 'smart' ? this.smartTarget() : this.dumbStickyTarget(e));
       } else {
         tgt = e.ai === 'smart' ? this.smartTarget() : this.dumbStickyTarget(e);
@@ -517,18 +550,14 @@ export class TargetingService {
       segments: [{ t: 'plain', text: 'Target: ' }, ...body],
     });
 
-    if (ab.splitDmg) return done([{ t: 'all', text: 'All enemies' }]);
+    if (ab.splitDmg) return done([{ t: 'all', text: ALL_TARGETS_LABEL }]);
     if (
       ab.healAll &&
       (ab.heal || 0) > 0 &&
       (ab.dmg || 0) > 0 &&
       (ab.blastAll || ab.multiHit)
     ) {
-      return done([
-        { t: 'all', text: 'All allies' },
-        { t: 'plain', text: ' · ' },
-        { t: 'all', text: 'All enemies' },
-      ]);
+      return done([{ t: 'all', text: ALL_TARGETS_LABEL }]);
     }
     if ((ab.dmg || 0) > 0 && (ab.blastAll || ab.multiHit)) {
       const allyFirst =
@@ -537,17 +566,17 @@ export class TargetingService {
         this.needsAllyRollBuffPick(ab) ||
         this.reviveRequiresTargetPick(ab);
       if (!allyFirst) {
-        return done([{ t: 'all', text: 'All enemies' }]);
+        return done([{ t: 'all', text: ALL_TARGETS_LABEL }]);
       }
     }
     if ((ab.rfe || 0) > 0 && ab.rfeAll && !this.needsEnemyPick(ab)) {
-      return done([{ t: 'all', text: 'All enemies' }]);
+      return done([{ t: 'all', text: ALL_TARGETS_LABEL }]);
     }
     if (ab.healAll && (ab.heal || 0) > 0 && !this.needsEnemyPick(ab)) {
-      return done([{ t: 'all', text: 'All allies' }]);
+      return done([{ t: 'all', text: ALL_TARGETS_LABEL }]);
     }
     if (ab.shieldAll && (ab.shield || 0) > 0 && !this.needsEnemyPick(ab)) {
-      return done([{ t: 'all', text: 'All allies' }]);
+      return done([{ t: 'all', text: ALL_TARGETS_LABEL }]);
     }
     if (ab.healLowest) return done([{ t: 'all', text: 'Lowest HP ally' }]);
     if (
@@ -622,7 +651,7 @@ export class TargetingService {
         return done([
           s,
           { t: 'plain', text: ' · ' },
-          { t: 'all', text: 'All enemies' },
+          { t: 'all', text: ALL_TARGETS_LABEL },
         ]);
       }
       return done([s]);
@@ -634,7 +663,7 @@ export class TargetingService {
         return done([
           s,
           { t: 'plain', text: ' · ' },
-          { t: 'all', text: 'All enemies' },
+          { t: 'all', text: ALL_TARGETS_LABEL },
         ]);
       }
       return done([s]);
@@ -668,7 +697,7 @@ export class TargetingService {
       if (e && !e.dead) bits.push({ t: 'enemy', text: this.displayTargetName(e.name) });
     }
     if ((ab.dmg || 0) > 0 && (ab.blastAll || ab.multiHit) && !this.needsEnemyPick(ab)) {
-      bits.push({ t: 'all', text: 'All enemies' });
+      bits.push({ t: 'all', text: ALL_TARGETS_LABEL });
     }
     if (
       (ab.heal || 0) > 0 &&

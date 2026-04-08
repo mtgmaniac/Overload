@@ -94,13 +94,17 @@
   line-height: 1.2;
 }
 .hero-target-line {
-  font-size: clamp(8px, 2.6vw, 10px);
+  font-family: var(--font-pixel);
+  font-size: clamp(10px, 2.8vw, 12px);
+  font-weight: 700;
   line-height: 1.4;
-  color: #6f95b3;
+  color: var(--text-chip);
   margin-top: 4px;
   display: flex;
   align-items: flex-start;
   min-width: 0;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+  font-variant-numeric: tabular-nums;
 }
 .hero-target-text {
   flex: 1;
