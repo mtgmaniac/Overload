@@ -4,6 +4,8 @@ import { HeroAbility } from '../../../models/ability.interface';
 import { DiceService } from '../../../services/dice.service';
 import { GameStateService } from '../../../services/game-state.service';
 import { TargetingService } from '../../../services/targeting.service';
+import { GearService } from '../../../services/gear.service';
+import type { GearDefinition } from '../../../models/gear.interface';
 import { HpBarComponent } from '../../shared/hp-bar/hp-bar.component';
 import { PortraitFrameComponent } from '../../shared/portrait-frame/portrait-frame.component';
 import { AbilityRowComponent } from '../../shared/ability-row/ability-row.component';
@@ -24,6 +26,7 @@ export class HeroCardComponent {
   private dice = inject(DiceService);
   private state = inject(GameStateService);
   private targeting = inject(TargetingService);
+  private gearService = inject(GearService);
 
   hero = input.required<HeroState>();
   index = input.required<number>();
@@ -35,6 +38,13 @@ export class HeroCardComponent {
   allyPickClicked = output<void>();
 
   heroSvg = computed(() => heroPortraitSvg(this.hero().id, this.hero().portraitPath));
+
+  gearDef = computed((): GearDefinition | null => this.gearService.getHeroGearDef(this.index()));
+
+  gearTooltip = computed((): string => {
+    const g = this.gearDef();
+    return g ? `GEAR: ${g.name} — ${g.desc}` : 'No gear equipped';
+  });
 
   /** Status chips beside HP; full text on hover. */
   heroStatusLines = computed((): UnitStatusRibbonLine[] => {

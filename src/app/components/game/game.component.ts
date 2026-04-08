@@ -12,6 +12,7 @@ import { HelpOverlayComponent } from '../overlays/help-overlay.component';
 import { EvolutionOverlayComponent } from '../overlays/evolution-overlay.component';
 import { ItemDraftOverlayComponent } from '../overlays/item-draft-overlay.component';
 import { RelicDraftOverlayComponent } from '../overlays/relic-draft-overlay.component';
+import { GearAssignOverlayComponent } from '../overlays/gear-assign-overlay.component';
 import { TutorialOverlayComponent } from '../overlays/tutorial-overlay.component';
 import { OperationPickerComponent } from '../overlays/operation-picker.component';
 import { TutorialService } from '../../services/tutorial.service';
@@ -32,6 +33,7 @@ import { TUTORIAL_PARTY_IDS } from '../../data/tutorial-steps.data';
     EvolutionOverlayComponent,
     ItemDraftOverlayComponent,
     RelicDraftOverlayComponent,
+    GearAssignOverlayComponent,
     TutorialOverlayComponent,
     OperationPickerComponent,
   ],

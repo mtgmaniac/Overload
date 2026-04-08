@@ -7,6 +7,8 @@ import { enemyRfeFromStacks } from '../models/enemy.interface';
 import { GameStateService } from './game-state.service';
 import { CombatService } from './combat.service';
 import { RelicService } from './relic.service';
+import { GearService } from './gear.service';
+import { ALL_GEAR } from '../data/gear.data';
 
 const ITEMS: ItemDefinition[] = (raw as { items: ItemDefinition[] }).items;
 const BY_ID = new Map(ITEMS.map(i => [i.id, i]));
@@ -37,6 +39,7 @@ export class ItemService {
   private state = inject(GameStateService);
   private injector = inject(Injector);
   private relicService = inject(RelicService);
+  private gearService = inject(GearService);
   private draftDone: (() => void) | null = null;
 
   private combat(): CombatService {
@@ -57,6 +60,13 @@ export class ItemService {
     return ITEM_PROTOCOL_COST[def.rarity];
   }
 
+  /** Extract and clear draftDone (used by gear overlay to hand off the callback). */
+  consumeDraftDone(): (() => void) | null {
+    const d = this.draftDone;
+    this.draftDone = null;
+    return d;
+  }
+
   /** XP draft picks only when someone can still evolve (tier 1, not yet evolved). */
   private draftPoolAllowsXpBoost(): boolean {
     return this.state.heroes().some(h => h.tier === 1 && !h.evolvedTo);
@@ -64,11 +74,21 @@ export class ItemService {
 
   private pickRandomDraftItemId(): string {
     const rarity = pickDraftRarity();
-    let pool = ITEMS.filter(i => i.rarity === rarity);
-    if (!this.draftPoolAllowsXpBoost()) {
-      const filtered = pool.filter(i => i.effect.type !== 'xpBoost');
-      if (filtered.length) pool = filtered;
+    // Build combined pool: regular items + gear (gear only at uncommon/rare, only when not all equipped)
+    type PoolEntry = { id: string; isGear: boolean };
+    let pool: PoolEntry[] = ITEMS
+      .filter(i => i.rarity === rarity)
+      .map(i => ({ id: i.id, isGear: false }));
+
+    if ((rarity === 'uncommon' || rarity === 'rare') && !this.gearService.allLivingHeroesEquipped()) {
+      const gearPool = ALL_GEAR.filter(g => g.rarity === rarity);
+      pool.push(...gearPool.map(g => ({ id: g.id, isGear: true })));
     }
+
+    if (!this.draftPoolAllowsXpBoost()) {
+      pool = pool.filter(p => p.isGear || this.getDef(p.id)?.effect.type !== 'xpBoost');
+    }
+    if (!pool.length) pool = [{ id: ITEMS[0]!.id, isGear: false }];
     const pick = pool[Math.floor(Math.random() * pool.length)];
     return pick?.id ?? ITEMS[0]!.id;
   }
@@ -76,8 +96,11 @@ export class ItemService {
   /** Begin post-win draft if there is inventory space; otherwise run `done` immediately. */
   startPostWinDraft(done: () => void): void {
     const inv = this.state.inventory();
-    if (inv.every(x => x != null)) {
-      this.state.addLog('Supply cache: inventory full (3/3). Skipped.', 'sy');
+    // Skip if inventory is full AND all heroes have gear (nothing useful can be offered)
+    const invFull = inv.every(x => x != null);
+    const gearFull = this.gearService.allLivingHeroesEquipped();
+    if (invFull && gearFull) {
+      this.state.addLog('Supply cache: inventory full and all heroes equipped. Skipped.', 'sy');
       done();
       return;
     }
@@ -103,6 +126,13 @@ export class ItemService {
   }
 
   pickDraftItem(itemId: string): void {
+    // Route gear picks to gear assignment flow
+    if (this.gearService.isGearId(itemId)) {
+      this.state.itemDraftChoices.set(null);
+      const done = this.consumeDraftDone();
+      this.gearService.startGearAssign(itemId, done ?? (() => {}));
+      return;
+    }
     if (!this.getDef(itemId)) return;
     const added = this.tryAddToInventory(itemId);
     if (!added) {

@@ -28,6 +28,7 @@ import { ItemService } from './item.service';
 import { PortraitPreloadService } from './portrait-preload.service';
 import { RelicService } from './relic.service';
 import { SoundService } from './sound.service';
+import { GearService } from './gear.service';
 /** Precomputed squad + enemy tray rolls (shared by dice animation and instant sim). */
 export interface ComputedRollAllPayload {
   heroRolls: {
@@ -57,6 +58,7 @@ export class CombatService {
     private portraitPreload: PortraitPreloadService,
     private relicService: RelicService,
     private sound: SoundService,
+    private gearService: GearService,
   ) {}
 
   /** Guard: prevents Chain Reaction from cascading recursively within one checkDead call. */
@@ -335,6 +337,17 @@ export class CombatService {
         effectiveDmg *= 2;
         this.state.updateHero(hi, { rampageCharges: hxRamp.rampageCharges - 1 });
         this.log.log(`▸ ${h.name} — RAMPAGE (×2).`, 'pl');
+      }
+    }
+
+    // Gear: Exile Blade Core — +N dmg on first damaging ability this battle
+    if (effectiveDmg > 0) {
+      const firstBonus = this.gearService.getFirstAbilityDmgBonus(hi);
+      const hxF = this.state.heroes()[hi];
+      if (firstBonus > 0 && !hxF.firstAbilityFired) {
+        effectiveDmg += firstBonus;
+        this.state.updateHero(hi, { firstAbilityFired: true });
+        this.log.log(`▸ ${h.name} — Overclock! +${firstBonus} dmg.`, 'pl');
       }
     }
 
@@ -652,6 +665,11 @@ export class CombatService {
           if (enemyDmgMult !== 1 && dmg > 0) {
             dmg = Math.floor(dmg * enemyDmgMult);
           }
+          // Gear: Signal Jammer Mk2 — reduce incoming damage
+          const dmgReduction = this.gearService.getHeroDmgReduction(hIdx);
+          if (dmgReduction > 0 && dmg > 0) {
+            dmg = Math.max(0, dmg - dmgReduction);
+          }
           await this.pulseHeroPortrait(hIdx, 'pf-flash-red');
           this.state.updateHero(hIdx, { cloaked: false });
           if (ht.shield > 0 && ht.shT > 0) {
@@ -661,11 +679,18 @@ export class CombatService {
             this.state.updateHero(hIdx, { shield: newSh, shT: newSh <= 0 ? 0 : ht.shT });
             if (absorbed > 0) this.log.log(`▸ ${ht.name}'s shield absorbs ${absorbed}.`, 'sy');
           }
-          const newHp = Math.max(0, this.state.heroes()[hIdx].currentHp - dmg);
-          this.state.updateHero(hIdx, { currentHp: newHp });
-          if (newHp <= 0) this.sound.playDeath();
-          this.log.log(`▸ ${e.name} → ${ht.name}: ${dmg} dmg. (${newHp}/${ht.maxHp} HP)`, 'en');
-          if (newHp <= 0) this.log.log(`▸ ${ht.name} is down.`, 'sy');
+          let newHpVal = Math.max(0, this.state.heroes()[hIdx].currentHp - dmg);
+          // Gear: Dead Man's Chip — survive a killing blow at 1 HP (once per battle)
+          const hxCurrent = this.state.heroes()[hIdx];
+          if (newHpVal <= 0 && !hxCurrent.surviveOnceFired && this.gearService.hasSurviveOnce(hIdx)) {
+            newHpVal = 1;
+            this.state.updateHero(hIdx, { surviveOnceFired: true });
+            this.log.log(`▸ ${hxCurrent.name}'s Dead Man's Chip triggers — survives at 1 HP!`, 'sy');
+          }
+          this.state.updateHero(hIdx, { currentHp: newHpVal });
+          if (newHpVal <= 0) this.sound.playDeath();
+          this.log.log(`▸ ${e.name} → ${ht.name}: ${dmg} dmg. (${newHpVal}/${ht.maxHp} HP)`, 'en');
+          if (newHpVal <= 0) this.log.log(`▸ ${ht.name} is down.`, 'sy');
           const ls = act.lifestealPct;
           const hpDmg = dmg;
           if (hpDmg > 0 && ls != null && ls > 0) {
@@ -967,6 +992,15 @@ export class CombatService {
           this.chainReactionInProgress = false;
         }
       }
+      // Gear: Scavenger Rig — heal N HP when any enemy dies
+      this.state.heroes().forEach((hx, hIdx) => {
+        const heal = this.gearService.getHealOnKill(hIdx);
+        if (heal > 0 && hx.currentHp > 0 && hx.currentHp < hx.maxHp) {
+          const newHp = Math.min(hx.maxHp, hx.currentHp + heal);
+          this.state.updateHero(hIdx, { currentHp: newHp });
+          this.log.log(`▸ ${hx.name}'s Scavenger Rig — +${heal} HP.`, 'sy');
+        }
+      });
     }
     // Boss phase 2
     const updated = this.state.enemies()[idx];
@@ -1037,11 +1071,14 @@ export class CombatService {
     // Fresh battle: no squad dice or locks until ROLL ALL / individual rolls (carries over from prior battle otherwise)
     this.state.heroes().forEach((_, i) => this.state.resetHeroForNewRound(i));
     this.state.heroes().forEach((_, i) =>
-      this.state.updateHero(i, { cowerTurns: 0, rampageCharges: 0, relicRollBonus: 0 }),
+      this.state.updateHero(i, { cowerTurns: 0, rampageCharges: 0, relicRollBonus: 0, surviveOnceFired: false, firstAbilityFired: false }),
     );
 
     // Relic battle-start effects (applied after heroes reset so relicRollBonus is fresh)
     this.applyRelicBattleStartEffects(battleIdx);
+
+    // Gear battle-start effects
+    this.applyGearBattleStartEffects();
 
     // Enemy abilities roll when the player reveals the tray (ROLL ALL / last squad die)
     this.targeting.assignTargets();
@@ -1285,7 +1322,7 @@ export class CombatService {
       });
 
       // Tick enemy DoTs (Resonance Cascade relic adds +2 per tick)
-      const dotBonus = this.relicService.getDotBonus();
+      const dotBonus = this.relicService.getDotBonus() + this.gearService.getTotalDotDmgBonus();
       this.state.enemies().forEach((e, i) => {
         if (e.dead) return;
         if (e.dot > 0 && e.dT > 0) {
@@ -1441,7 +1478,12 @@ export class CombatService {
     // Tick hero DoTs
     this.state.heroes().forEach((h, i) => {
       if (h.dot > 0 && h.dT > 0) {
-        const newHp = Math.max(0, h.currentHp - h.dot);
+        let newHp = Math.max(0, h.currentHp - h.dot);
+        if (newHp <= 0 && !h.surviveOnceFired && this.gearService.hasSurviveOnce(i)) {
+          newHp = 1;
+          this.state.updateHero(i, { surviveOnceFired: true });
+          this.state.addLog(`▸ ${h.name}'s Dead Man's Chip triggers — survives at 1 HP!`, 'sy');
+        }
         const newDT = h.dT - 1;
         this.state.updateHero(i, {
           currentHp: newHp,
@@ -1618,21 +1660,12 @@ export class CombatService {
     // Clear per-battle combat state (rampageCharges, relicRollBonus re-applied in initBattle via applyRelicBattleStartEffects)
     const heroes = this.state.heroes();
     this.state.heroes.set(
-      heroes.map(h =>
-        h.currentHp > 0
-          ? { ...h, currentHp: h.maxHp, shield: 0, shT: 0, dot: 0, dT: 0, cloaked: false, rampageCharges: 0, relicRollBonus: 0 }
-          : {
-              ...h,
-              currentHp: Math.max(1, Math.round(h.maxHp * 0.8)),
-              shield: 0,
-              shT: 0,
-              dot: 0,
-              dT: 0,
-              cloaked: false,
-              rampageCharges: 0,
-              relicRollBonus: 0,
-            },
-      ),
+      heroes.map(h => {
+        const baseMaxHp = h.maxHp - (h.gearMaxHpBonus || 0);
+        return h.currentHp > 0
+          ? { ...h, currentHp: baseMaxHp, maxHp: baseMaxHp, shield: 0, shT: 0, dot: 0, dT: 0, cloaked: false, rampageCharges: 0, relicRollBonus: 0, gearMaxHpBonus: 0, surviveOnceFired: false, firstAbilityFired: false }
+          : { ...h, currentHp: Math.max(1, Math.round(baseMaxHp * 0.8)), maxHp: baseMaxHp, shield: 0, shT: 0, dot: 0, dT: 0, cloaked: false, rampageCharges: 0, relicRollBonus: 0, gearMaxHpBonus: 0, surviveOnceFired: false, firstAbilityFired: false };
+      }),
     );
 
     this.initBattle();
@@ -1763,5 +1796,34 @@ export class CombatService {
     this.state.overlayIsVictory.set(isVictory);
     this.state.overlayBtnAction.set(action);
     this.state.showOverlay.set(true);
+  }
+
+  private applyGearBattleStartEffects(): void {
+    const heroes = this.state.heroes();
+    for (let i = 0; i < heroes.length; i++) {
+      const gear = this.gearService.getHeroGearDef(i);
+      if (!gear) continue;
+      const h = this.state.heroes()[i];
+      const eff = gear.effect;
+
+      if (eff.type === 'maxHpBonus') {
+        const bonus = eff.amount;
+        const newMax = h.maxHp + bonus;
+        const newCurr = Math.min(newMax, h.currentHp + bonus);
+        this.state.updateHero(i, { maxHp: newMax, currentHp: newCurr, gearMaxHpBonus: bonus });
+        this.log.log(`▸ ${h.name}'s Stim Injector — +${bonus} max HP.`, 'sy');
+      } else if (eff.type === 'battleStartShield') {
+        this.state.updateHero(i, { shield: (h.shield || 0) + eff.amount, shT: Math.max(h.shT || 0, 999) });
+        this.log.log(`▸ ${h.name}'s Combat Plating — +${eff.amount} shield.`, 'sy');
+      } else if (eff.type === 'battleStartCloak') {
+        this.state.updateHero(i, { cloaked: true });
+        this.log.log(`▸ ${h.name}'s Phase Weave — cloaked.`, 'sy');
+      } else if (eff.type === 'protocolOnBattleStart') {
+        this.state.protocol.update(p => Math.min(10, p + eff.amount));
+        this.log.log(`▸ ${h.name}'s Protocol Tap — +${eff.amount} Protocol.`, 'sy');
+      }
+      // rollBonus: applied permanently via gearRollBonus on HeroState (set at equip time)
+      // dmgReduction, surviveOnce, firstAbilityDmgBonus, healOnKill, dotDmgBonus: passive hooks
+    }
   }
 }

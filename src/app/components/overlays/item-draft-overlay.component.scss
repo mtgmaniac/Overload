@@ -86,3 +86,24 @@
   background: var(--bg3); color: var(--muted); cursor: pointer;
 }
 .id-skip:hover { border-color: var(--strike); color: var(--strike); }
+.id-card-gear {
+  border-color: rgba(40, 220, 200, 0.6) !important;
+  box-shadow: 0 0 18px rgba(40, 220, 200, 0.25), 3px 3px 0 rgba(0,0,0,.45) !important;
+}
+.id-card-gear .id-ic { color: #3dd; }
+.id-card-gear .id-name { color: #3dd; }
+.id-card-gear .id-r {
+  color: #5ed4a8;
+  text-shadow: 0 0 10px rgba(42, 158, 114, 0.45);
+}
+.id-gear-tag {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: rgba(40, 220, 200, 0.7);
+  text-transform: uppercase;
+  border: 1px solid rgba(40, 220, 200, 0.3);
+  border-radius: 2px;
+  padding: 1px 5px;
+}

@@ -1,0 +1,26 @@
+@if (pendingGear(); as g) {
+  <div class="ga-overlay">
+    <div class="ga-title">FIELD EQUIPMENT</div>
+    <div class="ga-sub">Choose a unit to equip this gear.</div>
+    <div class="ga-card">
+      <span class="ga-card-name">{{ g.name }}</span>
+      <p class="ga-card-desc">{{ g.desc }}</p>
+      <span class="ga-card-r">{{ g.rarity }}</span>
+    </div>
+    <div class="ga-hero-row">
+      @for (hero of heroes(); track hero.id; let i = $index) {
+        <button
+          type="button"
+          class="ga-hero-btn"
+          [class.ga-hero-taken]="heroHasGear(i)"
+          [disabled]="heroHasGear(i)"
+          (click)="assign(i)">
+          <span class="ga-hero-name">{{ hero.name }}</span>
+          <span class="ga-hero-status" [class.ga-open]="!heroHasGear(i)">
+            {{ heroHasGear(i) ? 'Equipped' : 'Open slot' }}
+          </span>
+        </button>
+      }
+    </div>
+  </div>
+}

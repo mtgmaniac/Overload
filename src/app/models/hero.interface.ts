@@ -73,6 +73,16 @@ export interface HeroState extends HeroDefinition {
   rampageCharges: number;
   /** Permanent per-battle roll bonus from relics; not merged into rollBuff and not reset by resetHeroForNewRound. */
   relicRollBonus: number;
+  /** Permanent gear roll bonus (set at equip time, persists through run). */
+  gearRollBonus: number;
+  /** Max HP bonus currently applied from gear (per-battle, reset in nextBattle). */
+  gearMaxHpBonus: number;
+  /** Dead Man's Chip: true after survive-once has triggered this battle. */
+  surviveOnceFired: boolean;
+  /** Exile Blade Core: true after first-ability damage bonus was consumed this battle. */
+  firstAbilityFired: boolean;
+  /** Which gear id this hero has equipped (null = none). */
+  equippedGear: string | null;
   bRolls: number[];
   evolvedTo: string | null;
   _evoRollRecorded?: boolean;
@@ -121,5 +131,10 @@ export function createHeroState(def: HeroDefinition): HeroState {
     freezeDiceTgtEnemyIdx: null,
     rampageCharges: 0,
     relicRollBonus: 0,
+    gearRollBonus: 0,
+    gearMaxHpBonus: 0,
+    surviveOnceFired: false,
+    firstAbilityFired: false,
+    equippedGear: null,
   };
 }

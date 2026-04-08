@@ -71,6 +71,8 @@ export class GameStateService {
   readonly relics = signal<string[]>([]);
   /** The two relic ids shown in the mid-run relic draft overlay; null = draft not active. */
   readonly relicDraftChoices = signal<string[] | null>(null);
+  /** Gear id awaiting hero assignment; null = no gear draft in progress. */
+  readonly pendingGearAssignment = signal<string | null>(null);
   /** Using a consumable: pick target on board. */
   readonly pendingItemSelection = signal<PendingItemSelection | null>(null);
   readonly rollAllInProgress = signal(false);
@@ -235,6 +237,7 @@ export class GameStateService {
     this.itemDraftChoices.set(null);
     this.relics.set([]);
     this.relicDraftChoices.set(null);
+    this.pendingGearAssignment.set(null);
     this.pendingItemSelection.set(null);
     this.rollAllInProgress.set(false);
     this.rollAnimInProgress.set(false);
