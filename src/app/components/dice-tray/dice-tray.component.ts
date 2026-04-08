@@ -4,6 +4,7 @@ import {
   inject,
   computed,
   signal,
+  output,
   viewChildren,
   afterNextRender,
   DestroyRef,
@@ -49,7 +50,11 @@ export class DiceTrayComponent {
   private destroyRef = inject(DestroyRef);
   private sound = inject(SoundService);
 
+  helpClicked = output<void>();
+
   ANIM_REVEAL_STEP = ANIM_REVEAL_STEP;
+
+  menuOpen = signal(false);
 
   heroDieRefs = viewChildren<DieComponent>('heroDie');
 
@@ -397,6 +402,33 @@ export class DiceTrayComponent {
 
   onReroll(): void {
     this.protocol.startReroll();
+  }
+
+  simBattle(): void {
+    this.menuOpen.set(false);
+    void this.combat.runSimBattle();
+  }
+
+  readonly canAutoPlay = computed(
+    () =>
+      this.state.phase() === 'player' &&
+      this.state.endTurnHeroResolveCursor() === null &&
+      !this.state.rollAllInProgress(),
+  );
+
+  autoPlayTurn(): void {
+    this.menuOpen.set(false);
+    void this.combat.autoPlayTurn();
+  }
+
+  backToHome(): void {
+    this.menuOpen.set(false);
+    this.combat.returnToOperationPicker();
+  }
+
+  openHelp(): void {
+    this.menuOpen.set(false);
+    this.helpClicked.emit();
   }
 
   /** CSS transform for horizontal drift; grid columns stay fixed. */

@@ -1,4 +1,23 @@
-<div class="dice-tray-wrap" id="tut-dice-tray" [class.dice-tray--animating]="isAnimating()">
+<div class="dice-tray-wrap" id="tut-dice-tray" [class.dice-tray--animating]="isAnimating()" [class.dice-tray--menu-open]="menuOpen()">
+
+  <!-- Menu toggle -->
+  <button class="tray-menu-btn" (click)="menuOpen.set(!menuOpen())" [class.is-open]="menuOpen()" aria-label="Menu">☰</button>
+
+  <!-- Slide-down menu panel -->
+  @if (menuOpen()) {
+    <div class="tray-menu-panel">
+      <div class="tmp-info">
+        <span class="tmp-op">{{ state.battleModeId().toUpperCase() }}</span>
+        <span class="tmp-battle">Battle {{ state.battle() + 1 }}</span>
+      </div>
+      <div class="tmp-actions">
+        <button class="tmp-btn" (click)="simBattle()" [disabled]="combat.simBattleRunning()">SIM</button>
+        <button class="tmp-btn" (click)="autoPlayTurn()" [disabled]="!canAutoPlay()">AUTO</button>
+        <button class="tmp-btn tmp-btn--warn" (click)="backToHome()">HOME</button>
+        <button class="tmp-btn" (click)="openHelp()">HELP</button>
+      </div>
+    </div>
+  }
 
   <!-- Enemy dice grid (top) -->
   <div class="center-band center-band--enemies">

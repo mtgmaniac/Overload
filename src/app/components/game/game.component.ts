@@ -1,7 +1,6 @@
 import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/core';
 import { GameStateService } from '../../services/game-state.service';
 import { CombatService } from '../../services/combat.service';
-import { HeaderComponent } from '../header/header.component';
 import { EnemyZoneComponent } from '../enemy-zone/enemy-zone.component';
 import { HeroZoneComponent } from '../hero-zone/hero-zone.component';
 import { DiceTrayComponent } from '../dice-tray/dice-tray.component';
@@ -21,7 +20,6 @@ import { TUTORIAL_PARTY_IDS } from '../../data/tutorial-steps.data';
   selector: 'app-game',
   standalone: true,
   imports: [
-    HeaderComponent,
     EnemyZoneComponent,
     HeroZoneComponent,
     DiceTrayComponent,

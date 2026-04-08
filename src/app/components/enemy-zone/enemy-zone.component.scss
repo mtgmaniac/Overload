@@ -20,11 +20,29 @@
 }
 .ez-label { color: var(--overload); font-weight: 700; }
 .ez-battle { color: var(--muted); }
+.zone-row-labels {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 2px 4px 0;
+}
+.row-lbl {
+  font-size: 6px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0.6;
+  line-height: 1;
+  text-align: center;
+}
+.row-lbl--front { color: var(--overload); opacity: 0.8; }
+
 .enemy-col {
   flex: 1;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
   gap: 3px;
-  padding: 4px;
+  padding: 3px 4px 4px;
   overflow: hidden;
 }
