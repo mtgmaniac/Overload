@@ -15,6 +15,7 @@ import { RelicDraftOverlayComponent } from '../overlays/relic-draft-overlay.comp
 import { GearAssignOverlayComponent } from '../overlays/gear-assign-overlay.component';
 import { TutorialOverlayComponent } from '../overlays/tutorial-overlay.component';
 import { OperationPickerComponent } from '../overlays/operation-picker.component';
+import { ItemPendingBannerComponent } from '../shared/item-pending-banner/item-pending-banner.component';
 import { TutorialService } from '../../services/tutorial.service';
 import { TUTORIAL_PARTY_IDS } from '../../data/tutorial-steps.data';
 
@@ -36,6 +37,7 @@ import { TUTORIAL_PARTY_IDS } from '../../data/tutorial-steps.data';
     GearAssignOverlayComponent,
     TutorialOverlayComponent,
     OperationPickerComponent,
+    ItemPendingBannerComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './game.component.html',

@@ -29,6 +29,12 @@ import { PortraitPreloadService } from './portrait-preload.service';
 import { RelicService } from './relic.service';
 import { SoundService } from './sound.service';
 import { GearService } from './gear.service';
+import {
+  addShieldToUnit,
+  absorbDamageThroughShield,
+  coalesceShieldStacks,
+  tickUnitShield,
+} from '../utils/shield-stack.util';
 /** Precomputed squad + enemy tray rolls (shared by dice animation and instant sim). */
 export interface ComputedRollAllPayload {
   heroRolls: {
@@ -218,6 +224,7 @@ export class CombatService {
             dT: 0,
             shield: 0,
             shT: 0,
+            shieldStacks: [],
             roll: null,
             rawRoll: null,
             confirmed: false,
@@ -239,9 +246,10 @@ export class CombatService {
       const n = this.state.heroes().length;
       for (let idx = 0; idx < n; idx++) {
         const x = this.state.heroes()[idx];
+        // All-allies shield: living heroes only (no corpses).
         if (x.currentHp <= 0) continue;
         await this.pulseHeroPortrait(idx, 'pf-flash-blue');
-        this.state.updateHero(idx, { shield: (x.shield || 0) + (ab.shield || 0), shT: ab.shT || 2 });
+        this.state.updateHero(idx, addShieldToUnit(x, ab.shield || 0, ab.shT || 2));
       }
       this.log.log(`▸ ${h.name} → ${ab.name}. +${ab.shield} shield (all allies).`, 'pl');
     }
@@ -250,6 +258,7 @@ export class CombatService {
       const n = this.state.heroes().length;
       for (let idx = 0; idx < n; idx++) {
         const x = this.state.heroes()[idx];
+        // Party heal: living allies only; skip dead and full HP.
         if (x.currentHp <= 0 || x.currentHp >= x.maxHp) continue;
         await this.pulseHeroPortrait(idx, 'pf-flash-green');
         this.state.updateHero(idx, { currentHp: Math.min(x.maxHp, x.currentHp + ab.heal) });
@@ -262,7 +271,7 @@ export class CombatService {
       const sH = this.state.heroes()[si];
       if (sH && sH.currentHp > 0) {
         await this.pulseHeroPortrait(si, 'pf-flash-blue');
-        this.state.updateHero(si, { shield: (sH.shield || 0) + (ab.shield || 0), shT: ab.shT || 2 });
+        this.state.updateHero(si, addShieldToUnit(sH, ab.shield || 0, ab.shT || 2));
         this.log.log(`▸ ${h.name} → ${ab.name} on ${sH.name} (+${ab.shield} shield).`, 'pl');
       }
     }
@@ -270,7 +279,7 @@ export class CombatService {
     if ((ab.shield || 0) > 0 && !ab.shieldAll && !ab.shTgt) {
       await this.pulseHeroPortrait(hi, 'pf-flash-blue');
       const hs = this.state.heroes()[hi];
-      this.state.updateHero(hi, { shield: (hs.shield || 0) + (ab.shield || 0), shT: ab.shT || 2 });
+      this.state.updateHero(hi, addShieldToUnit(hs, ab.shield || 0, ab.shT || 2));
       this.log.log(`▸ ${h.name} → ${ab.name}. +${ab.shield} shield (self).`, 'pl');
     }
 
@@ -672,11 +681,10 @@ export class CombatService {
           }
           await this.pulseHeroPortrait(hIdx, 'pf-flash-red');
           this.state.updateHero(hIdx, { cloaked: false });
-          if (ht.shield > 0 && ht.shT > 0) {
-            const absorbed = Math.min(ht.shield, dmg);
+          if (coalesceShieldStacks(ht).length > 0) {
+            const { absorbed, ...shPatch } = absorbDamageThroughShield(ht, dmg);
             dmg = Math.max(0, dmg - absorbed);
-            const newSh = ht.shield - absorbed;
-            this.state.updateHero(hIdx, { shield: newSh, shT: newSh <= 0 ? 0 : ht.shT });
+            this.state.updateHero(hIdx, shPatch);
             if (absorbed > 0) this.log.log(`▸ ${ht.name}'s shield absorbs ${absorbed}.`, 'sy');
           }
           let newHpVal = Math.max(0, this.state.heroes()[hIdx].currentHp - dmg);
@@ -709,7 +717,7 @@ export class CombatService {
     if (act.shield > 0) {
       await this.pulseEnemyPortrait(ei, 'pf-flash-blue');
       const ex = this.state.enemies()[ei];
-      this.state.updateEnemy(ei, { shield: (ex.shield || 0) + act.shield, shT: act.shT || 2 });
+      this.state.updateEnemy(ei, addShieldToUnit(ex, act.shield, act.shT || 2));
       this.log.log(`▸ ${e.name} → ${act.name}! (+${act.shield} shield)`, 'en');
     }
 
@@ -719,10 +727,7 @@ export class CombatService {
         const tgt = others.reduce((a, b) => a.currentHp < b.currentHp ? a : b, others[0]);
         const tgtIdx = this.state.enemies().findIndex(x => x.id === tgt.id);
         await this.pulseEnemyPortrait(tgtIdx, 'pf-flash-blue');
-        this.state.updateEnemy(tgtIdx, {
-          shield: (tgt.shield || 0) + (act.shieldAlly || 0),
-          shT: Math.max(tgt.shT || 0, act.shT || 2),
-        });
+        this.state.updateEnemy(tgtIdx, addShieldToUnit(tgt, act.shieldAlly || 0, act.shT || 2));
         this.log.log(`▸ ${e.name} → ${tgt.name}: +${act.shieldAlly} shield (ally).`, 'en');
       }
     }
@@ -771,8 +776,10 @@ export class CombatService {
     if (act.wipeShields) {
       const n = this.state.heroes().length;
       for (let hi = 0; hi < n; hi++) {
+        const hx = this.state.heroes()[hi];
+        if (hx.currentHp <= 0) continue;
         await this.pulseHeroPortrait(hi, 'pf-flash-red');
-        this.state.updateHero(hi, { shield: 0, shT: 0 });
+        this.state.updateHero(hi, { shield: 0, shT: 0, shieldStacks: [] });
       }
       this.log.log(`▸ ${e.name} — all hero shields wiped!`, 'en');
     }
@@ -833,7 +840,7 @@ export class CombatService {
       const nEn = this.state.enemies().length;
       for (let i = 0; i < nEn; i++) {
         const ex = this.state.enemies()[i];
-        if (ex.dead) continue;
+        if (ex.dead || ex.currentHp <= 0) continue;
         await this.pulseEnemyPortrait(i, 'pf-flash-red');
         this.state.updateEnemy(i, { rampageCharges: (ex.rampageCharges || 0) + amt });
       }
@@ -919,14 +926,10 @@ export class CombatService {
     }
 
     let actualDmg = dmg;
-    if (e.shield > 0 && e.shT > 0 && !ignSh) {
-      const absorbed = Math.min(e.shield, actualDmg);
+    if (!ignSh && coalesceShieldStacks(e).length > 0) {
+      const { absorbed, ...shPatch } = absorbDamageThroughShield(e, actualDmg);
       actualDmg = Math.max(0, actualDmg - absorbed);
-      const newShield = e.shield - absorbed;
-      this.state.updateEnemy(idx, {
-        shield: newShield,
-        shT: newShield <= 0 ? 0 : e.shT,
-      });
+      this.state.updateEnemy(idx, shPatch);
       if (absorbed > 0) this.log.log(`▸ ${e.name}'s shield absorbs ${absorbed}.`, 'sy');
     }
     if (actualDmg <= 0) return;
@@ -952,6 +955,7 @@ export class CombatService {
         rfT: 0,
         shield: 0,
         shT: 0,
+        shieldStacks: [],
         rollBuff: 0,
         rollBuffT: 0,
         rampageCharges: 0,
@@ -1519,9 +1523,8 @@ export class CombatService {
     // Decay shields + enemy roll buff duration (used on the roll just revealed this round)
     this.state.enemies().forEach((e, i) => {
       if (e.dead) return;
-      if (e.shT > 0) {
-        const newT = e.shT - 1;
-        this.state.updateEnemy(i, { shT: newT, shield: newT <= 0 ? 0 : e.shield });
+      if (coalesceShieldStacks(e).length > 0) {
+        this.state.updateEnemy(i, tickUnitShield(e));
       }
       if ((e.rollBuffT || 0) > 0) {
         const newBt = e.rollBuffT - 1;
@@ -1532,9 +1535,8 @@ export class CombatService {
       }
     });
     this.state.heroes().forEach((h, i) => {
-      if (h.shT > 0) {
-        const newT = h.shT - 1;
-        this.state.updateHero(i, { shT: newT, shield: newT <= 0 ? 0 : h.shield });
+      if (coalesceShieldStacks(h).length > 0) {
+        this.state.updateHero(i, tickUnitShield(h));
       }
     });
 
@@ -1663,8 +1665,8 @@ export class CombatService {
       heroes.map(h => {
         const baseMaxHp = h.maxHp - (h.gearMaxHpBonus || 0);
         return h.currentHp > 0
-          ? { ...h, currentHp: baseMaxHp, maxHp: baseMaxHp, shield: 0, shT: 0, dot: 0, dT: 0, cloaked: false, rampageCharges: 0, relicRollBonus: 0, gearMaxHpBonus: 0, surviveOnceFired: false, firstAbilityFired: false }
-          : { ...h, currentHp: Math.max(1, Math.round(baseMaxHp * 0.8)), maxHp: baseMaxHp, shield: 0, shT: 0, dot: 0, dT: 0, cloaked: false, rampageCharges: 0, relicRollBonus: 0, gearMaxHpBonus: 0, surviveOnceFired: false, firstAbilityFired: false };
+          ? { ...h, currentHp: baseMaxHp, maxHp: baseMaxHp, shield: 0, shT: 0, shieldStacks: [], dot: 0, dT: 0, cloaked: false, rampageCharges: 0, relicRollBonus: 0, gearMaxHpBonus: 0, surviveOnceFired: false, firstAbilityFired: false }
+          : { ...h, currentHp: Math.max(1, Math.round(baseMaxHp * 0.8)), maxHp: baseMaxHp, shield: 0, shT: 0, shieldStacks: [], dot: 0, dT: 0, cloaked: false, rampageCharges: 0, relicRollBonus: 0, gearMaxHpBonus: 0, surviveOnceFired: false, firstAbilityFired: false };
       }),
     );
 
@@ -1773,7 +1775,7 @@ export class CombatService {
     if (relics.includes('bulwarkAura')) {
       this.state.heroes().forEach((h, i) => {
         if (h.currentHp <= 0) return;
-        this.state.updateHero(i, { shield: (h.shield || 0) + 3, shT: Math.max(h.shT || 0, 1) });
+        this.state.updateHero(i, addShieldToUnit(h, 3, 1));
       });
       this.log.log('▸ Bulwark Aura — all heroes gain 3 shield.', 'sy');
     }
@@ -1804,6 +1806,7 @@ export class CombatService {
       const gear = this.gearService.getHeroGearDef(i);
       if (!gear) continue;
       const h = this.state.heroes()[i];
+      if (h.currentHp <= 0) continue;
       const eff = gear.effect;
 
       if (eff.type === 'maxHpBonus') {
@@ -1813,7 +1816,7 @@ export class CombatService {
         this.state.updateHero(i, { maxHp: newMax, currentHp: newCurr, gearMaxHpBonus: bonus });
         this.log.log(`▸ ${h.name}'s Stim Injector — +${bonus} max HP.`, 'sy');
       } else if (eff.type === 'battleStartShield') {
-        this.state.updateHero(i, { shield: (h.shield || 0) + eff.amount, shT: Math.max(h.shT || 0, 999) });
+        this.state.updateHero(i, addShieldToUnit(h, eff.amount, 999));
         this.log.log(`▸ ${h.name}'s Combat Plating — +${eff.amount} shield.`, 'sy');
       } else if (eff.type === 'battleStartCloak') {
         this.state.updateHero(i, { cloaked: true });

@@ -9,6 +9,7 @@ import { CombatService } from './combat.service';
 import { RelicService } from './relic.service';
 import { GearService } from './gear.service';
 import { ALL_GEAR } from '../data/gear.data';
+import { addShieldToUnit } from '../utils/shield-stack.util';
 
 const ITEMS: ItemDefinition[] = (raw as { items: ItemDefinition[] }).items;
 const BY_ID = new Map(ITEMS.map(i => [i.id, i]));
@@ -279,10 +280,7 @@ export class ItemService {
     } else if (eff.type === 'shield' && allyIdx != null) {
       const h = this.state.heroes()[allyIdx];
       if (h && h.currentHp > 0) {
-        this.state.updateHero(allyIdx, {
-          shield: (h.shield || 0) + eff.amount,
-          shT: eff.shT,
-        });
+        this.state.updateHero(allyIdx, addShieldToUnit(h, eff.amount, eff.shT));
         this.state.addLog(`▸ Item: ${def.name} → ${h.name} (+${eff.amount} shield, ${eff.shT}t).`, 'pl');
       }
     } else if (eff.type === 'rollBuff' && allyIdx != null) {
@@ -298,7 +296,7 @@ export class ItemService {
       const h = this.state.heroes()[allyIdx];
       if (h && h.currentHp <= 0) {
         const nh = Math.max(1, Math.round(h.maxHp * (eff.pct / 100)));
-        this.state.updateHero(allyIdx, { currentHp: nh, dot: 0, dT: 0, shield: 0, shT: 0 });
+        this.state.updateHero(allyIdx, { currentHp: nh, dot: 0, dT: 0, shield: 0, shT: 0, shieldStacks: [] });
         this.state.addLog(`▸ Item: ${def.name} → revived ${h.name} at ${nh}/${h.maxHp} HP.`, 'pl');
       }
     } else if (eff.type === 'enemyRfe' && enemyIdx != null) {

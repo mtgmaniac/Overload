@@ -43,7 +43,9 @@ export class EnemyCardComponent {
     const e = this.enemy();
     const n = e.rampageCharges || 0;
     if (n <= 0) return null;
-    return `${e.name} is rampaging — the next ${n} direct hit${n > 1 ? 's' : ''} deal ×2 damage (one charge per hit).`;
+    return n === 1
+      ? 'Rampage: Next attack deals 2× damage'
+      : `Rampage: Next ${n} attacks deal 2× damage`;
   });
 
   /** Word chips under status badges (mirrors hero badge zone ribbon). */
@@ -57,7 +59,10 @@ export class EnemyCardComponent {
       out.push({
         key: 'rampage',
         tag: 'RAMPAGE',
-        detail: `The next ${n} direct hit${n > 1 ? 's' : ''} deal ×2 damage (one charge per hit).`,
+        detail:
+          n === 1
+            ? 'Rampage: Next attack deals 2× damage'
+            : `Rampage: Next ${n} attacks deal 2× damage`,
       });
     }
 

@@ -1242,7 +1242,7 @@
       "name": "Avalanche Suit",
       "cls": "SQUAD SHELL",
       "pickerCategory": "defense",
-      "pickerBlurb": "Squad shell. Blanket team shields and triage HP before spikes—coverage-first, no taunt. Evolve into Glacier Mantle (layered barriers) or Trench Rig (self-sustain + enemy roll strip).",
+      "pickerBlurb": "Squad shell. Blanket team shields and triage HP before spikes—coverage-first, no taunt. Evolve into Glacier Mantle (shields + mass freeze on enemy dice) or Trench Rig (self-sustain + enemy roll strip).",
       "hp": 55,
       "sk": "avalanche",
       "abilities": [
@@ -1340,7 +1340,7 @@
       "evolutions": [
         {
           "name": "Glacier Mantle",
-          "focus": "Layered squad barriers",
+          "focus": "Barriers + cryo control",
           "hp": 85,
           "abilities": [
             {
@@ -1349,8 +1349,8 @@
                 1,
                 6
               ],
-              "name": "Fortify",
-              "eff": "self 8 shield, 2t",
+              "name": "Permafrost Weave",
+              "eff": "freeze any one die 1 reveal (ally or enemy)",
               "dmg": 0,
               "dMin": 0,
               "dMax": 0,
@@ -1358,8 +1358,7 @@
               "dT": 0,
               "rfe": 0,
               "heal": 0,
-              "shield": 8,
-              "shT": 2
+              "freezeAnyDice": 1
             }
           ]
         },
@@ -1374,8 +1373,8 @@
                 7,
                 12
               ],
-              "name": "Cover Fire",
-              "eff": "4 dmg all enemies, ally 6 shield, 2t",
+              "name": "Whiteout Salvo",
+              "eff": "4 dmg all enemies, all enemy dice freeze 1 reveal skip",
               "dmg": 4,
               "dMin": 4,
               "dMax": 4,
@@ -1383,10 +1382,8 @@
               "dT": 0,
               "rfe": 0,
               "heal": 0,
-              "shield": 6,
-              "shT": 2,
-              "shTgt": true,
-              "blastAll": true
+              "blastAll": true,
+              "freezeAllEnemyDice": 1
             }
           ]
         },
@@ -1401,8 +1398,8 @@
                 13,
                 16
               ],
-              "name": "Iron Wall",
-              "eff": "all 14 shield, 2t",
+              "name": "Bitter Front",
+              "eff": "all enemy dice freeze 2 reveal skips",
               "dmg": 0,
               "dMin": 0,
               "dMax": 0,
@@ -1410,9 +1407,7 @@
               "dT": 0,
               "rfe": 0,
               "heal": 0,
-              "shield": 14,
-              "shT": 2,
-              "shieldAll": true
+              "freezeAllEnemyDice": 2
             }
           ]
         },
@@ -1428,7 +1423,7 @@
                 19
               ],
               "name": "Bastion Protocol",
-              "eff": "6 dmg, all allies 10 shield, 2t, -2 roll, 2t",
+              "eff": "6 dmg, all enemy dice freeze 1 reveal skip, all allies 8 shield, 2t, -2 roll, 2t",
               "dmg": 6,
               "dMin": 6,
               "dMax": 6,
@@ -1437,9 +1432,10 @@
               "rfe": 2,
               "rfT": 2,
               "heal": 0,
-              "shield": 10,
+              "shield": 8,
               "shT": 2,
-              "shieldAll": true
+              "shieldAll": true,
+              "freezeAllEnemyDice": 1
             }
           ]
         },
@@ -1455,7 +1451,7 @@
                 20
               ],
               "name": "Invincible",
-              "eff": "9 dmg, all 16 shield, 2t, -3 roll, 2t",
+              "eff": "9 dmg, all enemy dice freeze 1 reveal skip, all 14 shield, 2t, -3 roll, 2t",
               "dmg": 9,
               "dMin": 9,
               "dMax": 9,
@@ -1464,9 +1460,10 @@
               "rfe": 3,
               "rfT": 2,
               "heal": 0,
-              "shield": 16,
+              "shield": 14,
               "shT": 2,
-              "shieldAll": true
+              "shieldAll": true,
+              "freezeAllEnemyDice": 1
             }
           ]
         },

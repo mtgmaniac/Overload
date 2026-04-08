@@ -15,6 +15,7 @@ type AbilityMiniTone =
   | 'dot'
   | 'rollAlly'
   | 'rollFoe'
+  | 'fear'
   | 'control'
   | 'neutral';
 
@@ -112,6 +113,13 @@ export class AbilityRowComponent {
     const b = body.trim();
     if (!b) return '';
     return `${ab.name}: ${b}`;
+  }
+
+  /** Keyword chips (Fear, Summon, …): `Keyword: description` — not the card’s ability name. */
+  private keywordTokenTooltip(keyword: string, body: string): string {
+    const b = body.trim();
+    if (!b) return keyword;
+    return `${keyword}: ${b}`;
   }
 
   private buildHeroEffectSummary(a: HeroAbility): string {
@@ -248,15 +256,18 @@ export class AbilityRowComponent {
     return n > 1 ? ` (${n} turns)` : '';
   }
 
+  /** Hover for rampage grant chips — never prefixed with ability name. */
   private rampageDealTooltip(n: number): string {
-    return n === 1 ? 'Next attack deals 2× damage' : `Next ${n} attacks deal 2× damage`;
+    return n === 1
+      ? 'Rampage: Next attack deals 2× damage'
+      : `Rampage: Next ${n} attacks deal 2× damage`;
   }
 
-  private fearRollSkipTooltip(n: number, all: boolean): string {
-    const r = n === 1 ? 'roll' : 'rolls';
-    return all
-      ? `All heroes skip their next ${n} ${r}`
-      : `Target skips their next ${n} ${r}`;
+  /** Fear / cower — body only (wrapped with `Fear:` via {@link keywordTokenTooltip}). */
+  private fearEffectDescription(n: number, all: boolean): string {
+    const t = n === 1 ? 'turn' : 'turns';
+    const chunk = n === 1 ? 'their next turn' : `their next ${n} ${t}`;
+    return all ? `All heroes skip ${chunk}` : `Target skips ${chunk}`;
   }
 
   /** DoT chip hover: X damage per turn, for the next Y turn(s). */
@@ -562,7 +573,10 @@ export class AbilityRowComponent {
         icon: null,
         label: 'SUM',
         tone: 'control',
-        tooltip: tip(`Summon — On a natural 20 (with overload tier), ~${pct}% chance to add an extra grunt.${pool}`),
+        tooltip: this.keywordTokenTooltip(
+          'Summon',
+          `On a natural 20 (with overload tier), ~${pct}% chance to add an extra grunt.${pool}`,
+        ),
       });
     }
     if ((ab.counterspellPct ?? 0) > 0) {
@@ -572,7 +586,7 @@ export class AbilityRowComponent {
         label: counterChipLabel(pct),
         wide: true,
         tone: 'control',
-        tooltip: tip(counterAbilityTooltip(pct)),
+        tooltip: this.keywordTokenTooltip('Counter', counterAbilityTooltip(pct)),
       });
     }
     if ((ab.grantRampage || 0) > 0) {
@@ -580,9 +594,9 @@ export class AbilityRowComponent {
       out.push({
         icon: 'bolt',
         label: 'R',
-        num: String(g),
+        ...(g > 1 ? { num: String(g) } : {}),
         tone: 'dmg',
-        tooltip: tip(this.rampageDealTooltip(g)),
+        tooltip: this.rampageDealTooltip(g),
       });
     }
     if ((ab.grantRampageAll || 0) > 0) {
@@ -590,22 +604,24 @@ export class AbilityRowComponent {
       out.push({
         icon: 'bolt',
         label: 'R',
-        num: String(g),
+        ...(g > 1 ? { num: String(g) } : {}),
         tagAll: true,
         tone: 'dmg',
-        tooltip: tip(`Each enemy: ${this.rampageDealTooltip(g)}`),
+        tooltip:
+          g === 1
+            ? `${this.rampageDealTooltip(1)} (each enemy)`
+            : `Each enemy: ${this.rampageDealTooltip(g)}`,
       });
     }
     if ((ab.cowerT || 0) > 0) {
       const n = ab.cowerT as number;
-      const ft = this.fearRollSkipTooltip(n, !!ab.cowerAll);
       out.push({
         icon: null,
         label: 'F',
         tagAll: !!ab.cowerAll,
-        turns: n > 0 ? n : undefined,
-        tone: 'rollFoe',
-        tooltip: tip(ft),
+        turns: this.multiTurn(n),
+        tone: 'fear',
+        tooltip: this.keywordTokenTooltip('Fear', this.fearEffectDescription(n, !!ab.cowerAll)),
       });
     }
     if (!out.length) out.push({ icon: null, label: '—', tone: 'neutral', tooltip: '' });

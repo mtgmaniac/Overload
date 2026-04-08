@@ -7,6 +7,13 @@ import type { EnemyDefinition } from '../models/enemy.interface';
 import type { EvolutionTier, HeroDefinition } from '../models/hero.interface';
 import type { BattleModeId, Zone } from '../models/types';
 import { normalizeHeroAbility } from '../data/hero-ability-normalize';
+import {
+  addShieldToUnit,
+  absorbDamageThroughShield,
+  coalesceShieldStacks,
+  tickUnitShield,
+  type ShieldStack,
+} from '../utils/shield-stack.util';
 
 const ENEMY_ZONES: [number, number, Zone][] = [
   [1, 4, 'recharge'],
@@ -127,6 +134,8 @@ interface SimHero {
   maxHp: number;
   hp: number;
   shield: number;
+  shT: number;
+  shieldStacks: ShieldStack[];
   def: HeroDefinition;
   tier: 1 | 2;
   /** Cumulative effective d20s (tier 1 only), matches game XP input */
@@ -145,6 +154,8 @@ interface SimEnemy {
   hp: number;
   maxHp: number;
   shield: number;
+  shT: number;
+  shieldStacks: ShieldStack[];
   p2: boolean;
   pThr: number | null;
   dmgScale: number;
@@ -262,6 +273,8 @@ function scaleEnemyDef(
     hp: Math.max(1, Math.round(raw.hp * hpM)),
     maxHp: Math.max(1, Math.round(raw.hp * hpM)),
     shield: 0,
+    shT: 0,
+    shieldStacks: [],
     p2: false,
     pThr: raw.pThr != null ? Math.max(1, Math.round(raw.pThr * hpM)) : null,
     dmgScale: dmgM,
@@ -322,6 +335,8 @@ function freshSquadFromDefs(defs: HeroDefinition[]): SimHero[] {
     maxHp: d.hp,
     hp: d.hp,
     shield: 0,
+    shT: 0,
+    shieldStacks: [],
     def: d,
     tier: 1,
     xp: 0,
@@ -357,10 +372,10 @@ function lowestHpEnemyIndex(enemies: SimEnemy[]): number {
 function damageEnemy(e: SimEnemy, dmg: number, ignSh: boolean): void {
   if (dmg <= 0) return;
   let d = dmg;
-  if (!ignSh && e.shield > 0) {
-    const abs = Math.min(e.shield, d);
-    e.shield -= abs;
-    d -= abs;
+  if (!ignSh && coalesceShieldStacks(e).length > 0) {
+    const { absorbed, ...sh } = absorbDamageThroughShield(e, d);
+    Object.assign(e, sh);
+    d = Math.max(0, d - absorbed);
   }
   e.hp -= d;
   if (e.pThr != null && !e.p2 && e.hp <= e.pThr) e.p2 = true;
@@ -369,10 +384,10 @@ function damageEnemy(e: SimEnemy, dmg: number, ignSh: boolean): void {
 function damageHero(h: SimHero, dmg: number): void {
   if (dmg <= 0 || h.hp <= 0) return;
   let d = dmg;
-  if (h.shield > 0) {
-    const abs = Math.min(h.shield, d);
-    h.shield -= abs;
-    d -= abs;
+  if (coalesceShieldStacks(h).length > 0) {
+    const { absorbed, ...sh } = absorbDamageThroughShield(h, d);
+    Object.assign(h, sh);
+    d = Math.max(0, d - absorbed);
   }
   h.hp -= d;
 }
@@ -442,16 +457,18 @@ function resolveHeroAbility(
 
   const ignSh = !!ab.ignSh;
 
+  const shDur = ab.shT || 2;
   if (ab.shieldAll && (ab.shield || 0) > 0) {
     for (const x of heroes) {
-      if (x.hp > 0) x.shield += ab.shield!;
+      if (x.hp > 0) Object.assign(x, addShieldToUnit(x, ab.shield!, shDur));
     }
   } else if (ab.shTgt && (ab.shield || 0) > 0) {
     const others = heroes.map((_, i) => i).filter(i => i !== heroIdx && heroes[i]!.hp > 0);
     const ti = others.length ? others[Math.floor(Math.random() * others.length)]! : heroIdx;
-    if (heroes[ti]!.hp > 0) heroes[ti]!.shield += ab.shield!;
+    const rx = heroes[ti]!;
+    if (rx.hp > 0) Object.assign(rx, addShieldToUnit(rx, ab.shield!, shDur));
   } else if ((ab.shield || 0) > 0 && !ab.shieldAll) {
-    h.shield += ab.shield!;
+    Object.assign(h, addShieldToUnit(h, ab.shield!, shDur));
   }
 
   if (ab.healAll && (ab.heal || 0) > 0) {
@@ -547,15 +564,16 @@ function resolveEnemyTurn(
 ): void {
   const act = getEnemyPlan(enemy, suites);
 
+  const eshT = act.shT || 2;
   if ((act.shield || 0) > 0) {
-    enemy.shield = (enemy.shield || 0) + act.shield!;
+    Object.assign(enemy, addShieldToUnit(enemy, act.shield!, eshT));
   }
 
   if ((act.shieldAlly || 0) > 0) {
     const others = enemies.filter(x => x.hp > 0 && x !== enemy);
     if (others.length) {
       const tgt = others.reduce((a, b) => (a.hp < b.hp ? a : b));
-      tgt.shield = (tgt.shield || 0) + act.shieldAlly!;
+      Object.assign(tgt, addShieldToUnit(tgt, act.shieldAlly!, eshT));
     }
   }
 
@@ -615,6 +633,15 @@ function simulateBattle(
       if (e.hp > 0) resolveEnemyTurn(e, enemies, heroes, suites);
       if (!livingHeroes(heroes).length) return false;
     }
+
+    for (const h of heroes) {
+      if (h.hp <= 0) continue;
+      if (coalesceShieldStacks(h).length > 0) Object.assign(h, tickUnitShield(h));
+    }
+    for (const e of enemies) {
+      if (e.hp <= 0) continue;
+      if (coalesceShieldStacks(e).length > 0) Object.assign(e, tickUnitShield(e));
+    }
   }
   return false;
 }
@@ -624,6 +651,8 @@ function interBattleReset(heroes: SimHero[]): void {
     if (h.hp > 0) h.hp = h.maxHp;
     else h.hp = Math.max(1, Math.round(h.maxHp * 0.8));
     h.shield = 0;
+    h.shT = 0;
+    h.shieldStacks = [];
     h.dot = 0;
     h.dT = 0;
   }

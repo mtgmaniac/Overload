@@ -1,6 +1,7 @@
 import { HeroAbility } from './ability.interface';
 import { normalizeHeroAbility } from '../data/hero-ability-normalize';
 import { HeroId } from './types';
+import type { ShieldStack } from '../utils/shield-stack.util';
 
 /** Squad picker grouping on the operation overlay. */
 export type HeroPickerCategory = 'damage' | 'defense' | 'support' | 'control';
@@ -51,6 +52,8 @@ export interface HeroState extends HeroDefinition {
   dT: number;
   shield: number;
   shT: number;
+  /** Independent shield layers; `shield` / `shT` are aggregates for UI and legacy reads. */
+  shieldStacks: ShieldStack[];
   shTgtIdx: number | null;
   healTgtIdx: number | null;
   rfmTgtIdx: number | null;
@@ -114,6 +117,7 @@ export function createHeroState(def: HeroDefinition): HeroState {
     dT: 0,
     shield: 0,
     shT: 0,
+    shieldStacks: [],
     shTgtIdx: null,
     healTgtIdx: null,
     rfmTgtIdx: null,

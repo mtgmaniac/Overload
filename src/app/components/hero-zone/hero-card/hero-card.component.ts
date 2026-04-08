@@ -57,7 +57,10 @@ export class HeroCardComponent {
       out.push({
         key: 'rampage',
         tag: 'RAMPAGE',
-        detail: `Deals double damage on next ${n} attack${n > 1 ? 's' : ''} (${n} charge${n > 1 ? 's' : ''}).`,
+        detail:
+          n === 1
+            ? 'Rampage: Next attack deals 2× damage'
+            : `Rampage: Next ${n} attacks deal 2× damage`,
       });
     }
     if ((h.cowerTurns || 0) > 0) {

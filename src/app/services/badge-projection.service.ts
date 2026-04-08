@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HeroState } from '../models/hero.interface';
 import { EnemyState } from '../models/enemy.interface';
+import { HeroAbility } from '../models/ability.interface';
 import { HeroId } from '../models/types';
 import { GameStateService } from './game-state.service';
 import { DiceService } from './dice.service';
@@ -231,6 +232,22 @@ export class BadgeProjectionService {
    * one charge consumed per ability that has base damage greater than 0 (split-alloc hits still use raw
    * allocated damage, but the charge is burned like combat).
    */
+  /**
+   * Locked enemy if valid, else first living enemy — matches combat fallback when resolving
+   * single-target hits so incoming damage (including rampage ×2) previews on the correct card.
+   */
+  private previewHeroEnemyTargetIdx(h: HeroState, ab: HeroAbility): number | null {
+    const enemies = this.state.enemies();
+    if (ab.blastAll || ab.multiHit) return null;
+    const locked = h.lockedTarget !== undefined && h.lockedTarget !== null ? h.lockedTarget : null;
+    if (locked !== null) {
+      const ex = enemies[locked];
+      if (ex && !ex.dead) return locked;
+    }
+    const first = enemies.findIndex(x => !x.dead);
+    return first >= 0 ? first : null;
+  }
+
   private heroStrikeEffectiveForPreview(hi: number, baseDmg: number, rampRem: number[]): number {
     if (baseDmg <= 0) return 0;
     let d = baseDmg;
@@ -280,7 +297,7 @@ export class BadgeProjectionService {
       if (!ab || !baseDmg) continue;
 
       const ignSh = !!ab.ignSh;
-      const hTgt = h.lockedTarget !== undefined && h.lockedTarget !== null ? h.lockedTarget : null;
+      const hTgt = this.previewHeroEnemyTargetIdx(h, ab);
 
       const effective = this.heroStrikeEffectiveForPreview(hi, baseDmg, rampRem);
 
@@ -356,6 +373,8 @@ export class BadgeProjectionService {
 
   incomingHealFor(hid: HeroId): number {
     const heroes = this.state.heroes();
+    const recv = heroes.find(x => x.id === hid);
+    if (!recv || recv.currentHp <= 0) return 0;
     let tot = 0;
 
     for (const h of heroes) {
@@ -379,7 +398,7 @@ export class BadgeProjectionService {
       if (ab.healTgt) {
         if (h.healTgtIdx == null) continue;
         const healTarget = heroes[h.healTgtIdx];
-        if (healTarget?.id === hid) tot += ab.heal;
+        if (healTarget?.currentHp > 0 && healTarget.id === hid) tot += ab.heal;
         continue;
       }
       if (h.id === hid) tot += ab.heal;
@@ -389,6 +408,8 @@ export class BadgeProjectionService {
 
   incomingShieldFor(hid: HeroId): number {
     const heroes = this.state.heroes();
+    const recv = heroes.find(x => x.id === hid);
+    if (!recv || recv.currentHp <= 0) return 0;
     let tot = 0;
 
     for (const h of heroes) {
@@ -405,7 +426,7 @@ export class BadgeProjectionService {
       if (ab.shTgt) {
         if (h.shTgtIdx === null) continue;
         const tgt = heroes[h.shTgtIdx];
-        if (tgt?.id === hid) tot += ab.shield;
+        if (tgt && tgt.currentHp > 0 && tgt.id === hid) tot += ab.shield;
         continue;
       }
       if (h.id === hid) tot += ab.shield;

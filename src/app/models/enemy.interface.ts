@@ -1,5 +1,6 @@
 import { EnemyAbility } from './ability.interface';
 import { AIType, EnemyType, HeroId, Zone } from './types';
+import type { ShieldStack } from '../utils/shield-stack.util';
 
 /** Per-application enemy roll debuff; each stack expires after its own `turnsLeft` player end turns. */
 export interface EnemyRfeStack {
@@ -47,6 +48,7 @@ export interface EnemyState extends EnemyDefinition {
   dT: number;
   shield: number;
   shT: number;
+  shieldStacks: ShieldStack[];
   targeting: HeroId | null;
   dumbStickyId: HeroId | null;
   preRoll: number;
@@ -85,6 +87,7 @@ export function createEnemyState(def: EnemyDefinition, id: number): EnemyState {
     dT: 0,
     shield: 0,
     shT: 0,
+    shieldStacks: [],
     targeting: null,
     dumbStickyId: null,
     preRoll: 0,

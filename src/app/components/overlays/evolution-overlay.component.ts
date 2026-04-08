@@ -1,11 +1,16 @@
-import { Component, ChangeDetectionStrategy, inject, computed, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, computed } from '@angular/core';
 import { GameStateService } from '../../services/game-state.service';
 import { EvolutionService, GroupedEvoPath } from '../../services/evolution.service';
 import { CombatService } from '../../services/combat.service';
+import { PortraitFrameComponent } from '../shared/portrait-frame/portrait-frame.component';
+import { AbilityRowComponent } from '../shared/ability-row/ability-row.component';
+import { heroPortraitSvg } from '../../data/sprites.data';
+import type { HeroAbility } from '../../models/ability.interface';
 
 @Component({
   selector: 'app-evolution-overlay',
   standalone: true,
+  imports: [PortraitFrameComponent, AbilityRowComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './evolution-overlay.component.html',
   styleUrl: './evolution-overlay.component.scss',
@@ -29,6 +34,15 @@ export class EvolutionOverlayComponent {
     const hero = this.state.heroes()[heroIdx];
     if (!hero) return [];
     return this.evo.groupEvoPaths(hero.evolutions);
+  }
+
+  portraitSvg(heroIdx: number): string {
+    const h = this.state.heroes()[heroIdx];
+    return h ? heroPortraitSvg(h.id, h.portraitPath) : '';
+  }
+
+  rangeStr(ab: HeroAbility): string {
+    return ab.range[0] === ab.range[1] ? `${ab.range[0]}` : `${ab.range[0]}-${ab.range[1]}`;
   }
 
   selectEvo(pendingIdx: number, pathIdx: number): void {

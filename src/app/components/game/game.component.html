@@ -5,6 +5,7 @@
 } @else {
   <div id="app">
     <app-header (helpClicked)="helpOpen.set(true)" (backHomeClicked)="onChangeOperation()" />
+    <app-item-pending-banner />
     <div class="lanes">
       <app-enemy-zone />
       <app-dice-tray />
