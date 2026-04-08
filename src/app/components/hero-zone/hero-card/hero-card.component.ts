@@ -1,23 +1,19 @@
 import { Component, ChangeDetectionStrategy, input, output, computed, inject } from '@angular/core';
 import { HeroState } from '../../../models/hero.interface';
 import { HeroAbility } from '../../../models/ability.interface';
+import { Zone } from '../../../models/types';
 import { DiceService } from '../../../services/dice.service';
 import { GameStateService } from '../../../services/game-state.service';
 import { TargetingService } from '../../../services/targeting.service';
-import { GearService } from '../../../services/gear.service';
-import type { GearDefinition } from '../../../models/gear.interface';
 import { HpBarComponent } from '../../shared/hp-bar/hp-bar.component';
 import { PortraitFrameComponent } from '../../shared/portrait-frame/portrait-frame.component';
-import { AbilityRowComponent } from '../../shared/ability-row/ability-row.component';
-import { BadgeZoneComponent } from '../../shared/badge-zone/badge-zone.component';
-import type { UnitStatusRibbonLine } from '../../shared/unit-status-ribbon/unit-status-ribbon.component';
 import { heroPortraitSvg } from '../../../data/sprites.data';
 import { HERO_UNIT_FRAME_COLOR } from '../../../data/unit-frame-colors';
 
 @Component({
   selector: 'app-hero-card',
   standalone: true,
-  imports: [HpBarComponent, PortraitFrameComponent, AbilityRowComponent, BadgeZoneComponent],
+  imports: [HpBarComponent, PortraitFrameComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './hero-card.component.html',
   styleUrl: './hero-card.component.scss',
@@ -26,7 +22,6 @@ export class HeroCardComponent {
   private dice = inject(DiceService);
   private state = inject(GameStateService);
   private targeting = inject(TargetingService);
-  private gearService = inject(GearService);
 
   hero = input.required<HeroState>();
   index = input.required<number>();
@@ -38,65 +33,6 @@ export class HeroCardComponent {
   allyPickClicked = output<void>();
 
   heroSvg = computed(() => heroPortraitSvg(this.hero().id, this.hero().portraitPath));
-
-  gearDef = computed((): GearDefinition | null => this.gearService.getHeroGearDef(this.index()));
-
-  gearTooltip = computed((): string => {
-    const g = this.gearDef();
-    return g ? `GEAR: ${g.name} — ${g.desc}` : 'No gear equipped';
-  });
-
-  /** Status chips beside HP; full text on hover. */
-  heroStatusLines = computed((): UnitStatusRibbonLine[] => {
-    this.state.tauntHeroId();
-    const h = this.hero();
-    const out: UnitStatusRibbonLine[] = [];
-    if (h.currentHp <= 0) return out;
-    if ((h.rampageCharges || 0) > 0) {
-      const n = h.rampageCharges;
-      out.push({
-        key: 'rampage',
-        tag: 'RAMPAGE',
-        detail:
-          n === 1
-            ? 'Rampage: Next attack deals 2× damage'
-            : `Rampage: Next ${n} attacks deal 2× damage`,
-      });
-    }
-    if ((h.cowerTurns || 0) > 0) {
-      out.push({
-        key: 'cower',
-        tag: 'COWER',
-        detail: 'You skip your actions this player round.',
-      });
-    }
-    if (h.cloaked) {
-      out.push({
-        key: 'cloak',
-        tag: 'CLOAK',
-        detail: 'Enemy attacks may miss; cloak clears after the next attack resolves (hit or miss).',
-      });
-    }
-    if (this.state.tauntHeroId() === h.id) {
-      out.push({
-        key: 'taunt',
-        tag: 'TAUNT',
-        detail: 'Enemies target you with attacks this turn.',
-      });
-    }
-    if (h.cursed) {
-      out.push({
-        key: 'cursed',
-        tag: 'CURSED',
-        detail: '',
-        tooltip:
-          h.roll !== null
-            ? 'Cursed dice resolved this turn (lower roll kept).'
-            : 'You roll twice and keep the lower result.',
-      });
-    }
-    return out;
-  });
 
   cardBorderColor = computed(() => {
     if (this.isSelected()) return 'rgba(100, 175, 255, 0.95)';
@@ -129,18 +65,33 @@ export class HeroCardComponent {
     return pct + '%';
   });
 
-  /** After the d20 is set, non-matching ability rows dim; before roll, the whole panel stays lit. */
-  abilityHighlightLocked = computed(() => this.dice.effRoll(this.hero()) !== null);
-
-  isCurrentAbility(ab: HeroAbility): boolean {
+  heroZone = computed((): Zone => {
     const h = this.hero();
     const er = this.dice.effRoll(h);
-    if (er === null) return false;
-    return er >= ab.range[0] && er <= ab.range[1];
-  }
+    if (er === null) return 'recharge';
+    return this.dice.getHeroZone(er, h.id);
+  });
 
-  getRangeStr(ab: HeroAbility): string {
-    return ab.range[0] === ab.range[1] ? `${ab.range[0]}` : `${ab.range[0]}-${ab.range[1]}`;
+  currentAbility = computed((): HeroAbility | null => {
+    const h = this.hero();
+    const er = this.dice.effRoll(h);
+    if (er === null) return null;
+    return this.dice.getAbility(h, er);
+  });
+
+  totalShield = computed((): number => {
+    return (this.hero().shieldStacks ?? []).reduce((s, st) => s + st.amt, 0);
+  });
+
+  zoneAbbr(zone: Zone): string {
+    const map: Record<Zone, string> = {
+      recharge: 'RCHG',
+      strike: 'STRK',
+      surge: 'SRGE',
+      crit: 'CRIT',
+      overload: 'OVER',
+    };
+    return map[zone] ?? zone.substring(0, 4).toUpperCase();
   }
 
   onClick(): void {

@@ -5,8 +5,6 @@ import { HeaderComponent } from '../header/header.component';
 import { EnemyZoneComponent } from '../enemy-zone/enemy-zone.component';
 import { HeroZoneComponent } from '../hero-zone/hero-zone.component';
 import { DiceTrayComponent } from '../dice-tray/dice-tray.component';
-import { ProtocolStripComponent } from '../protocol-strip/protocol-strip.component';
-import { BattleLogComponent } from '../battle-log/battle-log.component';
 import { ResultOverlayComponent } from '../overlays/result-overlay.component';
 import { HelpOverlayComponent } from '../overlays/help-overlay.component';
 import { EvolutionOverlayComponent } from '../overlays/evolution-overlay.component';
@@ -27,8 +25,6 @@ import { TUTORIAL_PARTY_IDS } from '../../data/tutorial-steps.data';
     EnemyZoneComponent,
     HeroZoneComponent,
     DiceTrayComponent,
-    ProtocolStripComponent,
-    BattleLogComponent,
     ResultOverlayComponent,
     HelpOverlayComponent,
     EvolutionOverlayComponent,

@@ -2,8 +2,17 @@
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 760px;
-  min-width: 0;
-  margin: 0 auto;
-  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 12px max(12px, env(safe-area-inset-left));
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.arena {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 150px 1fr;
+  gap: 0;
+  overflow: hidden;
 }

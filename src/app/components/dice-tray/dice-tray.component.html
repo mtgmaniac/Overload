@@ -1,96 +1,106 @@
 <div class="dice-tray-wrap" id="tut-dice-tray" [class.dice-tray--animating]="isAnimating()">
-  <div class="shared-dice-tray">
-    <div class="tray-split">
-      <!-- Enemy dice -->
-      <div class="tray-band">
-        <div class="tray-dice-row tray-dice-row--enemies"
-             [class.tray-dice-row--spread]="state.enemies().length >= 3"
-             [class.tray-dice-row--center]="state.enemies().length < 3">
-          @for (enemy of state.enemies(); track enemy.id; let i = $index) {
-            <div class="tray-unit-col"
-                 [attr.id]="i === 0 && !enemy.dead ? 'tut-enemy-die-drone' : null">
-              <div class="tray-enemy-slot">
-                @if (!enemy.dead) {
-                  <div class="die-drift-wrap"
-                       [style.transform]="dieDriftStyle(enemyDriftPx()[i])">
-                    <app-die
-                      [roll]="enemyTrayDieRoll(enemy, i)"
-                      [clickable]="false"
-                      [animDisplay]="enemyAnimDisplays()[i] ?? null"
-                      [spriteCell]="enemyAnimSpriteCells()[i] ?? null" />
-                    @if (enemyDieFrostVisible()[i]) {
-                      <div class="tray-die-frost" aria-hidden="true"></div>
-                    }
-                  </div>
-                } @else {
-                  <div class="tray-die-spacer" aria-hidden="true"></div>
+
+  <!-- Enemy dice grid (top) -->
+  <div class="center-band center-band--enemies">
+    <div class="center-band-label">ENEMY</div>
+    <div class="center-dice-grid">
+      @for (enemy of state.enemies(); track enemy.id; let i = $index) {
+        <div class="center-die-cell"
+             [attr.id]="i === 0 && !enemy.dead ? 'tut-enemy-die-drone' : null">
+          @if (!enemy.dead) {
+            <div class="die-drift-wrap" [style.transform]="dieDriftStyle(enemyDriftPx()[i])">
+              <app-die
+                [roll]="enemyTrayDieRoll(enemy, i)"
+                [clickable]="false"
+                [animDisplay]="enemyAnimDisplays()[i] ?? null"
+                [spriteCell]="enemyAnimSpriteCells()[i] ?? null" />
+              @if (enemyDieFrostVisible()[i]) {
+                <div class="tray-die-frost" aria-hidden="true"></div>
+              }
+            </div>
+          } @else {
+            <div class="center-die-spacer"></div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Action zone (middle) -->
+  <div class="center-action">
+    <!-- Protocol display -->
+    <div class="cp-proto">
+      <span class="cp-proto-label">PROTOCOL</span>
+      <span class="cp-proto-val">{{ state.protocol() }}</span>
+    </div>
+
+    <!-- Main action button -->
+    @if (isAnimating()) {
+      <button class="btn-main end" disabled>
+        <span class="ma-label">Rolling...</span>
+      </button>
+    } @else if (!state.allHeroesRolled()) {
+      <button id="tut-main-action" class="btn-main roll btn-main--accent"
+              (click)="onRollAll()"
+              [disabled]="state.rollAllInProgress() || state.rollAnimInProgress() || tutorial.tutorialModalOpen() || combat.simBattleRunning()">
+        ▶ ROLL
+      </button>
+    } @else {
+      <button id="tut-main-action" class="btn-main end"
+              [class.btn-main--ready]="endTurnReadyGlow()"
+              (click)="onEndTurn()"
+              [disabled]="!state.allHeroesReady() || state.phase() !== 'player' || isAnimating() || tutorial.tutorialModalOpen() || combat.simBattleRunning()">
+        END TURN ▶
+      </button>
+    }
+
+    <!-- Protocol actions (nudge/reroll) - shown when rolled -->
+    @if (state.allHeroesRolled() && state.phase() === 'player') {
+      <div class="cp-actions">
+        <button class="cp-btn" (click)="onNudge()" [disabled]="!canNudge()">+1 ⬡1</button>
+        <button class="cp-btn" (click)="onReroll()" [disabled]="!canReroll()">↺ ⬡3</button>
+      </div>
+    }
+  </div>
+
+  <!-- Hero dice grid (bottom) -->
+  <div class="center-band center-band--heroes">
+    <div class="center-band-label">SQUAD</div>
+    <div class="center-dice-grid">
+      @for (hero of state.heroes(); track trayHeroTrack(hero); let i = $index) {
+        <div class="center-die-cell"
+             [attr.id]="hero.id === 'pulse' && hero.currentHp > 0 ? 'tut-die-pulse' : null">
+          <div class="mc-slot mc-slot--squad">
+            <div class="tray-hero-dice-row">
+              @if (cursedExtraDieVisible(i)) {
+                <div class="die-drift-wrap tray-cursed-extra-die"
+                     [style.transform]="dieDriftStyle(heroDriftPx()[i])"
+                     aria-hidden="true">
+                  <app-die
+                    [roll]="cursedTrayExtraRoll(i)"
+                    [clickable]="false"
+                    [animDisplay]="heroExtraAnimDisplays()[i] ?? null"
+                    [spriteCell]="heroExtraAnimSpriteCells()[i] ?? null" />
+                </div>
+              }
+              <div class="die-drift-wrap" [style.transform]="dieDriftStyle(heroDriftPx()[i])">
+                <app-die #heroDie
+                  [class.tray-die--dead]="hero.currentHp <= 0"
+                  [roll]="heroTrayDieRoll(hero, i)"
+                  [clickable]="hero.currentHp > 0 && hero.roll === null && state.phase() === 'player' && !isAnimating() && !combat.simBattleRunning()"
+                  [displayText]="getHeroDisplayText(hero, i)"
+                  [animDisplay]="heroAnimDisplays()[i] ?? null"
+                  [spriteCell]="heroAnimSpriteCells()[i] ?? null"
+                  (dieClicked)="onRollHero(i)" />
+                @if (heroDieFrostVisible()[i]) {
+                  <div class="tray-die-frost" aria-hidden="true"></div>
                 }
               </div>
             </div>
-          }
+          </div>
         </div>
-      </div>
-
-      <!-- Mid bar - action button -->
-      <div class="tray-mid-bar">
-        @if (isAnimating()) {
-          <button class="btn-main end" disabled>
-            <span class="ma-label">Rolling...</span><span class="ma-arrow">▶</span>
-          </button>
-        } @else if (!state.allHeroesRolled()) {
-          <button id="tut-main-action" class="btn-main roll btn-main--accent" (click)="onRollAll()"
-                  [disabled]="state.rollAllInProgress() || state.rollAnimInProgress() || tutorial.tutorialModalOpen() || combat.simBattleRunning()">
-            <span class="ma-arrow">▶</span> ROLL ALL DICE
-          </button>
-        } @else {
-          <button id="tut-main-action" class="btn-main end"
-                  [class.btn-main--ready]="endTurnReadyGlow()"
-                  (click)="onEndTurn()"
-                  [disabled]="!state.allHeroesReady() || state.phase() !== 'player' || isAnimating() || tutorial.tutorialModalOpen() || combat.simBattleRunning()">
-            END TURN <span class="ma-arrow">▶</span>
-          </button>
-        }
-      </div>
-
-      <!-- Squad dice -->
-      <div class="tray-band">
-        <div class="tray-dice-row tray-dice-row--squad">
-          @for (hero of state.heroes(); track trayHeroTrack(hero); let i = $index) {
-            <div class="tray-unit-col"
-                 [attr.id]="hero.id === 'pulse' && hero.currentHp > 0 ? 'tut-die-pulse' : null">
-              <div class="mc-slot mc-slot--squad">
-                <div class="tray-hero-dice-row">
-                  @if (cursedExtraDieVisible(i)) {
-                    <div class="die-drift-wrap tray-cursed-extra-die"
-                         [style.transform]="dieDriftStyle(heroDriftPx()[i])"
-                         aria-hidden="true">
-                      <app-die
-                        [roll]="cursedTrayExtraRoll(i)"
-                        [clickable]="false"
-                        [animDisplay]="heroExtraAnimDisplays()[i] ?? null"
-                        [spriteCell]="heroExtraAnimSpriteCells()[i] ?? null" />
-                    </div>
-                  }
-                  <div class="die-drift-wrap"
-                       [style.transform]="dieDriftStyle(heroDriftPx()[i])">
-                    <app-die #heroDie
-                      [class.tray-die--dead]="hero.currentHp <= 0"
-                      [roll]="heroTrayDieRoll(hero, i)"
-                      [clickable]="hero.currentHp > 0 && hero.roll === null && state.phase() === 'player' && !isAnimating() && !combat.simBattleRunning()"
-                      [displayText]="getHeroDisplayText(hero, i)"
-                      [animDisplay]="heroAnimDisplays()[i] ?? null"
-                      [spriteCell]="heroAnimSpriteCells()[i] ?? null"
-                      (dieClicked)="onRollHero(i)" />
-                    @if (heroDieFrostVisible()[i]) {
-                      <div class="tray-die-frost" aria-hidden="true"></div>
-                    }
-                  </div>
-                </div>
-              </div>
-            </div>
-          }
-        </div>
-      </div>
+      }
     </div>
   </div>
+
 </div>

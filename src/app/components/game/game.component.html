@@ -6,12 +6,10 @@
   <div id="app">
     <app-header (helpClicked)="helpOpen.set(true)" (backHomeClicked)="onChangeOperation()" />
     <app-item-pending-banner />
-    <div class="lanes">
+    <div class="arena">
       <app-enemy-zone />
       <app-dice-tray />
       <app-hero-zone />
-      <app-protocol-strip />
-      <app-battle-log />
     </div>
   </div>
 }

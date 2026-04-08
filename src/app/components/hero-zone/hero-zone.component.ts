@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, computed } from '@angular/core';
 import { GameStateService } from '../../services/game-state.service';
 import { TargetingService } from '../../services/targeting.service';
 import { ItemService } from '../../services/item.service';
@@ -17,6 +17,9 @@ export class HeroZoneComponent {
   state = inject(GameStateService);
   targeting = inject(TargetingService);
   items = inject(ItemService);
+
+  /** Count of non-null inventory slots. */
+  itemCount = computed(() => this.state.inventory().filter(x => x !== null).length);
 
   /** Include tier/max/name so evolved heroes reconcile and OnPush inputs refresh (id alone is stable). */
   heroZoneTrack(hero: HeroState): string {

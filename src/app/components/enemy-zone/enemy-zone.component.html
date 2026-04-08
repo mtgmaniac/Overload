@@ -1,6 +1,9 @@
-<div class="enemy-zone-wrap" id="tut-enemy-zone">
-  <div class="enemy-row" [class.enemy-row--spread]="state.enemies().length >= 3"
-       [class.enemy-row--center]="state.enemies().length < 3">
+<div class="enemy-zone-wrap">
+  <div class="enemy-col-header">
+    <span class="ez-label">ENEMIES</span>
+    <span class="ez-battle">Battle {{ state.battle() + 1 }}</span>
+  </div>
+  <div class="enemy-col">
     @for (enemy of state.enemies(); track enemy.id; let i = $index) {
       <app-enemy-card
         [enemy]="enemy"

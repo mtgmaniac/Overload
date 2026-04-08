@@ -377,6 +377,28 @@ export class DiceTrayComponent {
     this.combat.endTurn();
   }
 
+  canNudge(): boolean {
+    return this.protocol.canNudge() && this.state.isPlayerPhase() &&
+      this.state.heroes().some(h => {
+        if (h.currentHp <= 0 || h.roll === null) return false;
+        const eff = Math.min(20, (h.roll || 0) + (h.rollBuff || 0) + (h.rollNudge || 0));
+        return eff < 20;
+      });
+  }
+
+  canReroll(): boolean {
+    return this.protocol.canReroll() && this.state.isPlayerPhase() &&
+      this.state.heroes().some(h => h.currentHp > 0 && h.roll !== null);
+  }
+
+  onNudge(): void {
+    this.protocol.startNudge();
+  }
+
+  onReroll(): void {
+    this.protocol.startReroll();
+  }
+
   /** CSS transform for horizontal drift; grid columns stay fixed. */
   dieDriftStyle(px: number | undefined): string {
     const n = px ?? 0;

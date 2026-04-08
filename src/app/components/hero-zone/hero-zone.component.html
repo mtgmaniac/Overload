@@ -1,5 +1,9 @@
 <div class="hero-zone-wrap">
-  <div class="heroes-zone" id="tut-heroes-zone">
+  <div class="hero-col-header">
+    <span class="hz-items">Items {{ itemCount() }}/3</span>
+    <span class="hz-label">SQUAD</span>
+  </div>
+  <div class="hero-col">
     @for (hero of state.heroes(); track heroZoneTrack(hero); let i = $index) {
       <app-hero-card
         [hero]="hero"
