@@ -886,10 +886,6 @@ export class CombatService {
       }
     }
 
-    if (act.packBonus) {
-      // Pack bonus was already applied in the dmg block above; no additional action needed here.
-    }
-
     await this.maybeEliteNaturalTwentySummon(ei, e, act);
   }
 
